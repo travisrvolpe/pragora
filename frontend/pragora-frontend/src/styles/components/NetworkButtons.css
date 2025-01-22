@@ -1,0 +1,59 @@
+/* NetworkButtons.css */
+
+/* Base styles for all network buttons */
+.network-button {
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Accept button styles */
+.accept-button {
+    background-color: #007bff;
+    color: white;
+}
+
+.accept-button:hover:not(:disabled) {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+/* Ignore button styles */
+.ignore-button {
+    background-color: #6c757d;
+    color: white;
+}
+
+.ignore-button:hover:not(:disabled) {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+}
+
+/* Make request button styles */
+.request-button {
+    background-color: #28a745;
+    color: white;
+}
+
+.request-button:hover:not(:disabled) {
+    background-color: #218838;
+    transform: translateY(-1px);
+}
+
+/* Message button styles */
+.message-button {
+    background-color: #ffc107;
+    color: black;
+}
+
+.message-button:hover:not(:disabled) {
+    background-color: #e0a800;
+    transform: translateY(-1px);
+}

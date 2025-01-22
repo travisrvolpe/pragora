@@ -1,0 +1,52 @@
+/* index.css */
+
+/* Global Reset and Base Styles */
+body {
+  margin: 0;
+  padding: 0;
+  display: flex; /* Enable flexbox layout */
+  justify-content: center; /* Center horizontally by default */
+  align-items: center; /* Center vertically by default */
+  min-height: 100vh; /* Full viewport height */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f5f5; /* Neutral background color */
+  color: #333333; /* Default text color */
+  text-align: center; /* Center text by default */
+  box-sizing: border-box; /* Consistent box model */
+}
+
+/* Flexbox Utility Classes */
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.text-left {
+  text-align: left;
+}
+
+/* Utility Class to Reset Default Centering */
+.full-page {
+  display: flex;
+  flex-direction: column; /* Stack content vertically */
+  justify-content: flex-start; /* Top-align content */
+  align-items: flex-start; /* Left-align content */
+  text-align: left; /* Override text centering */
+  width: 100%;
+  min-height: 100vh; /* Ensure full height */
+  padding: 2rem; /* Add padding for spacing */
+  box-sizing: border-box;
+}

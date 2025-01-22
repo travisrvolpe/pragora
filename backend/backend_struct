@@ -1,0 +1,36 @@
+backend/
+│
+├── app/
+│   ├── models/        # Database models and possibly ML model metadata
+│   ├── routes/        # API routes for login, register, and other features
+│   ├── services/      # Business logic (e.g., ML model inference calls, TAP API handlers)
+│   ├── utils/         # Helper functions and utilities
+│   ├── auth/          # Authentication logic
+│   └── __init__.py    # Initialization script
+│
+├── ml/                # Machine learning models
+│   ├── classifiers/   # Topic classification, fallacy detection models
+│   ├── preprocess/    # Data preprocessing scripts
+│   ├── inference.py   # Centralized inference calls
+│   └── __init__.py    # Initialization for ML folder
+│
+├── db/
+│   ├── dialectica_schema.sql
+│   └── connection.py  # Database connection logic
+│
+├── integrations/      # Third-party APIs (TAP, GIS, graph/networking models)
+│   ├── tap_api.py     # TAP plan generation handlers
+│   ├── gis_api.py     # GIS-related integrations
+│   ├── networking.py  # Graph/networking model handlers
+│   └── __init__.py    # Initialization script
+│
+├── tests/             # Unit and integration tests
+│   ├── auth/
+│   ├── ml/
+│   ├── integrations/
+│   ├── models/
+│   └── utils/
+│
+├── main.py            # Backend entry point
+├── Dockerfile         # For containerization
+└── docker-compose.yml # For managing multi-service setups

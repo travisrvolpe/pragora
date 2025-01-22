@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+build/
+
+# Miscellaneous
+.DS_Store
+.env*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python Virtual Environments
+venv/
+.env/
+ENV/
+env/
+.venv*/
+bin/
+include/
+lib/
+local/
+share/
+pyvenv.cfg
+backend/env
+
+# Packaging
+.Python
+develop-eggs/
+dist/
+eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+*.wheel
+
+# Logs
+*.log
+*.temp
+*.tmp
+
+# Jupyter Notebooks
+.ipynb_checkpoints

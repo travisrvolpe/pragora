@@ -1,0 +1,66 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: your_linux_username
+          POSTGRES_PASSWORD: your_linux_password
+          POSTGRES_DB: dialectica
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U your_linux_username"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Run backend tests
+        run: |
+          pytest backend/tests/
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend/dialectica-frontend
+          npm install
+
+      - name: Run frontend build
+        run: |
+          cd frontend/dialectica-frontend
+          npm run build
+
+env:
+  POSTGRES_USER: ${{ secrets.notsure }}
+  POSTGRES_PASSWORD: ${{ secrets.ugabuga22 }}
+  POSTGRES_DB: ${{ secrets.dialectica }}

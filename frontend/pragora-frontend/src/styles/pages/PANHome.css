@@ -1,0 +1,87 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+header {
+    background-color: #007bff;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+h1, h2 {
+    margin: 10px 0;
+    text-align: center;
+}
+
+/* Section Styles */
+.pan-home-page section {
+    margin: 20px auto;
+    padding: 20px;
+    max-width: 800px; /* Increased width to allow more cards per row */
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pan-home-page section h2 {
+    text-align: left;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+/* Card Styles */
+.connection-card, .suggestion-card, .request-card {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.connection-card h3, .suggestion-card h3, .request-card h3 {
+    margin: 5px 0;
+    color: #007bff;
+}
+
+.connection-card p, .suggestion-card p, .request-card p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #555;
+}
+
+/* List Styles */
+.connection-list, .suggestion-list, .request-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.connection-list > div, .suggestion-list > div, .request-list > div {
+    flex: 1 1 calc(30% - 10px);
+    box-sizing: border-box;
+}
+/* Media Queries */
+@media (max-width: 1024px) {
+    .connection-card, .suggestion-card, .request-card {
+        width: calc(50% - 20px); /* 2 cards per row for smaller screens */
+    }
+}
+
+@media (max-width: 768px) {
+    .connection-card, .suggestion-card, .request-card {
+        width: 100%; /* 1 card per row for small screens */
+    }
+
+    .pan-home-page section h2 {
+        text-align: center;
+    }
+}

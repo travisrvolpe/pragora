@@ -1,0 +1,119 @@
+/* Base styles for all buttons */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+/* Icons within buttons */
+.button-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Disabled state */
+.button:disabled {
+  background-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Specific styles for button types */
+.like-button {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.like-button:hover:not(:disabled) {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.dislike-button {
+  background-color: #ef4444;
+  color: white;
+}
+
+.dislike-button:hover:not(:disabled) {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.love-button {
+  background-color: #ec4899;
+  color: white;
+}
+
+.love-button:hover:not(:disabled) {
+  background-color: #db2777;
+  transform: translateY(-1px);
+}
+
+.hate-button {
+  background-color: #6b7280;
+  color: white;
+}
+
+.hate-button:hover:not(:disabled) {
+  background-color: #4b5563;
+  transform: translateY(-1px);
+}
+
+.save-button {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.save-button:hover:not(:disabled) {
+  background-color: #d97706;
+  transform: translateY(-1px);
+}
+
+.share-button {
+  background-color: #10b981;
+  color: white;
+}
+
+.share-button:hover:not(:disabled) {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.report-button {
+  background-color: #f87171;
+  color: white;
+}
+
+.report-button:hover:not(:disabled) {
+  background-color: #ef4444;
+  transform: translateY(-1px);
+}
+
+/* View Discussion Button */
+.view-discussion-button {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.view-discussion-button:hover:not(:disabled) {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+/* Start Discussion Button */
+.start-discussion-button {
+  background-color: #10b981;
+  color: white;
+}
+
+.start-discussion-button:hover:not(:disabled) {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
