@@ -7,10 +7,10 @@ import '../styles/layout.css';
 
 const Layout = ({ children }) => {
   return (
-    <div className="layout">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <TopBar />
       <Navbar />
-      <main className="main-content">
+      <main className="flex-grow p-8 mt-[60px]">
         {children}
       </main>
       <Footer />

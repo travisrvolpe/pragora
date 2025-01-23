@@ -1,179 +1,102 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+// src/components/PostOptions.js
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { MessageCircle, Image, BookOpen, Brain, Users, ChartBar } from 'lucide-react';
 import "../styles/pages/CreateContent.css";
 
-const CreateContent = () => {
-  const [selectedType, setSelectedType] = useState("thoughts");
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [isDraft, setIsDraft] = useState(false);
 
-  const navigate = useNavigate();
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const postData = {
-      type: selectedType,
-      title,
-      content,
-      isDraft,
-    };
-    // Simulate API call
-    console.log("Post submitted:", postData);
-    alert(isDraft ? "Draft saved!" : "Post published!");
-    navigate("/"); // Redirect to home page after submission
-  };
-
-  const renderFormFields = () => {
-    switch (selectedType) {
-      case "thoughts":
-        return (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="What's on your mind?"
-            rows={3}
-            className="content-input"
-          />
-        );
-      case "image":
-        return (
-          <>
-            <input
-              type="file"
-              accept="image/*"
-              className="file-input"
-              onChange={(e) => console.log("Image selected:", e.target.files[0])}
-            />
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Add a caption (optional)"
-              rows={2}
-              className="content-input"
-            />
-          </>
-        );
-      case "article":
-        return (
-          <>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing your article..."
-              rows={10}
-              className="content-input"
-            />
-          </>
-        );
-      case "debate":
-        return (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Pose your argument or question to start the debate..."
-            rows={5}
-            className="content-input"
-          />
-        );
-      case "journal":
-        return (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Write privately for your own reflection..."
-            rows={5}
-            className="content-input"
-          />
-        );
-      case "brainstorm":
-        return (
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Share your ideas or thoughts to brainstorm..."
-            rows={5}
-            className="content-input"
-          />
-        );
-      default:
-        return null;
+const PostOptions = () => {
+  const basicOptions = [
+    {
+      icon: <MessageCircle className="w-8 h-8" />,
+      title: "Share Thoughts",
+      description: "Quick insights and updates",
+      limit: "280 characters",
+      color: "bg-blue-500",
+      link: "/share-thoughts"
+    },
+    {
+      icon: <Image className="w-8 h-8" />,
+      title: "Share Images",
+      description: "Visual content with captions",
+      limit: "Up to 4 images",
+      color: "bg-green-500",
+      link: "/share-image"
+    },
+    {
+      icon: <BookOpen className="w-8 h-8" />,
+      title: "Write Article",
+      description: "In-depth analysis and discussion",
+      limit: "No length limit",
+      color: "bg-purple-500",
+        link: "/write-article" // Example route
     }
-  };
+  ];
+
+  /* Add 'personal' options - Journaling or Vision Board? or make these part of TAP? */
+
+  const advancedOptions = [
+    {
+      icon: <Brain className="w-8 h-8" />,
+      title: "Start Discussion",
+      description: "Structured debate and dialogue",
+      color: "bg-orange-500",
+     link: "/start-discussion" // Example route
+    },
+    {
+      icon: <Users className="w-8 h-8" />,
+      title: "Group Project",
+      description: "Collaborative initiatives",
+      color: "bg-red-500",
+        link: "/group-project" // Example route
+    },
+    {
+      icon: <ChartBar className="w-8 h-8" />,
+      title: "Share Research",
+      description: "Data-driven insights",
+      color: "bg-indigo-500",
+       link: "/share-research" // Example route
+    }
+  ];
+
+   const PostOption = ({ option }) => (
+    <Link to={option.link} className="no-underline">
+    <div className="flex items-start space-x-4 p-4 rounded-lg border hover:shadow-lg transition-shadow cursor-pointer">
+      <div className={`${option.color} p-3 rounded-full text-white`}>
+        {option.icon}
+      </div>
+      <div>
+        <h3 className="font-semibold text-lg">{option.title}</h3>
+        <p className="text-gray-600 text-sm">{option.description}</p>
+        {option.limit && (
+          <span className="text-xs text-gray-500 mt-1 block">{option.limit}</span>
+        )}
+      </div>
+    </div>
+    </Link>
+  );
 
   return (
-    <div className="create-content-container">
-      <h1>Create Content</h1>
-      <p>What do you want to do?</p>
-
-      {/* Main Options */}
-      <div className="main-options">
-        <button
-          onClick={() => setSelectedType("thoughts")}
-          className={`option-button ${selectedType === "thoughts" ? "active" : ""}`}
-        >
-          Share Thoughts
-        </button>
-        <button
-          onClick={() => setSelectedType("image")}
-          className={`option-button ${selectedType === "image" ? "active" : ""}`}
-        >
-          Share Image
-        </button>
-        <button
-          onClick={() => setSelectedType("article")}
-          className={`option-button ${selectedType === "article" ? "active" : ""}`}
-        >
-          Write Article
-        </button>
-      </div>
-
-      {/* Advanced Options */}
-      <div className="advanced-options">
-        <label htmlFor="advanced-options-dropdown">Advanced Options:</label>
-        <select
-          id="advanced-options-dropdown"
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value)}
-        >
-          <option value="debate">Start Debate</option>
-          <option value="journal">Create Journal</option>
-          <option value="brainstorm">Start Brainstorm</option>
-        </select>
-      </div>
-
-      {/* Dynamic Form Fields */}
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title (optional)"
-          className="title-input"
-        />
-        {renderFormFields()}
-        <div className="action-buttons">
-          <button
-            type="button"
-            onClick={() => {
-              setIsDraft(true);
-              handleSubmit();
-            }}
-            className="draft-button"
-          >
-            Save Draft
-          </button>
-          <button
-            type="submit"
-            onClick={() => setIsDraft(false)}
-            className="publish-button"
-          >
-            Publish
-          </button>
+    <div className="max-w-3xl mx-auto p-6 space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Create Content</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {basicOptions.map((option, i) => (
+            <PostOption key={i} option={option} />
+          ))}
         </div>
-      </form>
+      </div>
+
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Advanced Options</h2>
+        <div className="grid md:grid-cols-2 gap-4">
+          {advancedOptions.map((option, i) => (
+            <PostOption key={i} option={option} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default CreateContent;
+export default PostOptions;

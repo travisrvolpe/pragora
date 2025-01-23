@@ -1,57 +1,83 @@
 .create-content-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-  background-color: #f9fafb;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 48rem; /* max-w-3xl */
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1.5rem; /* p-6 */
 }
 
-.main-options, .advanced-options {
+.section-container {
+  margin-bottom: 2rem; /* space-y-8 */
+}
+
+.section-title {
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 700; /* font-bold */
+  margin-bottom: 1rem; /* mb-4 */
+}
+
+.options-grid {
+  display: grid;
+  gap: 1rem; /* gap-4 */
+}
+
+@media (min-width: 768px) {
+  .options-grid {
+    grid-template-columns: repeat(2, 1fr); /* md:grid-cols-2 */
+  }
+}
+
+.option-card {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.option-button {
-  padding: 0.75rem 1.5rem;
-  background-color: #e5e7eb;
-  border: none;
-  border-radius: 0.5rem;
+  align-items: flex-start;
+  padding: 1rem; /* p-4 */
+  border-radius: 0.5rem; /* rounded-lg */
+  border: 1px solid #e5e7eb; /* border */
+  transition: box-shadow 0.3s;
   cursor: pointer;
 }
 
-.option-button.active {
-  background-color: #3b82f6;
+.option-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); /* hover:shadow-lg */
+}
+
+.icon-container {
+  padding: 0.75rem; /* p-3 */
+  border-radius: 9999px; /* rounded-full */
+  margin-right: 1rem; /* space-x-4 */
   color: white;
 }
 
-.title-input, .content-input, .file-input {
-  width: 100%;
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
+.icon-container svg {
+  width: 2rem; /* w-8 */
+  height: 2rem; /* h-8 */
 }
 
-.action-buttons {
-  display: flex;
-  gap: 1rem;
+.option-content {
+  flex: 1;
 }
 
-.draft-button, .publish-button {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
+.option-title {
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 600; /* font-semibold */
+  margin-bottom: 0.25rem;
 }
 
-.draft-button {
-  background-color: #fbbf24;
-  color: white;
+.option-description {
+  font-size: 0.875rem; /* text-sm */
+  color: #4b5563; /* text-gray-600 */
 }
 
-.publish-button {
-  background-color: #10b981;
-  color: white;
+.option-limit {
+  font-size: 0.75rem; /* text-xs */
+  color: #6b7280; /* text-gray-500 */
+  margin-top: 0.25rem;
+  display: block;
 }
+
+/* Icon background colors */
+.bg-blue-500 { background-color: #3b82f6; }
+.bg-green-500 { background-color: #22c55e; }
+.bg-purple-500 { background-color: #a855f7; }
+.bg-orange-500 { background-color: #f97316; }
+.bg-red-500 { background-color: #ef4444; }
+.bg-indigo-500 { background-color: #6366f1; }
