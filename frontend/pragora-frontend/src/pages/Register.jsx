@@ -8,7 +8,6 @@ import '../styles/pages/Register.css';
 const Register = () => {
   const [formData, setFormData] = useState({
     email: '',
-    username: '',
     password: '',
   });
   const [errors, setErrors] = useState({});
@@ -30,9 +29,6 @@ const Register = () => {
     if (!formData.email.includes("@")) {
       newErrors.email = "Please enter a valid email";
     }
-    if (formData.username.length < 3) {
-      newErrors.username = "Username must be at least 3 characters";
-    }
     if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
@@ -51,6 +47,8 @@ const Register = () => {
     try {
       await registerUser(formData);
       setMessage("Registration successful!");
+      navigate(`/profile`);
+      //navigate("/profile", { state: { userId: response.data.user_id } });
     } catch (error) {
       console.error("Registration error:", error);
       const errorMessage = error.response?.data?.detail || "Registration failed. Please try again.";
@@ -78,15 +76,6 @@ const Register = () => {
           onChange={handleInputChange}
           placeholder="Email"
           error={errors.email}
-        />
-
-        <FormInput
-          type="text"
-          name="username"
-          value={formData.username}
-          onChange={handleInputChange}
-          placeholder="Username"
-          error={errors.username}
         />
 
         <FormInput

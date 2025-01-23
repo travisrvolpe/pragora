@@ -5,7 +5,7 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Profile from "./pages/Profile";
+import UserProfile from "./pages/Profile";
 import DialecticaHome from './pages/DialecticaHome';
 import DiscussionView from './pages/DiscussionView';
 import CreateContent from "./pages/CreateContent";
@@ -22,7 +22,7 @@ function AppRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={<UserProfile />} />
         <Route path="/Dialectica" element={<DialecticaHome />} />
         <Route path="/create-content" element={<CreateContent />} />
         <Route path="/discussions/:id" element={<DiscussionView />} />

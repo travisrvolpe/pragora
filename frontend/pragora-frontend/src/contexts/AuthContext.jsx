@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
@@ -8,38 +7,59 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        if (authService.getToken()) {
-          const userData = await authService.getCurrentUser();
-          setUser(userData);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-        setUser(null);
-        authService.logout();
-      } finally {
+    let isMounted = true;
+
+    // Wrapper function to execute the async operation
+    const initializeAuth = () => {
+      const token = authService.getToken();
+      if (!token) {
         setLoading(false);
+        return;
       }
+
+      authService.getCurrentUser()
+        .then(userData => {
+          if (isMounted) {
+            setUser(userData);
+          }
+        })
+        .catch(error => {
+          console.error("Failed to fetch user:", error);
+          if (isMounted) {
+            setError("Failed to fetch user details.");
+            setUser(null);
+            authService.logout();
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setLoading(false);
+          }
+        });
     };
 
-    fetchUser();
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const loginUser = async (credentials) => {
     try {
       const response = await authService.login(credentials);
       if (response.success) {
-        const userData = response.user;
-        setUser(userData);
+        setUser(response.user);
         navigate("/Dialectica");
         return response;
       }
     } catch (error) {
       console.error("Login failed:", error);
+      setError("Invalid login credentials.");
       throw error;
     }
   };
@@ -58,6 +78,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Registration failed:", error);
+      setError("Registration failed. Please try again.");
       throw error;
     }
   };
@@ -74,6 +95,7 @@ export const AuthProvider = ({ children }) => {
     registerUser,
     logoutUser,
     loading,
+    error,
     isAuthenticated: !!user
   };
 
@@ -87,7 +109,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

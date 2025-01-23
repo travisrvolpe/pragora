@@ -1,6 +1,7 @@
-from fastapi.middleware.cors import CORSMiddleware
+# main.py
 from fastapi import FastAPI
-from app.routes.auth_routes import router as auth_router
+from fastapi.middleware.cors import CORSMiddleware
+from app.routes import auth_routes, profile_routes
 from database.database import database, Base, engine
 
 # Create database tables
@@ -13,8 +14,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],  # Front-end URL
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all HTTP headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.on_event("startup")
@@ -25,5 +26,10 @@ async def startup():
 async def shutdown():
     await database.disconnect()
 
-# Include authentication routes
-app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+# Include routers - note we're not adding the prefix here since it's defined in the router
+app.include_router(auth_routes.router)
+app.include_router(profile_routes.router)
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to Pragora API"}
