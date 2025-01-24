@@ -1,7 +1,9 @@
 // src/components/PostOptions.js
+// this page is getting cluttered
+
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MessageCircle, Image, BookOpen, Brain, Users, ChartBar } from 'lucide-react';
+import { MessageCircle, Image, BookOpen, Brain, Users, ChartBar, Star, Calendar } from 'lucide-react';
 import "../styles/pages/CreateContent.css";
 
 
@@ -29,7 +31,7 @@ const PostOptions = () => {
       description: "In-depth analysis and discussion",
       limit: "No length limit",
       color: "bg-purple-500",
-        link: "/write-article" // Example route
+      link: "/write-article" // Example route
     }
   ];
 
@@ -58,6 +60,29 @@ const PostOptions = () => {
        link: "/share-research" // Example route
     }
   ];
+  const otherOptions = [
+      {
+        icon: <BookOpen className="w-8 h-8" />,
+        title: "Write Journal",
+        description: "Personal reflections and progress tracking",
+        color: "bg-teal-500",
+        path: "/TAP/journal"
+      },
+    {
+      icon: <Star className="w-8 h-8" />,
+      title: "Create Vision Board",
+      description: "Visualize and plan your goals",
+      color: "bg-indigo-500",
+      path: "/TAP/vision-board"
+    },
+    {
+      icon: <Calendar className="w-8 h-8" />,
+      title: "Schedule Event",
+      description: "Create and share events",
+      color: "bg-rose-500",
+      path: "/TAP/create-event"
+    }
+  ];
 
    const PostOption = ({ option }) => (
     <Link to={option.link} className="no-underline">
@@ -77,25 +102,33 @@ const PostOptions = () => {
   );
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Create Content</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {basicOptions.map((option, i) => (
-            <PostOption key={i} option={option} />
-          ))}
+      <div className="max-w-3xl mx-auto p-6 space-y-8">
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Create Content</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            {basicOptions.map((option, i) => (
+                <PostOption key={i} option={option}/>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Advanced Options</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {advancedOptions.map((option, i) => (
-            <PostOption key={i} option={option} />
-          ))}
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Advanced Options</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            {advancedOptions.map((option, i) => (
+                <PostOption key={i} option={option}/>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Other Creation Options</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            {otherOptions.map((option, i) => (
+                <PostOption key={i} option={option}/>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
   );
 };
 

@@ -4,7 +4,7 @@ services:
   # Frontend Next.js application
   frontend:
     build:
-      context: ./frontend
+      context: ../../frontend
       dockerfile: Dockerfile.dev
     volumes:
       - ./frontend:/app
@@ -22,10 +22,10 @@ services:
   # FastAPI backend
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile.dev
     volumes:
-      - ./backend:/app
+      - .:/app
     ports:
       - "8000:8000"
     environment:
@@ -48,7 +48,7 @@ services:
       - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=ugabuga22
       - POSTGRES_DB=pragora
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -86,7 +86,7 @@ services:
   # Jupyter Lab for ML development (optional)
   jupyter:
     build:
-      context: ./ml
+      context: ../ml
       dockerfile: Dockerfile.jupyter
     volumes:
       - ./ml:/work

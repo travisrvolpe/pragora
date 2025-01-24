@@ -9,6 +9,7 @@ import UserProfile from "./pages/Profile";
 import DialecticaHome from './pages/DialecticaHome';
 import DiscussionView from './pages/DiscussionView';
 import CreateContent from "./pages/CreateContent";
+import WriteArticle from "./pages/WriteArticle";
 import DiscussionList from './pages/DiscussionList';
 import ShareThoughts from './pages/ShareThoughts';
 import ShareImage from './pages/ShareImage';
@@ -29,6 +30,7 @@ function AppRoutes() {
         <Route path="/create-content" element={<CreateContent />} />
         <Route path="/share-thoughts" element={<ShareThoughts />} />
         <Route path="/share-image" element={<ShareImage/>} />
+        <Route path="/write-article" element={<WriteArticle/>} />
         <Route path="/discussions/:id" element={<DiscussionView />} />
         <Route path="/discussions" element={<DiscussionList />} />
         <Route path="/TAP" element={<TAPHome />} />

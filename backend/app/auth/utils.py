@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session
 from app.utils.database_utils import get_db
 from app.datamodels.schemas import TokenData
 from app.datamodels.datamodels import User
+from app.core.config import settings
 
 # Constants for JWT
-SECRET_KEY = "your_secret_key"  # Replace with your actual secret key
+SECRET_KEY = settings.JWT_SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

@@ -25,7 +25,7 @@ function DiscussionList() {
     const fetchDiscussions = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('http://localhost:5000/api/discussions');
+        const response = await fetch('http://localhost:8000/api/discussions');
         if (!response.ok) throw new Error('Failed to fetch discussions');
         const data = await response.json();
         setDiscussions(data);

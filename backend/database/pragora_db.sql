@@ -1,8 +1,8 @@
 -- Pragora Database Schema
 
-DROP TABLE IF EXISTS user_profile CASCADE;
-DROP TABLE IF EXISTS sessions CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
+--DROP TABLE IF EXISTS user_profile CASCADE;
+--DROP TABLE IF EXISTS sessions CASCADE;
+--DROP TABLE IF EXISTS users CASCADE;
 
 -- Users Table
 CREATE TABLE users (
@@ -22,9 +22,10 @@ CREATE TABLE sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL
 );
+
 -- Profile Table
 CREATE TABLE user_profile (
-    user_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(user_id) PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     --email VARCHAR(255) UNIQUE NOT NULL,
     --password_hash VARCHAR(60) NOT NULL,
@@ -55,4 +56,15 @@ CREATE TABLE user_profile (
     role VARCHAR(50) DEFAULT 'user',
     is_admin BOOLEAN DEFAULT false,
     is_instructor BOOLEAN DEFAULT false
+);
+
+-- Posts Table
+CREATE TABLE posts (
+    post_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    title VARCHAR(255),
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'active'
 );

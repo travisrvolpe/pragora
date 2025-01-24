@@ -1,51 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ThumbsUp, ThumbsDown, Share, Flag, BookmarkPlus, MessageSquare, ArrowLeft } from 'lucide-react';
 import { LikeButton, DislikeButton, LoveButton, HateButton, SaveButton, ShareButton, ReportButton } from "../components/buttons";
 import '../styles/pages/DiscussionView.css';
+import axios from 'axios';
 
 const DiscussionView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  // Mock data - would come from API/props in production
-  const discussion = {
-    id: 1,
-    title: "Evidence-Based Approaches to Sustainable Urban Planning",
-    author: {
-      name: "Dr. Sarah Chen",
-      credentials: "Ph.D. Urban Planning",
-      reputation: 85
-    },
-    metadata: {
-      posted: "2024-01-15T10:30:00",
-      lastEdited: "2024-01-15T14:20:00",
-      category: "Urban Development",
-      qualityScore: 85,
-      contributionCount: 126
-    },
-    content: {
-      summary: "An analysis of data-driven methods for creating more sustainable and livable cities...",
-      mainText: `This comprehensive study explores the implementation of data-driven urban planning methodologies across various metropolitan areas. Through careful analysis of multiple case studies, we've identified several key patterns that consistently lead to more sustainable and livable urban environments.
+  const [discussion, setDiscussion] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-      Key findings include:
-      1. The importance of integrated transportation systems
-      2. The role of green spaces in urban wellness
-      3. The impact of mixed-use development on community engagement
-      
-      Our research suggests that cities implementing these evidence-based approaches have seen significant improvements in both environmental metrics and quality of life indicators.`,
-      references: [
-        "Urban Planning Quarterly, Vol 45, 2023",
-        "Journal of Sustainable Cities, 2024"
-      ]
-    },
-    tags: ["Research-Backed", "Implementation Focus", "Community Impact"],
-    metrics: {
-      upvotes: 128,
-      downvotes: 12,
-      comments: 45,
-      saves: 67
+  const fetchDiscussion = async () => {
+    try {
+      const response = await axios.get(`http://localhost:8000/posts/${id}`, {
+        withCredentials: true
+      });
+
+      if (response.data.status === 'success') {
+        const post = response.data.data.post;
+        setDiscussion({
+          id: post.post_id,
+          title: post.title,
+          author: {
+            name: post.author_name || 'Anonymous',
+            credentials: post.author_credentials,
+            reputation: post.author_reputation || 0
+          },
+          metadata: {
+            posted: post.created_at,
+            lastEdited: post.updated_at,
+            category: post.category,
+            qualityScore: post.quality_score || 0,
+            contributionCount: post.contribution_count || 0
+          },
+          content: {
+            summary: post.summary,
+            mainText: post.content,
+            references: post.references || []
+          },
+          tags: post.tags || [],
+          metrics: {
+            upvotes: post.upvotes || 0,
+            downvotes: post.downvotes || 0,
+            comments: post.comments_count || 0,
+            saves: post.saves_count || 0
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch discussion:', error);
+      navigate('/discussions');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const handleInteraction = async (action) => {
+    try {
+      await axios.post(`http://localhost:8000/posts/${id}/${action}`, {}, {
+        withCredentials: true
+      });
+      fetchDiscussion(); // Refresh the discussion data
+    } catch (error) {
+      console.error(`Failed to ${action} discussion:`, error);
+    }
+  };
+
+  useEffect(() => {
+    fetchDiscussion();
+  }, [id]);
+
+  if (isLoading) {
+    return <div className="loading-state">Loading discussion...</div>;
+  }
+
+  if (!discussion) {
+    return <div className="error-state">Discussion not found</div>;
+  }
 
   return (
     <div className="discussion-view-container">
@@ -77,7 +109,7 @@ const DiscussionView = () => {
             <div className="post-metadata">
               Posted: {new Date(discussion.metadata.posted).toLocaleDateString()}
               {discussion.metadata.lastEdited &&
-                ` • Edited: ${new Date(discussion.metadata.lastEdited).toLocaleDateString()}`}
+                  ` • Edited: ${new Date(discussion.metadata.lastEdited).toLocaleDateString()}`}
             </div>
           </div>
 
@@ -106,20 +138,20 @@ const DiscussionView = () => {
 
           {/* References */}
           {discussion.content.references.length > 0 && (
-            <div className="references">
-              <h3>References</h3>
-              <ul>
-                {discussion.content.references.map((ref, index) => (
-                  <li key={index}>{ref}</li>
-                ))}
-              </ul>
-            </div>
+              <div className="references">
+                <h3>References</h3>
+                <ul>
+                  {discussion.content.references.map((ref, index) => (
+                      <li key={index}>{ref}</li>
+                  ))}
+                </ul>
+              </div>
           )}
 
           {/* Tags */}
           <div className="tags">
             {discussion.tags.map((tag, index) => (
-              <span key={index} className="tag">
+                <span key={index} className="tag">
                 {tag}
               </span>
             ))}
@@ -129,14 +161,14 @@ const DiscussionView = () => {
         {/* Action Bar */}
         <div className="action-bar">
           <div className="voting-section">
-            <LikeButton onClick={() => console.log("Liked")} />
-            <DislikeButton onClick={() => console.log("Disliked")} />
+            <LikeButton onClick={() => handleInteraction('like')}/>
+            <DislikeButton onClick={() => handleInteraction('dislike')}/>
           </div>
 
           <div className="action-buttons">
-            <SaveButton onClick={() => console.log("Saved")} />
-            <ShareButton onClick={() => console.log("Shared")} />
-            <ReportButton onClick={() => console.log("Reported")} />
+            <SaveButton onClick={() => handleInteraction('save')}/>
+            <ShareButton onClick={() => handleInteraction('share')}/>
+            <ReportButton onClick={() => handleInteraction('report')}/>
           </div>
         </div>
       </div>

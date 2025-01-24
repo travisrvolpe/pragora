@@ -1,16 +1,42 @@
+//import "../styles/pages/CreateContent.css";
 import React, { useState } from 'react';
 import { MessageCircle } from 'lucide-react';
-import "../styles/pages/CreateContent.css";
+import axios from 'axios';
 
 const ShareThoughts = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const maxLength = 280;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement post creation
-    console.log({ title, content });
+    setIsLoading(true);
+
+    try {
+      const token = localStorage.getItem('access_token'); //
+      const response = await axios.post('http://localhost:8000/posts/', {
+        title,
+        content
+      }, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.status === 'success') {
+        setTitle('');
+        setContent('');
+        // Trigger post list refresh in parent component
+        // This will depend on your state management approach
+      }
+    } catch (error) {
+      console.error('Failed to create post:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,10 +86,10 @@ const ShareThoughts = () => {
           </button>
           <button
             type="submit"
-            disabled={!content.trim()}
+            disabled={!content.trim() || isLoading}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            Share
+            {isLoading ? 'Sharing...' : 'Share'}
           </button>
         </div>
       </form>

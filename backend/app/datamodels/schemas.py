@@ -67,3 +67,24 @@ class UserProfileResponse(UserResponse):
 
     class Config:
         orm_mode = True
+
+
+class PostBase(BaseModel):
+    title: Optional[str] = None
+    content: str
+
+class PostCreate(PostBase):
+    pass
+
+class PostUpdate(PostBase):
+    pass
+
+class PostResponse(PostBase):
+    post_id: int
+    user_id: int
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
