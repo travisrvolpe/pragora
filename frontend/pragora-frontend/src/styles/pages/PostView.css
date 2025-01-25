@@ -1,5 +1,5 @@
-/* DiscussionView.css */
-.discussion-view-container {
+/* PostView.css */
+.post-view-container {
   max-width: 1280px;
   min-height: calc(100vh - 64px);
   margin: 0 auto;
@@ -16,8 +16,8 @@
   margin-bottom: 1.5rem;
 }
 
-/* Main Discussion Card */
-.discussion-main-card {
+/* Main Post Card */
+.post-main-card {
   background-color: white;
   border-radius: 1rem;
   padding: 2rem;
@@ -28,19 +28,19 @@
   animation: fadeIn 0.5s ease-out;
 }
 
-.discussion-main-card:hover {
+.post-main-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 /* Header Section */
-.discussion-header {
+.post-header {
   border-bottom: 1px solid var(--primary-gray);
   padding-bottom: 1.5rem;
   margin-bottom: 2rem;
 }
 
-.discussion-title {
+.post-title {
   font-size: 2rem;
   font-weight: bold;
   color: var(--text-primary);
@@ -104,7 +104,7 @@
 }
 
 /* Content Section */
-.discussion-content {
+.post-content {
   margin-bottom: 2rem;
 }
 
@@ -286,15 +286,15 @@
 }
 /* Responsive Adjustments */
 @media (max-width: 768px) {
-  .discussion-view-container {
+  .post-view-container {
     padding: 1rem;
   }
 
-  .discussion-main-card {
+  .post-main-card {
     padding: 1.5rem;
   }
 
-  .discussion-title {
+  .post-title {
     font-size: 1.5rem;
   }
 

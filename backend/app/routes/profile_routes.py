@@ -1,12 +1,10 @@
 # app/routes/profile_routes.py
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session
 from sqlalchemy.orm.session import Session
 from app.utils.database_utils import get_db
 from app.auth.utils import get_current_user
 from app.datamodels.datamodels import UserProfile, User
-from app.datamodels.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
+from app.schemas.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
 router = APIRouter(
     prefix="/profiles",
     tags=["profiles"]

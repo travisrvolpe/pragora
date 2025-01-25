@@ -1,10 +1,11 @@
 #auth_routes.py
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.services.auth_service import register_user, login_user
+from sqlalchemy.orm import Session
 from app.auth.utils import get_current_user
-from app.datamodels.schemas import UserCreate, UserLogin, UserResponse
-from database.database import database
-
+from app.schemas.schemas import UserCreate, UserLogin, UserResponse
+from app.services import auth_service
+from typing import Any
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]

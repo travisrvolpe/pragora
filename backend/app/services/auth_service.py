@@ -1,7 +1,7 @@
 # auth_service.py
 from app.auth.auth import hash_password, verify_password
 from app.auth.utils import create_access_token
-from app.datamodels.schemas import UserCreate, UserLogin, UserResponse, TokenResponse
+from app.schemas.schemas import UserCreate, UserLogin, UserResponse, TokenResponse
 from database.database import database # added import
 from typing import Dict, Any
 from app.utils.response_utils import create_response

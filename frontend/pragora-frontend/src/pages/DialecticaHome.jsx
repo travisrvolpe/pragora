@@ -1,115 +1,97 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, TrendingUp, BookOpen, Users, MessageSquare, Award } from "lucide-react";
+import {Award, BookOpen, Search, TrendingUp, Users} from "lucide-react";
 import axios from "axios";
-import StartDiscussionButton from "../components/buttons/StartDiscussionButton";
-//import DiscussionCard from "../components/DiscussionCard";
-import DiscussionFeed from "../components/DiscussionFeed";
+import StartPostButton from "../components/buttons/StartPostButton";
+import PostFeed from "../components/PostFeed";
+import TopicCard from "../components/TopicCard";
 import "../styles/pages/DialecticaHome.css";
+import {FaRandom} from "react-icons/fa";
 
 const DialecticaHomepage = () => {
   const [selectedTab, setSelectedTab] = useState("trending");
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const navigate = useNavigate();
-  const [discussions, setDiscussions] = useState([]);
+  const [post, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(0);
 
-  const fetchDiscussions = async () => {
+  const fetchPosts = async () => {
     try {
       const response = await axios.get(
         `http://localhost:8000/posts?skip=${page * 20}&limit=20`,
         { withCredentials: true }
       );
 
-      if (response.data.status === 'success') {
-        setDiscussions(current =>
+      if (response.data.status === "success") {
+        setPosts(current =>
           page === 0 ? response.data.data.posts : [...current, ...response.data.data.posts]
         );
       }
     } catch (error) {
-      console.error('Failed to fetch discussions:', error);
+      console.error("Failed to fetch post:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDiscussions();
-  }, [page, selectedTab, selectedCategory]);
+    fetchPosts();
+  }, [page, selectedCategory, selectedTab, selectedSubcategory]);
 
   const categories = [
-    { id: "science", name: "Science & Technology" },
-    { id: "society", name: "Society & Culture" },
-    { id: "philosophy", name: "Philosophy & Ethics" },
-    { id: "economics", name: "Economics & Business" },
-    { id: "politics", name: "Politics & Policy" },
-    { id: "arts", name: "Arts & Humanities" },
-    { id: "health", name: "Health & Wellness" },
-    { id: "environment", name: "Environment & Sustainability" },
+    { id: "self", name: "Self-Development", subcategories: ["Health & Wellness", "Personal Growth", "Skill Development"] },
+    { id: "home", name: "Home & Habitat", subcategories: ["Home Design", "Gardening"] },
+    { id: "nature", name: "Nature & Environment", subcategories: ["Sustainability", "Conservation"] },
+    { id: "science", name: "Science & Technology", subcategories: ["Engineering", "AI"] },
+    { id: "philosophy", name: "Philosophy", subcategories: ["Ethics", "Metaphysics"] },
+    { id: "economics", name: "Economics & Business", subcategories: ["Finance", "Entrepreneurship"] },
+    { id: "society", name: "Society & Culture", subcategories: ["Politics", "History"] },
+    { id: "civics", name: "Civic Engagement", subcategories: ["Volunteerism", "Governance"] },
+    { id: "entertainment", name: "Entertainment", subcategories: ["Pop Culture", "Media"] },
+    { id: "misc", name: "Miscellaneous", subcategories: [] },
   ];
 
-  const mockDiscussions = [
-    {
-      id: 1,
-      title: "Evidence-Based Approaches to Sustainable Urban Planning",
-      author: "Dr. Sarah Chen",
-      topic: "society",
-      engagement: "126 contributions • 85% quality score",
-      preview: "An analysis of data-driven methods for creating more sustainable and livable cities...",
-      tags: ["Research-Backed", "Implementation Focus", "Community Impact"],
-    },
-    {
-      id: 2,
-      title: "Practical Strategies for Reducing Carbon Footprint in SMEs",
-      author: "Michael Roberts",
-      topic: "science",
-      engagement: "94 contributions • 92% quality score",
-      preview: "Examining cost-effective approaches for small businesses to implement sustainable practices...",
-      tags: ["Case Study", "Actionable Steps", "Verified Results"],
-    },
-  ];
+  const handleCategorySelect = (id) => {
+    setSelectedCategory(selectedCategory === id ? null : id);
+    setSelectedSubcategory(null);
+    setPage(0);
+  };
 
-  const filteredDiscussions = selectedCategory
-    ? mockDiscussions.filter((discussion) => discussion.topic === selectedCategory)
-    : mockDiscussions;
+  const handleSubcategoryChange = (e) => {
+    setSelectedSubcategory(e.target.value);
+    setPage(0);
+  };
 
-  const handleViewDiscussion = (id) => {
-    navigate(`/discussions/${id}`);
+  const handleViewPost = (id) => {
+    navigate(`/post/${id}`);
   };
 
   return (
-      <div className="dialectica-container">
-        {/* Header Section */}
-        <div className="header-section">
-          <div className="search-container">
-            <input type="text" placeholder="Search discussions ..." className="search-input"/>
-            <Search className="search-icon"/>
-          </div>
-          <StartDiscussionButton onClick={() => navigate("/create-content")}/>
+    <div className="dialectica-container">
+      <div className="header-section">
+        <div className="search-container">
+          <input type="text" placeholder="Search post ..." className="search-input" />
+          <Search className="search-icon" />
         </div>
+        <StartPostButton onClick={() => navigate("/create-content")} />
+      </div>
 
-        {/* Filter Dropdown */}
-        <div className="filter-buttons">
-          <button className="filter-button">All</button>
-          <button className="filter-button">Popular</button>
-          <button className="filter-button">Recent</button>
-        </div>
+      <div className="topics-container">
+        {categories.map((category) => (
+          <TopicCard
+            key={category.id}
+            category={category}
+            isSelected={selectedCategory === category.id}
+            onSelect={handleCategorySelect}
+            subcategories={category.subcategories}
+            onSubcategoryChange={(e) => handleSubcategoryChange(e)}
+          />
+        ))}
+      </div>
 
-        {/* Category Navigation */}
-        <div className="category-nav">
-          {categories.map((category) => (
-              <button
-                  key={category.id}
-                  className={`category-button ${selectedCategory === category.id ? "active" : ""}`}
-                  onClick={() => setSelectedCategory(selectedCategory === category.id ? null : category.id)}
-              >
-                {category.name}
-              </button>
-          ))}
-        </div>
-
-        {/* Navigation Tabs */}
+      {/* Navigation Tabs */}
         <div className="nav-tabs">
           <button
               onClick={() => setSelectedTab("trending")}
@@ -147,29 +129,38 @@ const DialecticaHomepage = () => {
               Following
             </div>
           </button>
+
+          <button
+              onClick={() => setSelectedTab("randomize")}
+              className={`nav-tab ${selectedTab === "randomize" ? "active" : ""}`}
+          >
+            <div className="nav-tab-content">
+              <FaRandom className="tab-icon"/>
+              Random
+            </div>
+          </button>
         </div>
 
-        {/* Discussion Feed */}
-        <div className="discussion-feed">
-          {isLoading && discussions.length === 0 ? (
-              <div>Loading discussions...</div>
-          ) : (
-              discussions.map((discussion) => (
-                  <DiscussionFeed
-                      key={discussion.post_id}
-                      discussion={{
-                        id: discussion.post_id,
-                        title: discussion.title,
-                        author: discussion.user_id, // You'll need to fetch user details
-                        preview: discussion.content,
-                        engagement: `Posted ${new Date(discussion.created_at).toLocaleDateString()}`
-                      }}
-                      onViewDiscussion={handleViewDiscussion}
-                  />
-              ))
-          )}
-        </div>
+      <div className="post-feed">
+        {isLoading && post.length === 0 ? (
+          <div>Loading post...</div>
+        ) : (
+          post.map((post) => (
+            <PostFeed
+              key={post.post_id}
+              post={{
+                id: post.post_id,
+                title: post.title,
+                author: post.user_id,
+                preview: post.content,
+                engagement: `Posted ${new Date(post.created_at).toLocaleDateString()}`,
+              }}
+              onViewPost={() => navigate(`/post/${post.post_id}`)}
+            />
+          ))
+        )}
       </div>
+    </div>
   );
 };
 

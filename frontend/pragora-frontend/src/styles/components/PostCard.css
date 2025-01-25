@@ -1,5 +1,5 @@
-/* Base styling for the discussion card */
-.discussion-card {
+/* Base styling for the post card */
+.post-card {
   background-color: white;
   border-radius: 1rem;
   padding: 1.5rem;
@@ -10,32 +10,32 @@
   cursor: pointer;
 }
 
-.discussion-card:hover {
+.post-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 /* Title and content */
-.discussion-title {
+.post-title {
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
-.discussion-meta {
+.post-meta {
   font-size: 0.875rem;
   color: var(--text-secondary);
   margin-bottom: 0.5rem;
 }
 
-.discussion-engagement {
+.post-engagement {
   font-size: 0.875rem;
   color: var(--text-secondary);
   margin-bottom: 1rem;
 }
 
-.discussion-preview {
+.post-preview {
   color: var(--text-primary);
   margin-bottom: 1rem;
   line-height: 1.5;
@@ -65,7 +65,7 @@
 }
 
 /* Actions */
-.discussion-actions {
+.post-actions {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
@@ -97,8 +97,8 @@
   border-color: #d1d5db;
 }
 
-/* View discussion link */
-.view-discussion {
+/* View post link */
+.view-post {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -115,19 +115,19 @@
   box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
 }
 
-.view-discussion:hover {
+.view-post:hover {
   background-color: #2563eb;
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(59, 130, 246, 0.15);
 }
 
-.view-discussion .icon {
+.view-post .icon {
   width: 1rem;
   height: 1rem;
   transition: transform 0.2s ease;
 }
 
-.view-discussion:hover .icon {
+.view-post:hover .icon {
   transform: translateX(5px); /* Slide the arrow icon slightly */
 }
 
@@ -145,15 +145,15 @@
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
-  .discussion-card {
+  .post-card {
     padding: 1rem;
   }
 
-  .discussion-title {
+  .post-title {
     font-size: 1rem;
   }
 
-  .discussion-actions {
+  .post-actions {
     flex-direction: column;
     gap: 0.5rem;
   }

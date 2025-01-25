@@ -1,4 +1,4 @@
-#example in /datamodels/unstructured.py
+#example in /datamodels/unstructured_test.py
 # THIS IS AN EXAMPLE DO NOT USE
 from pydantic import BaseModel, Field
 from typing import Optional

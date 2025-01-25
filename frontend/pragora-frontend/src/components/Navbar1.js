@@ -18,8 +18,8 @@ function Navbar() {
                 </NavLink>
             </li>
             <li>
-                <NavLink to="/discussions" className={({isActive}) => (isActive ? 'active' : '')}>
-                    Discussions
+                <NavLink to="/post" className={({isActive}) => (isActive ? 'active' : '')}>
+                    Posts
                 </NavLink>
             </li>
             <li>

@@ -28,7 +28,7 @@ const HomePage = () => {
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Welcome to Pragora</h1>
           <p className="text-xl text-gray-600 text-center max-w-2xl mb-8">
-            Transform knowledge into action through evidence-based discussions,
+            Transform knowledge into action through evidence-based post,
             personalized planning, and community-driven support.
           </p>
         </div>
@@ -79,15 +79,15 @@ const HomePage = () => {
               <Brain className="mr-2 h-5 w-5 text-blue-600" />
               Dialectica
             </CardTitle>
-            <CardDescription>Evidence-based discussions</CardDescription>
+            <CardDescription>Evidence-based post</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-gray-600 mb-4">
-              Engage in high-quality discussions where AI-validated content and collaborative
+              Engage in high-quality post where AI-validated content and collaborative
               moderation ensure logical, evidence-based dialogue focused on practical solutions.
             </p>
             <Button variant="outline" className="w-full">
-              Explore Discussions
+              Explore Posts
             </Button>
           </CardContent>
         </Card>

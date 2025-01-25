@@ -136,8 +136,8 @@
   height: 1rem;
 }
 
-/* Discussion Feed */
-.discussion-feed {
+/* Post Feed */
+.post-feed {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;

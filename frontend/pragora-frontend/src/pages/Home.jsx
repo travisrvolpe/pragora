@@ -29,7 +29,7 @@ const HomePage = () => {
           </div>
           <h1>Welcome to Pragora</h1>
           <p className="subtitle">
-            Transform knowledge into action through evidence-based discussions,
+            Transform knowledge into action through evidence-based post,
             personalized planning, and community-driven support.
           </p>
         </div>
@@ -71,12 +71,12 @@ const HomePage = () => {
               <Brain size={24} className="icon blue" />
               <h2>Dialectica</h2>
             </div>
-            <p className="feature-type">Evidence-based discussions</p>
+            <p className="feature-type">Evidence-based post</p>
             <p className="feature-description">
-              Engage in high-quality discussions where AI-validated content and collaborative
+              Engage in high-quality post where AI-validated content and collaborative
               moderation ensure logical, evidence-based dialogue focused on practical solutions.
             </p>
-            <button className="feature-btn">Explore Discussions</button>
+            <button className="feature-btn">Explore Posts</button>
           </div>
 
           {/* TAP */}

@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
-from datamodels import Category, Subcategory
+from app.datamodels.post_datamodels import Category, Subcategory
 
 categories_data = [
     {"name": "Self-Development", "subcategories": ["Health & Wellness", "Personal Growth", "Skill Development"]},
-    {"name": "Home & Habitat", "subcategories": ["Home Design", "Gardening"]},
-    {"name": "Nature & Environment", "subcategories": ["Sustainability", "Conservation"]},
+    {"name": "Home & Habitat", "subcategories": ["Home Design", "Gardening", "DIY", "Smart Homes"]},
+    {"name": "Nature & Environment", "subcategories": ["Animals", "Sustainability", "Conservation"]},
     {"name": "Science & Technology", "subcategories": ["Engineering", "AI"]},
     {"name": "Philosophy", "subcategories": ["Ethics", "Metaphysics"]},
     {"name": "Economics & Business", "subcategories": ["Finance", "Entrepreneurship"]},

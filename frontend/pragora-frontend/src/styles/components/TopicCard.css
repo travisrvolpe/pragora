@@ -1,0 +1,74 @@
+.topic-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: #f9f9f9;
+  transition: background-color 0.3s ease;
+}
+
+.topic-card:hover {
+  background-color: #f3f4f6;
+}
+
+.topic-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.topic-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.topic-button:hover {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #2563eb;
+}
+
+.topic-button.selected {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #2563eb;
+}
+
+.subcategory-dropdown {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.subcategory-dropdown:hover {
+  border-color: #3b82f6;
+}
+
+.go-to-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: white;
+  background-color: #3b82f6;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.go-to-button:hover {
+  background-color: #2563eb;
+}

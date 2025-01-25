@@ -96,24 +96,24 @@
   transform: translateY(-1px);
 }
 
-/* View Discussion Button */
-.view-discussion-button {
+/* View Post Button */
+.view-post-button {
   background-color: #3b82f6;
   color: white;
 }
 
-.view-discussion-button:hover:not(:disabled) {
+.view-post-button:hover:not(:disabled) {
   background-color: #2563eb;
   transform: translateY(-1px);
 }
 
-/* Start Discussion Button */
-.start-discussion-button {
+/* Start Post Button */
+.start-post-button {
   background-color: #10b981;
   color: white;
 }
 
-.start-discussion-button:hover:not(:disabled) {
+.start-post-button:hover:not(:disabled) {
   background-color: #059669;
   transform: translateY(-1px);
 }

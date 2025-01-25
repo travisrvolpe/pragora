@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { Shield, Tag, MessageSquare, Users, Link, Image } from 'lucide-react';
 
-const StartDiscussion = () => {
+const StartPost = () => {
   const [title, setTitle] = useState('');
   const [topic, setTopic] = useState('');
   const [subTopic, setSubTopic] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
-  const [discussionType, setDiscussionType] = useState('open');
+  const [postType, setpostType] = useState('open');
 
-  const discussionTypes = [
-    { id: 'open', label: 'Open Discussion' },
+  const postTypes = [
+    { id: 'open', label: 'Open Post' },
     { id: 'structured', label: 'Structured Debate' },
     { id: 'qanda', label: 'Q&A' },
     { id: 'collaborative', label: 'Collaborative Analysis' }
@@ -22,14 +22,14 @@ const StartDiscussion = () => {
         <div className="bg-orange-500 p-2 rounded-full">
           <Shield className="w-6 h-6 text-white" />
         </div>
-        <h1 className="text-2xl font-bold">Start Discussion</h1>
+        <h1 className="text-2xl font-bold">Start Post</h1>
       </div>
 
       <form className="space-y-6">
         <div className="space-y-4">
           <input
             type="text"
-            placeholder="Discussion Title"
+            placeholder="Post Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full text-2xl font-bold p-3 border-b focus:outline-none focus:border-orange-500"
@@ -61,15 +61,15 @@ const StartDiscussion = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Discussion Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Post Type</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {discussionTypes.map((type) => (
+              {postTypes.map((type) => (
                 <button
                   key={type.id}
                   type="button"
-                  onClick={() => setDiscussionType(type.id)}
+                  onClick={() => setpostType(type.id)}
                   className={`p-3 rounded-lg border text-sm font-medium transition-colors
-                    ${discussionType === type.id 
+                    ${postType === type.id 
                       ? 'bg-orange-50 border-orange-500 text-orange-700' 
                       : 'border-gray-200 hover:bg-gray-50'}`}
                 >
@@ -128,7 +128,7 @@ const StartDiscussion = () => {
             type="submit"
             className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
           >
-            Start Discussion
+            Start Post
           </button>
         </div>
       </form>
@@ -136,4 +136,4 @@ const StartDiscussion = () => {
   );
 };
 
-export default StartDiscussion;
+export default StartPost;

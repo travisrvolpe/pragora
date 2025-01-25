@@ -28,7 +28,7 @@ const PostOptions = () => {
     {
       icon: <BookOpen className="w-8 h-8" />,
       title: "Write Article",
-      description: "In-depth analysis and discussion",
+      description: "In-depth analysis and post",
       limit: "No length limit",
       color: "bg-purple-500",
       link: "/write-article" // Example route
@@ -40,10 +40,10 @@ const PostOptions = () => {
   const advancedOptions = [
     {
       icon: <Brain className="w-8 h-8" />,
-      title: "Start Discussion",
+      title: "Start Post",
       description: "Structured debate and dialogue",
       color: "bg-orange-500",
-     link: "/start-discussion" // Example route
+     link: "/start-post" // Example route
     },
     {
       icon: <Users className="w-8 h-8" />,

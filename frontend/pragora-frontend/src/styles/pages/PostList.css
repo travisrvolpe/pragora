@@ -1,6 +1,6 @@
-/* src/styles/DiscussionList.css */
+/* src/styles/PostList.css */
 
-.discussion-container {
+.post-container {
   max-width: 1200px;
   /* margin: 0 auto;*/
   margin-bottom: 24px;
@@ -8,7 +8,7 @@
   padding: 20px;
 }
 
-.discussion-header {
+.post-header {
   margin-bottom: 24px;
 }
 

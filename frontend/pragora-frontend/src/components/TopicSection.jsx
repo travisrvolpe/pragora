@@ -1,6 +1,6 @@
 // src/components/TopicSection.jsx
 import React from 'react';
-import DiscussionCard from './DiscussionCard';
+import PostCard from './PostCard';
 
 const TopicSection = ({ title, posts }) => (
   <div className="mb-8">
@@ -8,7 +8,7 @@ const TopicSection = ({ title, posts }) => (
       <h2 className="font-medium">{title}</h2>
     </div>
     {posts.map((post) => (
-      <DiscussionCard key={post.id} post={post} />
+      <PostCard key={post.id} post={post} />
     ))}
   </div>
 );

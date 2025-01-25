@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from datamodels import Post
+from app.datamodels.post_datamodels import Post
 
 def seed_posts(session: Session):
     example_posts = [

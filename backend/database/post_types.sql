@@ -1,0 +1,37 @@
+-- Create post_types table
+--CREATE TABLE post_types (
+--    id SERIAL PRIMARY KEY,
+--    name VARCHAR(50) UNIQUE NOT NULL
+--);
+-- Insert predefined post types
+--INSERT INTO post_types (name) VALUES
+--('thoughts'),
+--('image'),
+--('article'),
+--('video');
+
+--post_type_id INT NOT NULL REFERENCES post_types(id), -- Reference table for post types
+
+-- Create table for short text posts
+--CREATE TABLE short_text_posts (
+--    post_id INT PRIMARY KEY REFERENCES posts(post_id) ON DELETE CASCADE,
+--    content TEXT NOT NULL
+--);
+-- Create table for image posts
+--CREATE TABLE image_posts (
+--    post_id INT PRIMARY KEY REFERENCES posts(post_id) ON DELETE CASCADE,
+--    image_url TEXT NOT NULL,
+--    caption TEXT
+--);
+-- Create table for article posts
+--CREATE TABLE article_posts (
+--    post_id INT PRIMARY KEY REFERENCES posts(post_id) ON DELETE CASCADE,
+--    body TEXT NOT NULL,
+--    author VARCHAR(255)
+--);
+-- Create table for video posts
+--CREATE TABLE video_posts (
+--    post_id INT PRIMARY KEY REFERENCES posts(post_id) ON DELETE CASCADE,
+--    video_url TEXT NOT NULL,
+--    duration INT -- Duration in seconds
+--);

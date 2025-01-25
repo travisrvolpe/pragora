@@ -31,9 +31,9 @@ const NavBar = () => {
         case 'pan':
           label = 'PAN';
           break;
-        case 'discussion':
-          // This would need to be replaced with actual discussion title
-          label = 'Discussion Title';
+        case 'post':
+          // This would need to be replaced with actual post title
+          label = 'Post Title';
           break;
         case 'profile':
           label = 'My Profile';
