@@ -13,7 +13,6 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 -- Sessions Table
 CREATE TABLE sessions (
     session_id SERIAL PRIMARY KEY,
@@ -22,7 +21,6 @@ CREATE TABLE sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL
 );
-
 -- Profile Table
 CREATE TABLE user_profile (
     user_id INTEGER REFERENCES users(user_id) PRIMARY KEY,
@@ -57,14 +55,136 @@ CREATE TABLE user_profile (
     is_admin BOOLEAN DEFAULT false,
     is_instructor BOOLEAN DEFAULT false
 );
+-- Create post_types table
+CREATE TABLE post_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+-- Insert predefined post types
+INSERT INTO post_types (name) VALUES
+('thoughts'),
+('image'),
+('article'),
+('video');
 
--- Posts Table
 CREATE TABLE posts (
     post_id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id INT NOT NULL,
     title VARCHAR(255),
+    subtitle VARCHAR(255),
+    post_type_id INT NOT NULL REFERENCES post_types(id), -- Reference table for post types
+    category_id INT REFERENCES categories(id),
+    subcategory_id INT REFERENCES subcategories(id),
+    custom_subcategory VARCHAR(100),
+    tags TEXT,
+    status VARCHAR(50) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+-- Create table for short text posts
+CREATE TABLE short_text_posts (
+    post_id INT PRIMARY KEY REFERENCES posts(post_id) ON DELETE CASCADE,
+    content TEXT NOT NULL
+);
+-- Create table for image posts
+CREATE TABLE image_posts (
+    post_id INT PRIMARY KEY REFERENCES posts(post_id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL,
+    caption TEXT
+);
+-- Create table for article posts
+CREATE TABLE article_posts (
+    post_id INT PRIMARY KEY REFERENCES posts(post_id) ON DELETE CASCADE,
+    body TEXT NOT NULL,
+    author VARCHAR(255)
+);
+-- Create table for video posts
+CREATE TABLE video_posts (
+    post_id INT PRIMARY KEY REFERENCES posts(post_id) ON DELETE CASCADE,
+    video_url TEXT NOT NULL,
+    duration INT -- Duration in seconds
+);
+-- Categories Table
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL
+);
+-- Subcategories Table
+CREATE TABLE subcategories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    category_id INT REFERENCES categories(id) ON DELETE CASCADE
+);
+-- Example tags table for many-to-many relationship
+CREATE TABLE tags (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL
+);
+-- Junction table for post_tags
+CREATE TABLE post_tags (
+    post_id INT REFERENCES posts(post_id) ON DELETE CASCADE,
+    tag_id INT REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (post_id, tag_id)
+);
+
+-- Interaction Types for Posts
+CREATE TABLE post_interaction_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+-- Populate Interaction Types for Posts
+INSERT INTO post_interaction_types (name) VALUES
+('like'),
+('dislike'),
+('love'),
+('hate'),
+('save'),
+('share'),
+('report');
+
+-- Interaction Types for Comments
+CREATE TABLE comment_interaction_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+-- Populate Interaction Types for Comments
+INSERT INTO comment_interaction_types (name) VALUES
+('like'),
+('dislike'),
+('love'),
+('hate'),
+('save'),
+('share'),
+('report');
+
+-- User Interactions with Posts
+CREATE TABLE post_interactions (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    post_id INT NOT NULL REFERENCES posts(post_id) ON DELETE CASCADE,
+    interaction_type_id INT NOT NULL REFERENCES post_interaction_types(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, post_id, interaction_type_id) -- Prevent duplicate interactions
+);
+
+-- Comments Table
+CREATE TABLE comments (
+    comment_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    post_id INT NOT NULL REFERENCES posts(post_id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) DEFAULT 'active'
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- User Interactions with Comments
+CREATE TABLE comment_interactions (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    comment_id INT NOT NULL REFERENCES comments(comment_id) ON DELETE CASCADE,
+    interaction_type_id INT NOT NULL REFERENCES comment_interaction_types(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, comment_id, interaction_type_id) -- Prevent duplicate interactions
 );
