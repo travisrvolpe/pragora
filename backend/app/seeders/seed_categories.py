@@ -14,6 +14,12 @@ categories_data = [
     {"name": "Miscellaneous", "subcategories": []},
 ]
 
+post_types_data = [
+    {"post_type_id": 1, "post_type_name": "Thought"},
+    {"post_type_id": 2, "post_type_name": "Image"},
+    {"post_type_id": 3, "post_type_name": "Article"},
+]
+
 def populate_categories(session: Session):
     for category in categories_data:
         category_obj = Category(name=category["name"])
@@ -23,5 +29,14 @@ def populate_categories(session: Session):
         for subcategory_name in category["subcategories"]:
             subcategory_obj = Subcategory(name=subcategory_name, category_id=category_obj.id)
             session.add(subcategory_obj)
+
+    session.commit()
+
+def populate_post_types(session: Session):
+    for post_type in post_types_data:
+        existing_type = session.query(PostType).filter_by(post_type_id=post_type["post_type_id"]).first()
+        if not existing_type:
+            post_type_obj = PostType(post_type_id=post_type["post_type_id"], post_type_name=post_type["post_type_name"])
+            session.add(post_type_obj)
 
     session.commit()

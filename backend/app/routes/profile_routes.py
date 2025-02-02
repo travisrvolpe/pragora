@@ -1,10 +1,14 @@
 # app/routes/profile_routes.py
+# should probably update to get user posts, delete posts, and edit posts. Add drafts?
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm.session import Session
 from app.utils.database_utils import get_db
 from app.auth.utils import get_current_user
 from app.datamodels.datamodels import UserProfile, User
 from app.schemas.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
+from app.services.post_service import save_post, get_post, get_saved_posts
+from typing import List
+
 router = APIRouter(
     prefix="/profiles",
     tags=["profiles"]
@@ -119,3 +123,18 @@ async def delete_my_profile(
     db.delete(db_profile)
     db.commit()
     return {"message": "Profile deleted successfully"}
+
+@router.post("/me/save-post/{post_id}")
+async def save_post_endpoint(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await save_post(db, current_user.user_id, post_id)
+
+@router.get("/me/saved-posts", response_model=List[int])
+async def get_saved_posts_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await get_saved_posts(db, current_user.user_id)

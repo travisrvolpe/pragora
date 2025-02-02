@@ -13,6 +13,8 @@ from app.datamodels.datamodels import UserProfile #Importing to make tables
 #from app.models.post_model import Post
 
 DATABASE_URL = "postgresql://postgres:ugabuga22@localhost:5432/pragora"
+UPLOAD_FOLDER = "./media/posts/"
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

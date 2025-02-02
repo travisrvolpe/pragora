@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.utils.database_utils import get_db
 from app.schemas.schemas import TokenData
 from app.datamodels.datamodels import User
-from app.core.config import settings
+from core.config import settings
 
 # Constants for JWT
 SECRET_KEY = settings.JWT_SECRET_KEY

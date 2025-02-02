@@ -1,11 +1,21 @@
+# main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.routes import auth_routes, profile_routes, post_routes, comment_routes, category_routes
 from database.database import database, Base, engine
 from app.utils.database_utils import init_categories, init_post_types
+from core.config import settings
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
+
+# Ensure media directories exist
+settings.create_media_directories()
+
+# Mount the media directory for serving files
+# app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
+app.mount("/media", StaticFiles(directory="media"), name="media")
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,7 +44,3 @@ app.include_router(category_routes.router)
 @app.get("/")
 async def root():
     return {"message": "Welcome to Pragora API"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

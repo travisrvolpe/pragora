@@ -1,5 +1,5 @@
 import React from "react";
-import Button from "./Button";
+import Button from "../ui/Button";
 import { BookmarkPlus } from "lucide-react";
 import "./Button.css";
 

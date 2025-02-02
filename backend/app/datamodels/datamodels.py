@@ -3,6 +3,7 @@ from sqlalchemy import Table, Column, Integer, String, DateTime, ForeignKey, Boo
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database.database import Base
+from app.datamodels.post_datamodels import saved_posts_table
 
 class User(Base):
     __tablename__ = "users"
@@ -19,6 +20,7 @@ class User(Base):
     comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
     post_interactions = relationship("PostInteraction", back_populates="user", cascade="all, delete-orphan")
     comment_interactions = relationship("CommentInteraction", back_populates="user", cascade="all, delete-orphan")
+    saved_posts = relationship("Post", secondary=saved_posts_table, back_populates="saved_by_users")
 
 class Session(Base):
     __tablename__ = "sessions"

@@ -1,0 +1,139 @@
+├── api
+│   └── auth.js
+├── App.css
+├── App
+├── AppRoutes.js
+├── App.test.js
+├── assets
+│   ├── fonts
+│   ├── icons
+│   ├── images
+│   │   └── ZERO_CROP.PNG
+│   └── ZERO.PNG
+├── components
+│   ├── buttons
+│   │   ├── Button.css
+│   │   ├── button.tsx
+│   │   ├── DislikeButton.jsx
+│   │   ├── HateButton.jsx
+│   │   ├── index
+│   │   ├── LikeButton.jsx
+│   │   ├── LoveButton.jsx
+│   │   ├── NetworkButtons.jsx
+│   │   ├── ReportButton.jsx
+│   │   ├── SaveButton.jsx
+│   │   ├── ShareButton.jsx
+│   │   ├── StartPostButton.jsx
+│   │   └── ViewPostButton.jsx
+│   ├── Comment.js
+│   ├── examples
+│   │   ├── GenericSocialMediaCard.jsx
+│   │   ├── InstaStyleImagePostCard.jsx
+│   │   ├── LongFormArticlePostCard.jsx
+│   │   ├── ShortTextPostCard.jsx
+│   │   ├── ShortVideoPostCard.jsx
+│   │   ├── SocialFeedDemo.jsx
+│   │   └── types.ts
+│   ├── factories
+│   │   └── PostCardFactory.jsx
+│   ├── Footer.js
+│   ├── FormInput.jsx
+│   ├── InfiniteScroll.jsx
+│   ├── Layout.jsx
+│   ├── Navbar1.js
+│   ├── NavBar.jsx
+│   ├── posts
+│   │   ├── ArticlePostCard.jsx
+│   │   ├── BasePostCard.jsx
+│   │   ├── EnhancedBasePost.tsx
+│   │   ├── ImagePostCard.jsx
+│   │   ├── PostCard.jsx
+│   │   ├── PostFeed.jsx
+│   │   ├── ThoughtPostCard.jsx
+│   │   └── types.ts
+│   ├── SideBar.jsx
+│   ├── TopBar.jsx
+│   ├── TopicCard.jsx
+│   ├── TopicSection.jsx
+│   ├── TopicSections.jsx
+│   ├── ui
+│   │   ├── Button_js.jsx
+│   │   ├── Button.tsx
+│   │   ├── card_js.jsx
+│   │   └── card.tsx
+│   └── VoteButtons.js
+├── constants
+├── contexts
+│   ├── AuthContext.jsx
+│   └── ProfileContext.jsx
+├── features
+├── hooks
+├── index
+├── lib
+│   └── utils.ts
+├── logo.svg
+├── pages
+│   ├── Common
+│   │   ├── Home.jsx
+│   │   ├── Home_shadcn.jsx
+│   │   ├── Login.jsx
+│   │   ├── Profile.jsx
+│   │   ├── Profile_old.jsx
+│   │   ├── Register_extra.jsx
+│   │   └── Register.jsx
+│   ├── Dialectica
+│   │   ├── ContentPage.jsx
+│   │   ├── CreateContent_Dep_old.jsx
+│   │   ├── CreateContent.jsx
+│   │   ├── DialecticaHome_DEP.jsx
+│   │   ├── DialecticaHome.jsx
+│   │   ├── PostView.jsx
+│   │   ├── ShareImage.jsx
+│   │   ├── ShareThoughts.jsx
+│   │   ├── StartPost.jsx
+│   │   └── WriteArticle.jsx
+│   ├── PAN
+│   │   └── PANHome.jsx
+│   └── TAP
+│       └── TAPHome.jsx
+├── react-app-env.d.ts
+├── reportWebVitals.js
+├── services
+│   ├── authService.js
+│   ├── commentService.js
+│   ├── postService.js
+│   ├── profileService.js
+│   ├── userService.js
+│   └── voteService.js
+├── setupTests.js
+├── styles
+│   ├── components
+│   │   ├── NetworkButtons.css
+│   │   ├── PostCard.css
+│   │   └── TopicCard.css
+│   ├── index.css
+│   ├── layout.css
+│   └── pages
+│       ├── CreateContent.css
+│       ├── CreateContent_DEP_old.css
+│       ├── DialecticaHome.css
+│       ├── Home.css
+│       ├── Home_old.css
+│       ├── Login.css
+│       ├── PANHome.css
+│       ├── PostList.css
+│       ├── PostView.css
+│       ├── Profile.css
+│       ├── Register.css
+│       ├── ShareImage.css
+│       ├── ShareThoughts.css
+│       ├── TAPHomepage.css
+│       └── WriteArticle.css
+├── types
+│   ├── api.ts
+│   ├── components.ts
+│   ├── environment.d.ts
+│   ├── posts.ts
+│   └── utils.ts
+└── utils
+

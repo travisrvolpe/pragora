@@ -2,14 +2,17 @@
 .button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
+  padding: 0.5rem;
+  font-size: 0.875rem;
   font-weight: 500;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 9999px; /* Makes buttons circular */
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: all 0.2s ease;
+  background-color: transparent;
+  color: #6b7280; /* Default gray text */
 }
 
 /* Icons within buttons */
@@ -18,102 +21,129 @@
   height: 1.25rem;
 }
 
-/* Disabled state */
-.button:disabled {
-  background-color: #e5e7eb;
-  color: #9ca3af;
-  cursor: not-allowed;
+/* Hover effect for all buttons */
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
-/* Specific styles for button types */
+/* Disabled state */
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Like button */
 .like-button {
-  background-color: #3b82f6;
-  color: white;
+  color: #6b7280;
 }
 
 .like-button:hover:not(:disabled) {
-  background-color: #2563eb;
-  transform: translateY(-1px);
+  color: #3b82f6;
+  background-color: #eff6ff;
 }
 
+.like-button[data-active="true"] {
+  color: #3b82f6;
+}
+
+/* Dislike button */
 .dislike-button {
-  background-color: #ef4444;
-  color: white;
+  color: #6b7280;
 }
 
 .dislike-button:hover:not(:disabled) {
-  background-color: #dc2626;
-  transform: translateY(-1px);
+  color: #ef4444;
+  background-color: #fef2f2;
 }
 
+.dislike-button[data-active="true"] {
+  color: #ef4444;
+}
+
+/* Love button */
 .love-button {
-  background-color: #ec4899;
-  color: white;
+  color: #6b7280;
 }
 
 .love-button:hover:not(:disabled) {
-  background-color: #db2777;
-  transform: translateY(-1px);
+  color: #ec4899;
+  background-color: #fdf2f8;
 }
 
+.love-button[data-active="true"] {
+  color: #ec4899;
+}
+
+/* Hate button */
 .hate-button {
-  background-color: #6b7280;
-  color: white;
+  color: #6b7280;
 }
 
 .hate-button:hover:not(:disabled) {
-  background-color: #4b5563;
-  transform: translateY(-1px);
+  color: #4b5563;
+  background-color: #f3f4f6;
 }
 
+.hate-button[data-active="true"] {
+  color: #4b5563;
+}
+
+/* Save button */
 .save-button {
-  background-color: #f59e0b;
-  color: white;
+  color: #6b7280;
 }
 
 .save-button:hover:not(:disabled) {
-  background-color: #d97706;
-  transform: translateY(-1px);
+  color: #f59e0b;
+  background-color: #fffbeb;
 }
 
+.save-button[data-active="true"] {
+  color: #f59e0b;
+}
+
+/* Share button */
 .share-button {
-  background-color: #10b981;
-  color: white;
+  color: #6b7280;
 }
 
 .share-button:hover:not(:disabled) {
-  background-color: #059669;
-  transform: translateY(-1px);
+  color: #10b981;
+  background-color: #ecfdf5;
 }
 
+/* Report button */
 .report-button {
-  background-color: #f87171;
-  color: white;
+  color: #6b7280;
 }
 
 .report-button:hover:not(:disabled) {
-  background-color: #ef4444;
-  transform: translateY(-1px);
+  color: #f87171;
+  background-color: #fef2f2;
 }
 
-/* View Post Button */
+/* View Post Button - Made more prominent */
 .view-post-button {
+  padding: 0.5rem 1rem;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+  background-color: transparent;
+}
+
+.view-post-button:hover:not(:disabled) {
   background-color: #3b82f6;
   color: white;
 }
 
-.view-post-button:hover:not(:disabled) {
-  background-color: #2563eb;
-  transform: translateY(-1px);
-}
-
-/* Start Post Button */
+/* Start Post Button - Made prominent */
 .start-post-button {
+  padding: 0.5rem 1.25rem;
   background-color: #10b981;
   color: white;
+  font-weight: 600;
 }
 
 .start-post-button:hover:not(:disabled) {
   background-color: #059669;
-  transform: translateY(-1px);
 }

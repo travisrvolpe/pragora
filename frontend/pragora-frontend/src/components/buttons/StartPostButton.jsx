@@ -1,7 +1,7 @@
 // src/components/buttons/StartPostButton.jsx
 import React from "react";
 import { MessageSquare } from "lucide-react";
-import Button from "./Button";
+import Button from "../ui/Button";
 import "./Button.css";
 
 const StartPostButton = ({ onClick, disabled }) => (
