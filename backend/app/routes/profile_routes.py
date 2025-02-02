@@ -1,12 +1,13 @@
 # app/routes/profile_routes.py
 # should probably update to get user posts, delete posts, and edit posts. Add drafts?
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File
 from sqlalchemy.orm.session import Session
 from app.utils.database_utils import get_db
 from app.auth.utils import get_current_user
 from app.datamodels.datamodels import UserProfile, User
 from app.schemas.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
 from app.services.post_service import save_post, get_post, get_saved_posts
+from app.services.profile_service import update_avatar, update_profile
 from typing import List
 
 router = APIRouter(
@@ -138,3 +139,18 @@ async def get_saved_posts_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     return await get_saved_posts(db, current_user.user_id)
+
+@router.post("/me/avatar")
+async def update_profile_avatar(
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update the current user's avatar"""
+    try:
+        avatar_path = await update_avatar(db, current_user.user_id, file)
+        return {"avatar_url": avatar_path}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to update avatar")

@@ -3,6 +3,7 @@ import PostWrapper from '../PostWrapper';
 
 const ThoughtPostCard = ({
   post,
+    variant,
     onViewPost,
   onLike,
   onDislike,
@@ -20,6 +21,7 @@ const ThoughtPostCard = ({
   return (
     <PostWrapper
       post={post}
+        variant={variant}
       viewPost={onViewPost}
       onLike={onLike}
       onDislike={onDislike}

@@ -1,4 +1,3 @@
-// PostCardFactory.jsx
 import React from "react";
 import ThoughtPostCard from "../posts/ThoughtPostCard";
 import ImagePostCard from "../posts/ImagePostCard";
@@ -10,20 +9,20 @@ const POST_TYPES = {
   Article: 3
 };
 
-const PostCardFactory = ({ post, variant = "feed", ...props }) => {
+const PostCardFactory = ({ post, variant={variant}, ...props }) => {
   // Enhanced debug logging
+  console.log("PostCardFactory received variant:", variant);
   console.log("PostCardFactory received:", {
     post_id: post.post_id,
+    user_id: post.user_id,
+    username: post.username,
+    avatar_img: post.avatar_img,
     post_type_id: post.post_type_id,
-    image_url: post.image_url,
     content: post.content?.substring(0, 50), // First 50 chars of content
-    has_title: !!post.title,
-    variant,
     full_post: post // Log full post object
   });
 
   const getPostComponent = () => {
-    // Log before switch statement
     console.log(`Determining component for post_type_id: ${post.post_type_id}`);
 
     switch (post.post_type_id) {
@@ -46,11 +45,19 @@ const PostCardFactory = ({ post, variant = "feed", ...props }) => {
   };
 
   const PostComponent = getPostComponent();
-
-  // Log final component selection
   console.log(`Selected component: ${PostComponent.name}`);
 
-  return <PostComponent post={post} variant={variant} {...props} />;
+  // Ensure we pass all user-related props
+  const postWithUserData = {
+    ...post,
+    username: post.username || 'Anonymous',
+    avatar_img: post.avatar_img || null,
+    reputation_score: post.reputation_score || 0,
+    reputation_cat: post.reputation_cat || '',
+    expertise_area: post.expertise_area || '',
+  };
+
+  return <PostComponent post={postWithUserData} variant={variant} {...props} />;
 };
 
 export default PostCardFactory;

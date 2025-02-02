@@ -25,39 +25,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     let isMounted = true;
 
     const initializeAuth = () => {
-      const token = authService.getToken();
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+        const token = authService.getToken();
 
-      authService.getCurrentUser()
-        .then(userData => {
-          if (isMounted) {
-            setUser(userData);
-          }
-        })
-        .catch(error => {
-          console.error("Failed to fetch user:", error);
-          if (isMounted) {
-            setError("Failed to fetch user details.");
-            setUser(null);
-            authService.logout();
-          }
-        })
-        .finally(() => {
-          if (isMounted) {
+        // Debug log to check if the token is being retrieved
+        console.log("Auth Token:", token);
+
+        if (!token) {
             setLoading(false);
-          }
-        });
+            return;
+        }
+
+        authService.getCurrentUser()
+            .then(userData => {
+                if (isMounted) {
+                    setUser(userData);
+                }
+            })
+            .catch(error => {
+                console.error("Failed to fetch user:", error);
+                if (isMounted) {
+                    setError("Failed to fetch user details.");
+                    setUser(null);
+                    authService.logout();
+                }
+            })
+            .finally(() => {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            });
     };
 
     initializeAuth();
 
     return () => {
-      isMounted = false;
+        isMounted = false;
     };
-  }, []);
+}, []);
+
 
   const loginUser = async (credentials: LoginFormData): Promise<void> => {
     try {

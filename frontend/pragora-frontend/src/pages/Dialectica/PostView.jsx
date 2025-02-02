@@ -12,82 +12,108 @@ const PostView = () => {
 
   useEffect(() => {
     const fetchPost = async () => {
-  if (!post_id) return;
+        if (!post_id) return;
 
-  setIsLoading(true);
-  setError(null);
+        setIsLoading(true);
+        setError(null);
 
-  try {
-    // Update the URL to match your backend route
-    const response = await axios.get(`http://localhost:8000/posts/${post_id}`, {
-      withCredentials: true
-    });
+        try {
+            const token = localStorage.getItem('access_token');
+            console.log("Auth Token before fetching post:", token);
 
-    if (response.data.status === 'success' && response.data.data?.post) {
-      const rawPost = response.data.data.post;
-      console.log('Raw post data:', rawPost);
+            const response = await axios.get(`http://localhost:8000/posts/${post_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                withCredentials: true
+            });
 
-      setPost({
-        post_id: rawPost.post_id,
-        post_type_id: rawPost.post_type_id,
-        title: rawPost.title || 'Untitled Post',
-        content: rawPost.content,
-        image_url: rawPost.image_url,
-        images: rawPost.images || [], // Add support for multiple images
-        caption: rawPost.caption,
-        video_url: rawPost.video_url,
-        created_at: rawPost.created_at,
-        updated_at: rawPost.updated_at,
-        user_id: rawPost.user_id,
-        user: rawPost.user, // Include user data
-        tags: rawPost.tags || [],
-        likes_count: rawPost.likes_count || 0,
-        dislikes_count: rawPost.dislikes_count || 0,
-        saves_count: rawPost.saves_count || 0,
-        shares_count: rawPost.shares_count || 0,
-        comments_count: rawPost.comments_count || 0,
-        category_id: rawPost.category_id,
-        subcategory_id: rawPost.subcategory_id,
-        custom_subcategory: rawPost.custom_subcategory
-      });
-    } else {
-      throw new Error('Invalid response format');
-    }
-  } catch (error) {
-    console.error('Failed to fetch post:', error);
-    setError(error.message || 'Failed to load post');
-  } finally {
-    setIsLoading(false);
-  }
-};
+            console.log("Post data received:", response.data);
+
+            if (response.data.status === 'success' && response.data.data?.post) {
+                const rawPost = response.data.data.post;
+                console.log("Raw post data:", rawPost);
+
+                setPost({
+                    post_id: rawPost.post_id,
+                    post_type_id: rawPost.post_type_id,
+                    title: rawPost.title || 'Untitled Post',
+                    content: rawPost.content,
+                    image_url: rawPost.image_url,
+                    images: rawPost.images || [],
+                    caption: rawPost.caption,
+                    video_url: rawPost.video_url,
+                    created_at: rawPost.created_at,
+                    updated_at: rawPost.updated_at,
+                    user_id: rawPost.user_id,
+                    username: rawPost.username,
+                    avatar_img: rawPost.avatar_img,
+                    reputation_score: rawPost.reputation_score,
+                    reputation_cat: rawPost.reputation_cat,
+                    expertise_area: rawPost.expertise_area,
+                    worldview_ai: rawPost.worldview_ai,
+                    tags: rawPost.tags || [],
+                    likes_count: rawPost.likes_count || 0,
+                    dislikes_count: rawPost.dislikes_count || 0,
+                    saves_count: rawPost.saves_count || 0,
+                    shares_count: rawPost.shares_count || 0,
+                    comments_count: rawPost.comments_count || 0,
+                    category_id: rawPost.category_id,
+                    subcategory_id: rawPost.subcategory_id,
+                    custom_subcategory: rawPost.custom_subcategory
+                });
+            } else {
+                throw new Error('Invalid response format');
+            }
+        } catch (error) {
+            console.error('Failed to fetch post:', error);
+            setError(error.message || 'Failed to load post');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     fetchPost();
-  }, [post_id]);
+}, [post_id]);
+
 
   const handleInteraction = async (action) => {
     if (!post_id || !post) return;
-    try {
-      await axios.post(`http://localhost:8000/posts/${post_id}/${action}`, {}, {
-        withCredentials: true
-      });
-      const response = await axios.get(`http://localhost:8000/posts/${post_id}`, {
-        withCredentials: true
-      });
 
-      if (response.data.status === 'success' && response.data.data?.post) {
-        const updatedPost = response.data.data.post;
-        setPost(prev => ({
-          ...prev,
-          likes_count: updatedPost.likes_count || 0,
-          dislikes_count: updatedPost.dislikes_count || 0,
-          saves_count: updatedPost.saves_count || 0,
-          shares_count: updatedPost.shares_count || 0
-        }));
-      }
+    try {
+        const token = localStorage.getItem('access_token');
+        console.log(`Auth Token before ${action}:`, token);
+
+        await axios.post(`http://localhost:8000/posts/${post_id}/${action}`, {}, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            withCredentials: true
+        });
+
+        const response = await axios.get(`http://localhost:8000/posts/${post_id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            withCredentials: true
+        });
+
+        console.log(`Updated post data after ${action}:`, response.data);
+
+        if (response.data.status === 'success' && response.data.data?.post) {
+            setPost(prev => ({
+                ...prev,
+                likes_count: response.data.data.post.likes_count || 0,
+                dislikes_count: response.data.data.post.dislikes_count || 0,
+                saves_count: response.data.data.post.saves_count || 0,
+                shares_count: response.data.data.post.shares_count || 0
+            }));
+        }
     } catch (error) {
-      console.error(`Failed to ${action} post:`, error);
+        console.error(`Failed to ${action} post:`, error);
     }
-  };
+};
+
 
   if (isLoading) {
     return (

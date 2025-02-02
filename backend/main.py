@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routes import auth_routes, profile_routes, post_routes, comment_routes, category_routes
+from app.routes import auth_routes, profile_routes, post_routes, comment_routes, category_routes, post_engagement_routes
 from database.database import database, Base, engine
 from app.utils.database_utils import init_categories, init_post_types
 from core.config import settings
@@ -16,6 +16,7 @@ settings.create_media_directories()
 # Mount the media directory for serving files
 # app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
 app.mount("/media", StaticFiles(directory="media"), name="media")
+app.mount("/avatars", StaticFiles(directory="media/avatars"), name="avatars")
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,6 +41,7 @@ app.include_router(profile_routes.router)
 app.include_router(post_routes.router)
 app.include_router(comment_routes.router)
 app.include_router(category_routes.router)
+app.include_router(post_engagement_routes.router)
 
 @app.get("/")
 async def root():

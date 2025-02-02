@@ -9,8 +9,7 @@ import {
   MessageCircle,
   CornerDownRight,
   MoreHorizontal,
-  Heart,
-  HeartCrack,
+  Flag,
 } from 'lucide-react';
 
 import {
@@ -25,6 +24,19 @@ import ViewPostButton from './buttons/ViewPostButton';
 import EngagementButton from './buttons/EngagementButton';
 import BackButton from './buttons/BackButton';
 import LikeButton from './buttons/LikeButton';
+import DislikeButton from './buttons/DislikeButton';
+import SaveButton from './buttons/SaveButton';
+import ShareButton from './buttons/ShareButton';
+
+
+// Add above the PostWrapper component
+/**
+ * PostWrapper handles both flattened and nested user data structures:
+ * Flattened: { post_id, username, avatar_img, ... }
+ * Nested: { post_id, user: { username, avatar_img, ... } }
+ * Currently using flattened structure from backend
+ * TODO: Consider standardizing on nested structure in future
+ */
 
 
 const POST_TYPE_GRADIENTS = {
@@ -36,18 +48,23 @@ const POST_TYPE_GRADIENTS = {
 const PostWrapper = ({
   post,
   children,
-  variant = 'feed'
+  variant = 'feed',
+  onComment,
+  onThreadedReply
 }) => {
-  // Use the engagement hook
+  // Debug logging for post data
+  console.log("PostWrapper received:", {
+    post_id: post.post_id,
+    username: post.username || post.user?.username,
+    user: post.user,
+    raw_post: post
+  });
+
   const {
     handleLike,
     handleDislike,
     handleSave,
     handleShare,
-    handleComment,
-    handleThreadedReply,
-    handleLove,
-    handleHate,
     handleReport,
     isLoading,
     isError
@@ -61,13 +78,20 @@ const PostWrapper = ({
     });
   };
 
-  // Report dialog handler
+  // Get username with fallback handling
+  const displayUsername = post.username || post.user?.username || 'Anonymous';
+  console.log("Display username:", displayUsername, {
+    post_username: post.username,
+    user_username: post.user?.username
+  });
+
   const handleReportClick = () => {
     const reason = window.prompt('Please provide a reason for reporting this post:');
     if (reason) {
       handleReport(reason);
     }
   };
+console.log("PostWrapper received variant:", variant);
 
   return (
     <Card className="w-full max-w-2xl bg-white">
@@ -80,8 +104,12 @@ const PostWrapper = ({
               {post.user?.avatar_url ? (
                 <img
                   src={post.user.avatar_url}
-                  alt={post.user.username}
+                  alt={displayUsername} // alt={post.user.username}
                   className="w-full h-full rounded-full object-cover"
+                  onError={(e) => {
+                    console.log("Avatar load error for user:", displayUsername);
+                    e.target.src = '../assets/images/avatars/default-avatar.png';
+                  }}
                 />
               ) : (
                 <div className="w-full h-full rounded-full bg-gray-200" />
@@ -90,9 +118,10 @@ const PostWrapper = ({
           </div>
 
           {/* User Info */}
+          {/* className="font-semibold">{post.user?.username || 'Anonymous'} */}
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-semibold">{post.user?.username || 'Anonymous'}</span>
+              <span className="font-semibold">{displayUsername}</span>
               <span className="text-sm text-gray-500">({post.user?.reputation_score || 0})</span>
             </div>
             <div className="text-sm text-gray-500">
@@ -111,27 +140,11 @@ const PostWrapper = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              onClick={() => handleLove()}
-              disabled={isLoading.love}
-              className="cursor-pointer"
-            >
-              <Heart className="w-4 h-4 mr-2" />
-              Mark as Loved
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleHate()}
-              disabled={isLoading.hate}
-              className="cursor-pointer"
-            >
-              <HeartCrack className="w-4 h-4 mr-2" />
-              Mark as Disliked
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
               onClick={handleReportClick}
               disabled={isLoading.report}
               className="text-red-600 cursor-pointer"
             >
+              <Flag className="w-4 h-4 mr-2" />
               Report Post
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -147,63 +160,50 @@ const PostWrapper = ({
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
             <LikeButton
-              icon={ThumbsUp}
               count={post.likes_count}
               onClick={handleLike}
               disabled={isLoading.like}
               active={post.liked}
               error={isError.like}
-              className="text-blue-600"
             />
-            <EngagementButton
-              icon={ThumbsDown}
+            <DislikeButton
               count={post.dislikes_count}
               onClick={handleDislike}
               disabled={isLoading.dislike}
               active={post.disliked}
               error={isError.dislike}
-              className="text-red-600"
             />
             <EngagementButton
               icon={MessageCircle}
               count={post.comments_count}
-              onClick={handleComment}
-              disabled={isLoading.comment}
-              error={isError.comment}
+              onClick={onComment}
               className="text-gray-600"
             />
-            <EngagementButton
-              icon={CornerDownRight}
-              onClick={handleThreadedReply}
-              disabled={isLoading.threadedReply}
-              error={isError.threadedReply}
-              className="text-gray-600"
-            />
-            <EngagementButton
-              icon={Share2}
+            {variant === 'feed' && (
+              <EngagementButton
+                icon={CornerDownRight}
+                onClick={onThreadedReply}
+                className="text-gray-600"
+              />
+            )}
+            <ShareButton
               count={post.shares_count}
               onClick={handleShare}
               disabled={isLoading.share}
               error={isError.share}
-              className="text-gray-600"
             />
-            <EngagementButton
-              icon={Bookmark}
+            <SaveButton
               count={post.saves_count}
               onClick={handleSave}
               disabled={isLoading.save}
               active={post.saved}
               error={isError.save}
-              className="text-purple-600"
             />
           </div>
 
           {/* Conditional rendering of View/Back button based on variant */}
-          {variant === 'feed' ? (
-            <ViewPostButton post_id={post.post_id} />
-          ) : (
-            <BackButton />
-          )}
+          {variant === 'feed' && <ViewPostButton post_id={post.post_id} />}
+          {variant === 'detail' && <BackButton />}
         </div>
 
         {/* Analysis Results */}

@@ -134,6 +134,7 @@ class PostResponse(BaseModel):
     updated_at: datetime
 
     # Interaction metrics
+
     likes_count: int
     dislikes_count: int
     loves_count: int
@@ -149,6 +150,16 @@ class PostResponse(BaseModel):
     avg_view_duration: Optional[float]
     engagement_score: Optional[float]
     quality_score: Optional[float]
+
+    # Fields for tracking user interactions
+    liked: bool = False
+    disliked: bool = False
+    hated: bool = False
+    loved: bool = False
+    shared: bool = False
+    reported: bool = False
+    commented: bool = False
+    replied: bool = False
 
     class Config:
         orm_mode = True

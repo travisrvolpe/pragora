@@ -3,15 +3,18 @@ from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from fastapi.responses import FileResponse
 from typing import Optional, List
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from app.utils.database_utils import get_db
-from app.schemas.post_schemas import PostCreate, PostInteractionCreate, PostMetricsUpdate, PostEngagementUpdate
+from app.schemas.post_schemas import PostCreate, PostResponse, PostInteractionCreate, PostMetricsUpdate, PostEngagementUpdate
 from app.services import post_service
 from app.auth.utils import get_current_user
-from app.services.post_service import upload_post_image
-from app.datamodels.post_datamodels import Post
+from app.services.post_service import upload_post_image, create_post, get_post
+from app.datamodels.post_datamodels import Post, PostInteraction
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from app.datamodels.datamodels import User
+from pydantic import BaseModel, ValidationError
+from app.middleware.profile_middleware import validate_user_profile
 
 # Add this near the top of your file
 MEDIA_PATH = Path("./media")
@@ -30,40 +33,48 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 #):
     #result = await post_service.create_post(db, current_user.user_id, post)
     #return result.__dict__
-@router.post("/", response_model=dict)
-async def create_post(
-    content: str = Form(...),
-    post_type_id: str = Form(...),
-    title: Optional[str] = Form(None),
-    subtitle: Optional[str] = Form(None),
-    summary: Optional[str] = Form(None),
-    category_id: Optional[str] = Form(None),
-    subcategory_id: Optional[str] = Form(None),
-    custom_subcategory: Optional[str] = Form(None),
-    visibility: Optional[str] = Form("public"),
-    is_pinned: Optional[bool] = Form(False),
-    is_draft: Optional[bool] = Form(False),
-    parent_post_id: Optional[int] = Form(None),
-    video_url: Optional[str] = Form(None),
-    video_metadata: Optional[dict] = Form(None),
-    audio_url: Optional[str] = Form(None),
-    document_url: Optional[str] = Form(None),
-    embedded_content: Optional[dict] = Form(None),
-    link_preview: Optional[dict] = Form(None),
-    files: Optional[List[UploadFile]] = File(None),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    try:
-        # Debug log received data
-        print("Received form data:")
-        print(f"content: {content}")
-        print(f"post_type_id: {post_type_id}")
-        print(f"title: {title}")
-        print(f"category_id: {category_id}")
-        print(f"files: {files}")
 
-        # Convert string IDs to integers where needed
+# routes/post_routes.py
+
+# routes/post_routes.py
+
+@router.post("/", response_model=PostResponse)
+async def create_post(
+        content: str = Form(...),
+        post_type_id: str = Form(...),
+        title: Optional[str] = Form(None),
+        subtitle: Optional[str] = Form(None),
+        summary: Optional[str] = Form(None),
+        category_id: Optional[str] = Form(None),
+        subcategory_id: Optional[str] = Form(None),
+        custom_subcategory: Optional[str] = Form(None),
+        visibility: Optional[str] = Form("public"),
+        is_pinned: Optional[bool] = Form(False),
+        is_draft: Optional[bool] = Form(False),
+        parent_post_id: Optional[int] = Form(None),
+        video_url: Optional[str] = Form(None),
+        video_metadata: Optional[dict] = Form(None),
+        audio_url: Optional[str] = Form(None),
+        document_url: Optional[str] = Form(None),
+        embedded_content: Optional[dict] = Form(None),
+        link_preview: Optional[dict] = Form(None),
+        files: Optional[List[UploadFile]] = File(None),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    """API route to create a post."""
+
+    # Verify user is authenticated
+    if not current_user or not current_user.user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    print(f"✅ Creating post for user: {current_user.user_id}")
+
+    try:
+        await validate_user_profile(current_user.user_id, db)
+
+
+        # Convert form data into dictionary for PostCreate schema
         post_data = {
             "content": content,
             "post_type_id": int(post_type_id),
@@ -82,30 +93,49 @@ async def create_post(
             "audio_url": audio_url,
             "document_url": document_url,
             "embedded_content": embedded_content,
-            "link_preview": link_preview
+            "link_preview": link_preview,
         }
 
+        # Create post schema object
         post_create = PostCreate(**post_data)
-        return await post_service.create_post(db, current_user.user_id, post_create, files)
 
-    except ValueError as e:
+        # Create post and get response
+        post_data = await post_service.create_post(db, current_user.user_id, post_create, files)
+
+        # Extract post data from the service response
+        if isinstance(post_data, dict) and 'data' in post_data and 'post' in post_data['data']:
+            return post_data['data']['post']
+
+        # If response is already in the correct format, return it directly
+        return post_data
+
+    except ValidationError as e:
+        print(f"❌ Validation error: {str(e)}")
         raise HTTPException(status_code=422, detail=str(e))
+    except HTTPException as e:
+        print(f"❌ HTTP error: {str(e)}")
+        raise e
     except Exception as e:
-        print(f"Error creating post: {str(e)}")
+        print(f"❌ Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{post_id}", response_model=dict)
 async def get_post(
     post_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)  # Fetch user details
 ):
+    user_id = current_user.user_id if current_user else None
+    return await post_service.get_post(db, post_id, user_id=user_id)
+
     # Track view only if user is authenticated
-    try:
-        current_user = await get_current_user()
-        if current_user:
-            await post_service.track_post_view(current_user.user_id, post_id, db)
-    except:
-        pass
-    return await post_service.get_post(db, post_id)
+    #try:
+    #    current_user = await get_current_user()
+    #    if current_user:
+    #        await post_service.track_post_view(current_user.user_id, post_id, db)
+    #except:
+    #    pass
+    #return await post_service.get_post(db, post_id)
 
 
 @router.get("/trending/{timeframe}", response_model=dict)
@@ -128,22 +158,26 @@ async def mark_as_read(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Ensure user has profile
+    await validate_user_profile(current_user.user_id, db)
     return await post_service.mark_post_as_read(current_user.user_id, post_id, db)
+
 
 @router.post("/{post_id}/engagement", response_model=dict)
 async def update_engagement(
-    post_id: int,
-    engagement: PostEngagementUpdate,
-    current_user=Depends(get_current_user),
-    db: Session = Depends(get_db)
+        post_id: int,
+        engagement: PostEngagementUpdate,
+        current_user=Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     """Update engagement metrics for a post"""
+    # Ensure user has profile
+    await validate_user_profile(current_user.user_id, db)
+
     await post_service.track_post_view(current_user.user_id, post_id, db)
     engagement_dict = engagement.dict()
     engagement_dict["user_id"] = current_user.user_id
-    # Additional engagement tracking logic here
     return {"message": "Engagement updated successfully"}
-
 # Get posts for the current user
 @router.get("/me", response_model=dict)
 async def get_my_posts(
@@ -185,14 +219,44 @@ async def create_post_interaction(
     interaction.user_id = current_user.user_id
     return await post_service.create_post_interaction(db, interaction)
 
-@router.post("/posts/{post_id}/metrics", response_model=dict)
+
+@router.post("/{post_id}/metrics", response_model=dict)
 async def update_metrics(
-    post_id: int,
-    metrics: PostMetricsUpdate,
-    db: Session = Depends(get_db),
+        post_id: int,
+        metrics: PostMetricsUpdate,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
 ):
-    metrics_dict = metrics.dict(exclude_unset=True)
-    return await post_service.update_post_metrics(db, post_id, metrics_dict)
+    try:
+        # Ensure user has profile
+        await validate_user_profile(current_user.user_id, db)
+
+        post = db.query(Post).filter(Post.post_id == post_id).first()
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        # Update metrics
+        metrics_dict = metrics.dict(exclude_unset=True)
+        for key, value in metrics_dict.items():
+            if hasattr(post, f"{key}_count"):
+                setattr(post, f"{key}_count", getattr(post, f"{key}_count") + value)
+
+        # Update user interaction record
+        interaction = PostInteraction(
+            user_id=current_user.user_id,
+            post_id=post_id,
+            liked=bool(metrics_dict.get('likes')),
+            disliked=bool(metrics_dict.get('dislikes')),
+            loved=bool(metrics_dict.get('loves')),
+            hated=bool(metrics_dict.get('hates')),
+        )
+        db.add(interaction)
+        db.commit()
+
+        return {"message": "Metrics updated successfully", "post": post}
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{post_id}/upload-image")
 async def upload_image(
@@ -218,3 +282,4 @@ async def fetch_image(post_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Image file not found")
 
     return FileResponse(str(full_path))
+

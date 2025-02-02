@@ -1,0 +1,168 @@
+.post-wrapper {
+  @apply bg-white rounded-lg shadow-lg mb-4 overflow-hidden relative;
+}
+
+.post-type-indicator {
+  @apply h-1 w-full;
+}
+
+.post-header {
+  @apply flex items-center p-4 border-b relative;
+}
+
+.user-avatar {
+  @apply flex-shrink-0;
+}
+
+.avatar-image {
+  @apply w-10 h-10 rounded-full object-cover;
+}
+
+.default-avatar {
+  @apply w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center;
+}
+
+.default-avatar span {
+  @apply text-gray-500 text-lg;
+}
+
+.user-info {
+  @apply ml-3 flex-grow;
+}
+
+.user-info-top {
+  @apply flex items-center justify-between;
+}
+
+.user-credentials {
+  @apply flex items-center;
+}
+
+.username {
+  @apply font-semibold text-gray-900 hover:text-blue-600 cursor-pointer;
+}
+
+.reputation-badge {
+  @apply ml-2 px-2 py-0.5 text-xs bg-gray-100 rounded-full text-gray-600;
+}
+
+.user-meta {
+  @apply flex items-center text-sm text-gray-500;
+}
+
+.timestamp {
+  @apply text-gray-500;
+}
+
+.expertise-area {
+  @apply ml-2 text-blue-600;
+}
+
+.reputation-score {
+  @apply ml-2 text-gray-500;
+}
+
+.user-actions {
+  @apply flex space-x-2;
+}
+
+.follow-button {
+  @apply text-sm text-blue-600 hover:text-blue-800;
+}
+
+.connect-button {
+  @apply text-sm text-green-600 hover:text-green-800;
+}
+
+.post-dropdown {
+  @apply relative;
+}
+
+.dropdown-trigger {
+  @apply p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100;
+}
+
+.dropdown-menu {
+  @apply absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1;
+}
+
+.dropdown-item {
+  @apply flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full;
+}
+
+.dropdown-item svg {
+  @apply mr-2;
+}
+
+.post-content {
+  @apply cursor-pointer;
+}
+
+.post-actions {
+  @apply px-4 py-3 border-t;
+}
+
+.action-buttons {
+  @apply flex justify-between items-center;
+}
+
+.vote-buttons, .emotion-buttons {
+  @apply flex space-x-2;
+}
+
+.action-button {
+  @apply flex items-center space-x-1 text-gray-500 hover:text-blue-600 transition-colors duration-200;
+}
+
+.action-button span {
+  @apply text-sm;
+}
+
+.action-button.liked {
+  @apply text-blue-600;
+}
+
+.action-button.disliked {
+  @apply text-red-600;
+}
+
+.action-button.loved {
+  @apply text-pink-600;
+}
+
+.action-button.saved {
+  @apply text-yellow-600;
+}
+
+.action-button.report-button:hover {
+  @apply text-red-600;
+}
+
+.view-count {
+  @apply mt-2 text-sm text-gray-500;
+}
+
+/* Post type gradients */
+.from-blue-500 {
+  @apply from-blue-500;
+}
+
+.to-indigo-500 {
+  @apply to-indigo-500;
+}
+
+.from-green-500 {
+  @apply from-green-500;
+}
+
+.to-teal-500 {
+  @apply to-teal-500;
+}
+
+.from-purple-500 {
+  @apply from-purple-500;
+}
+
+.to-pink-500 {
+  @apply to-pink-500;
+}

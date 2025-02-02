@@ -129,6 +129,18 @@ class PostInteraction(Base):
     post_interaction_type_id = Column(Integer, ForeignKey("post_interaction_types.post_interaction_type_id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
+    liked = Column(Boolean, default=False)
+    disliked = Column(Boolean, default=False)
+    hated = Column(Boolean, default=False)
+    loved = Column(Boolean, default=False)
+    saved = Column(Boolean, default=False)
+    shared = Column(Boolean, default=False)
+    reported = Column(Boolean, default=False)
+    commented = Column(Boolean, default=False)
+    replied = Column(Boolean, default=False)
+
+
     user = relationship("User", back_populates="post_interactions")
     post = relationship("Post", back_populates="interactions")
     interaction_type = relationship("PostInteractionType", back_populates="interactions")

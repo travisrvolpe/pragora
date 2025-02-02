@@ -114,7 +114,10 @@ const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    console.log('Form data before submission:', formData);  // Debug log
+    const token = localStorage.getItem('access_token');
+    console.log("Auth Token before submitting post:", token);
+
+    console.log('Form data before submission:', formData);
 
     const submitFormData = new FormData();
     submitFormData.append('post_type_id', String(formData.post_type_id));
@@ -131,28 +134,19 @@ const handleSubmit = async (e) => {
             submitFormData.append('category_id', String(categoryId));
         }
     }
-
     if (formData.subcategory_id) {
         const subcategoryId = parseInt(formData.subcategory_id);
         if (!isNaN(subcategoryId)) {
             submitFormData.append('subcategory_id', String(subcategoryId));
         }
     }
-
     if (selectedFile) {
         submitFormData.append('files', selectedFile);
     }
-
     if (formData.tags.length > 0) {
         formData.tags.forEach(tag => {
             submitFormData.append('tags', tag);
         });
-    }
-
-    // Debug log what's being sent
-    console.log('Submitting form data:');
-    for (let pair of submitFormData.entries()) {
-        console.log(pair[0] + ':', pair[1]);
     }
 
     try {
@@ -164,17 +158,21 @@ const handleSubmit = async (e) => {
             }
         });
 
-        console.log('Success response:', response.data);
+        console.log('Post creation response:', response.data);
 
-        if (response.data.status === 'success' && response.data.data?.post?.post_id) {
-            const post_id = response.data.data.post.post_id;
+        // Check for post_id in nested response data
+        const post_id = response.data?.data?.post?.post_id ||
+                       response.data?.post_id;
+
+        if (post_id) {
             console.log('Navigating to post:', post_id);
             navigate(`/post/${post_id}`);
         } else {
-            console.error('Invalid response format:', response.data);
+            console.error('No post_id found in response:', response.data);
+            alert('Post created but unable to navigate to it');
         }
     } catch (error) {
-        console.error('Error details:', {
+        console.error('Error creating post:', {
             status: error.response?.status,
             data: error.response?.data,
             headers: error.response?.headers
@@ -184,7 +182,6 @@ const handleSubmit = async (e) => {
         setIsLoading(false);
     }
 };
-
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
       <div className="flex items-center gap-3 mb-6">

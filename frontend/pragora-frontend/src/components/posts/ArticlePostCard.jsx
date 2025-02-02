@@ -4,6 +4,7 @@ import PostWrapper from '../PostWrapper';
 
 const ArticlePostCard = ({
   post,
+    variant,
   onLike,
   onDislike,
   onSave,
@@ -20,6 +21,7 @@ const ArticlePostCard = ({
   return (
     <PostWrapper
       post={post}
+      variant={variant}
       onLike={onLike}
       onDislike={onDislike}
       onSave={onSave}
