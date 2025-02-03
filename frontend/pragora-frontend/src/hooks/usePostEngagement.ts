@@ -3,71 +3,130 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from './use-toast';
 import { useState } from 'react';
 
-// API endpoint configuration
-const API_URL = 'http://localhost:8000';
-
+// Types
 interface PostEngagementMetrics {
-  likes_count?: number;
-  dislikes_count?: number;
-  loves_count?: number;
-  hates_count?: number;
-  saves_count?: number;
-  shares_count?: number;
-  reports_count?: number;
-}
-
-interface Post {
-  post_id: number;
-  user_id: number;
   likes_count: number;
   dislikes_count: number;
-  loves_count: number;
-  hates_count: number;
   saves_count: number;
   shares_count: number;
   reports_count: number;
+}
+
+interface PostEngagementState {
   liked: boolean;
   disliked: boolean;
-  loved: boolean;
-  hated: boolean;
   saved: boolean;
   reported: boolean;
-  [key: string]: any;
+}
+
+interface Post extends PostEngagementMetrics, PostEngagementState {
+  post_id: number;
+  user_id: number;
 }
 
 interface EngagementState {
   like: boolean;
   dislike: boolean;
-  love: boolean;
-  hate: boolean;
   save: boolean;
   share: boolean;
   report: boolean;
-  [key: string]: boolean;
 }
+
+interface EngagementResponse {
+  message: string;
+  likes_count?: number;
+  dislikes_count?: number;
+  saves_count?: number;
+  shares_count?: number;
+  reports_count?: number;
+  liked?: boolean;
+  disliked?: boolean;
+  saved?: boolean;
+  reported?: boolean;
+}
+
+// API Configuration
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const ENGAGEMENT_URL = `${API_URL}/posts/engagement`;
+
+// Helper Functions
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+};
+
+const makeAuthenticatedRequest = async (
+  url: string,
+  method: string,
+  body?: unknown
+): Promise<EngagementResponse> => {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('Please log in to interact with posts');
+  }
+
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      credentials: 'include',
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Please log in to interact with posts');
+      }
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to process request');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('API Request failed:', error);
+    throw error instanceof Error ? error : new Error('Unknown error occurred');
+  }
+};
 
 function usePostEngagement(post: Post) {
   const queryClient = useQueryClient();
-
-  // Track loading states for each interaction type
   const [isLoading, setIsLoading] = useState<EngagementState>({
     like: false,
     dislike: false,
-    love: false,
-    hate: false,
     save: false,
     share: false,
     report: false,
   });
 
-  // Helper to update post cache
-  const updatePostCache = (updates: PostEngagementMetrics) => {
+  // Update post cache with proper type checking
+  const updatePostCache = (updates: Partial<Post>) => {
+    // Helper to safely update numbers
+    const safeNumber = (value: number | undefined, fallback: number) =>
+      typeof value === 'number' ? Math.max(0, value) : fallback;
+
+    // Update single post cache
     queryClient.setQueryData(['posts', post.post_id], (oldPost: Post | undefined) => {
       if (!oldPost) return oldPost;
-      return { ...oldPost, ...updates };
+      return {
+        ...oldPost,
+        ...updates,
+        // Ensure counts never go below 0
+        likes_count: safeNumber(updates.likes_count, oldPost.likes_count),
+        dislikes_count: safeNumber(updates.dislikes_count, oldPost.dislikes_count),
+        saves_count: safeNumber(updates.saves_count, oldPost.saves_count),
+        shares_count: safeNumber(updates.shares_count, oldPost.shares_count),
+        // Update boolean states
+        liked: updates.liked ?? oldPost.liked,
+        disliked: updates.disliked ?? oldPost.disliked,
+        saved: updates.saved ?? oldPost.saved,
+        reported: updates.reported ?? oldPost.reported,
+      };
     });
 
-    // Update post lists/feeds
+    // Update posts list cache
     queryClient.setQueriesData({ queryKey: ['posts'] }, (oldData: any) => {
       if (!oldData?.pages) return oldData;
       return {
@@ -75,7 +134,20 @@ function usePostEngagement(post: Post) {
         pages: oldData.pages.map((page: any) => ({
           ...page,
           posts: page.posts.map((p: Post) =>
-            p.post_id === post.post_id ? { ...p, ...updates } : p
+            p.post_id === post.post_id ? {
+              ...p,
+              ...updates,
+              // Ensure counts never go below 0
+              likes_count: safeNumber(updates.likes_count, p.likes_count),
+              dislikes_count: safeNumber(updates.dislikes_count, p.dislikes_count),
+              saves_count: safeNumber(updates.saves_count, p.saves_count),
+              shares_count: safeNumber(updates.shares_count, p.shares_count),
+              // Update boolean states
+              liked: updates.liked ?? p.liked,
+              disliked: updates.disliked ?? p.disliked,
+              saved: updates.saved ?? p.saved,
+              reported: updates.reported ?? p.reported,
+            } : p
           )
         }))
       };
@@ -85,39 +157,35 @@ function usePostEngagement(post: Post) {
   // Like mutation
   const likeMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`${API_URL}/posts/${post.post_id}/like`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
+      console.log('Like mutation triggered');
+      console.log(`Making request to: ${ENGAGEMENT_URL}/${post.post_id}/like`);
+      return makeAuthenticatedRequest(`${ENGAGEMENT_URL}/${post.post_id}/like`, 'POST');
+      },
 
-      if (!response.ok) {
-        throw new Error('Failed to like post');
-      }
-
-      return response.json();
-    },
     onMutate: async () => {
       setIsLoading(prev => ({ ...prev, like: true }));
       await queryClient.cancelQueries({ queryKey: ['posts', post.post_id] });
       const previousPost = queryClient.getQueryData(['posts', post.post_id]);
 
-      // Optimistically update the UI
+      // Optimistic update
       updatePostCache({
-        likes_count: post.liked ? post.likes_count - 1 : post.likes_count + 1
+        likes_count: post.liked ? post.likes_count - 1 : post.likes_count + 1,
+        liked: !post.liked,
+        // Remove dislike if it exists
+        dislikes_count: post.disliked ? post.dislikes_count - 1 : post.dislikes_count,
+        disliked: false,
       });
 
       return { previousPost };
     },
-    onError: (err, variables, context) => {
+    onError: (error: Error, _, context) => {
       if (context?.previousPost) {
         updatePostCache(context.previousPost);
       }
+      console.error('Like mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to like post",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -137,38 +205,32 @@ function usePostEngagement(post: Post) {
   // Dislike mutation
   const dislikeMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`${API_URL}/posts/${post.post_id}/dislike`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to dislike post');
-      }
-
-      return response.json();
+      return makeAuthenticatedRequest(`${ENGAGEMENT_URL}/${post.post_id}/dislike`, 'POST');
     },
     onMutate: async () => {
       setIsLoading(prev => ({ ...prev, dislike: true }));
       await queryClient.cancelQueries({ queryKey: ['posts', post.post_id] });
       const previousPost = queryClient.getQueryData(['posts', post.post_id]);
 
+      // Optimistic update
       updatePostCache({
-        dislikes_count: post.disliked ? post.dislikes_count - 1 : post.dislikes_count + 1
+        dislikes_count: post.disliked ? post.dislikes_count - 1 : post.dislikes_count + 1,
+        disliked: !post.disliked,
+        // Remove like if it exists
+        likes_count: post.liked ? post.likes_count - 1 : post.likes_count,
+        liked: false,
       });
 
       return { previousPost };
     },
-    onError: (err, variables, context) => {
+    onError: (error: Error, _, context) => {
       if (context?.previousPost) {
         updatePostCache(context.previousPost);
       }
+      console.error('Dislike mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to dislike post",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -188,38 +250,29 @@ function usePostEngagement(post: Post) {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`${API_URL}/posts/${post.post_id}/save`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save post');
-      }
-
-      return response.json();
+      return makeAuthenticatedRequest(`${ENGAGEMENT_URL}/${post.post_id}/save`, 'POST');
     },
     onMutate: async () => {
       setIsLoading(prev => ({ ...prev, save: true }));
       await queryClient.cancelQueries({ queryKey: ['posts', post.post_id] });
       const previousPost = queryClient.getQueryData(['posts', post.post_id]);
 
+      // Optimistic update
       updatePostCache({
-        saves_count: post.saved ? post.saves_count - 1 : post.saves_count + 1
+        saves_count: post.saved ? post.saves_count - 1 : post.saves_count + 1,
+        saved: !post.saved,
       });
 
       return { previousPost };
     },
-    onError: (err, variables, context) => {
+    onError: (error: Error, _, context) => {
       if (context?.previousPost) {
         updatePostCache(context.previousPost);
       }
+      console.error('Save mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to save post",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -240,35 +293,31 @@ function usePostEngagement(post: Post) {
   // Report mutation
   const reportMutation = useMutation({
     mutationFn: async (reason: string) => {
-      const response = await fetch(`${API_URL}/posts/${post.post_id}/report`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reason })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to report post');
-      }
-
-      return response.json();
+      return makeAuthenticatedRequest(
+        `${ENGAGEMENT_URL}/${post.post_id}/report`,
+        'POST',
+        { reason }
+      );
     },
-    onMutate: async () => {
+    onMutate: () => {
       setIsLoading(prev => ({ ...prev, report: true }));
     },
+    onError: (error: Error) => {
+      console.error('Report mutation error:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
     onSuccess: (data) => {
+      updatePostCache({
+        reports_count: data.reports_count,
+        reported: true,
+      });
       toast({
         title: "Report Submitted",
         description: "Thank you for helping maintain community standards.",
-      });
-    },
-    onError: (err) => {
-      toast({
-        title: "Error",
-        description: "Failed to submit report",
-        variant: "destructive",
       });
     },
     onSettled: () => {
@@ -279,38 +328,28 @@ function usePostEngagement(post: Post) {
   // Share mutation
   const shareMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`${API_URL}/posts/${post.post_id}/share`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to share post');
-      }
-
-      return response.json();
+      return makeAuthenticatedRequest(`${ENGAGEMENT_URL}/${post.post_id}/share`, 'POST');
     },
     onMutate: async () => {
       setIsLoading(prev => ({ ...prev, share: true }));
       await queryClient.cancelQueries({ queryKey: ['posts', post.post_id] });
       const previousPost = queryClient.getQueryData(['posts', post.post_id]);
 
+      // Optimistic update
       updatePostCache({
-        shares_count: (post.shares_count || 0) + 1
+        shares_count: (post.shares_count || 0) + 1,
       });
 
       return { previousPost };
     },
-    onError: (err, variables, context) => {
+    onError: (error: Error, _, context) => {
       if (context?.previousPost) {
         updatePostCache(context.previousPost);
       }
+      console.error('Share mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to share post",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -318,7 +357,7 @@ function usePostEngagement(post: Post) {
       updatePostCache(data);
       toast({
         title: "Success",
-        description: "Post shared successfully",
+        description: data.message,
       });
     },
     onSettled: () => {

@@ -163,21 +163,21 @@ async def mark_as_read(
     return await post_service.mark_post_as_read(current_user.user_id, post_id, db)
 
 
-@router.post("/{post_id}/engagement", response_model=dict)
-async def update_engagement(
-        post_id: int,
-        engagement: PostEngagementUpdate,
-        current_user=Depends(get_current_user),
-        db: Session = Depends(get_db)
-):
-    """Update engagement metrics for a post"""
-    # Ensure user has profile
-    await validate_user_profile(current_user.user_id, db)
+#@router.post("/{post_id}/engagement", response_model=dict)
+#async def update_engagement(
+#        post_id: int,
+#        engagement: PostEngagementUpdate,
+#        current_user=Depends(get_current_user),
+#        db: Session = Depends(get_db)
+#):
+#    """Update engagement metrics for a post"""
+#    # Ensure user has profile
+#    await validate_user_profile(current_user.user_id, db)
 
-    await post_service.track_post_view(current_user.user_id, post_id, db)
-    engagement_dict = engagement.dict()
-    engagement_dict["user_id"] = current_user.user_id
-    return {"message": "Engagement updated successfully"}
+#    await post_service.track_post_view(current_user.user_id, post_id, db)
+#    engagement_dict = engagement.dict()
+#    engagement_dict["user_id"] = current_user.user_id
+#    return {"message": "Engagement updated successfully"}
 # Get posts for the current user
 @router.get("/me", response_model=dict)
 async def get_my_posts(
@@ -210,53 +210,15 @@ async def delete_post(
     return await post_service.delete_post(db, post_id, current_user.user_id)
 
 # Create a post interaction
-@router.post("/interactions", response_model=dict)
-async def create_post_interaction(
-    interaction: PostInteractionCreate,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    interaction.user_id = current_user.user_id
-    return await post_service.create_post_interaction(db, interaction)
+#@router.post("/interactions", response_model=dict)
+#async def create_post_interaction(
+#    interaction: PostInteractionCreate,
+#    current_user = Depends(get_current_user),
+#    db: Session = Depends(get_db)
+#):
+#.user_id = current_user.user_id
+#    return await post_service.create_post_interaction(db, interaction)
 
-
-@router.post("/{post_id}/metrics", response_model=dict)
-async def update_metrics(
-        post_id: int,
-        metrics: PostMetricsUpdate,
-        current_user: User = Depends(get_current_user),
-        db: Session = Depends(get_db),
-):
-    try:
-        # Ensure user has profile
-        await validate_user_profile(current_user.user_id, db)
-
-        post = db.query(Post).filter(Post.post_id == post_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail="Post not found")
-
-        # Update metrics
-        metrics_dict = metrics.dict(exclude_unset=True)
-        for key, value in metrics_dict.items():
-            if hasattr(post, f"{key}_count"):
-                setattr(post, f"{key}_count", getattr(post, f"{key}_count") + value)
-
-        # Update user interaction record
-        interaction = PostInteraction(
-            user_id=current_user.user_id,
-            post_id=post_id,
-            liked=bool(metrics_dict.get('likes')),
-            disliked=bool(metrics_dict.get('dislikes')),
-            loved=bool(metrics_dict.get('loves')),
-            hated=bool(metrics_dict.get('hates')),
-        )
-        db.add(interaction)
-        db.commit()
-
-        return {"message": "Metrics updated successfully", "post": post}
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{post_id}/upload-image")
 async def upload_image(

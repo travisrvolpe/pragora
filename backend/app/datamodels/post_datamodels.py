@@ -66,6 +66,11 @@ class Post(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    # Add this before the relationships section
+    #@validates('likes_count', 'dislikes_count', 'saves_count', 'shares_count')
+    #def validate_count(self, key, count):
+    #    return max(0, count or 0)
+
     # Relationships
     user = relationship("User", back_populates="posts")
     post_type = relationship("PostType", back_populates="posts")

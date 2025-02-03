@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import AppRoutes from "./AppRoutes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 // Create a client
 const queryClient = new QueryClient({
@@ -22,6 +23,7 @@ const App: React.FC = () => {
           <AppRoutes />
         </ProfileProvider>
       </AuthProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 };
