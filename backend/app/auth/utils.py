@@ -5,9 +5,8 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.utils.database_utils import get_db
-from app.schemas.schemas import TokenData
 from app.datamodels.datamodels import User
-from core.config import settings
+from app.core.config import settings
 from datetime import datetime, timedelta
 
 # Constants for JWT

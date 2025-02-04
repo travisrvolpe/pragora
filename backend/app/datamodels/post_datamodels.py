@@ -1,5 +1,5 @@
 # datamodels/post_datamodels.py
-from sqlalchemy import Table, Column, Integer, String, DateTime, ForeignKey, Text, JSON, Boolean, Float
+from sqlalchemy import Table, Column, Integer, String, DateTime, ForeignKey, Text, JSON, Boolean, Float, Index
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship, backref
 from database.database import Base
@@ -128,23 +128,16 @@ class Subcategory(Base):
 class PostInteraction(Base):
     __tablename__ = "post_interactions"
 
-    post_intact_id = Column(Integer, primary_key=True)
+    interaction_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"), nullable=False)
     post_interaction_type_id = Column(Integer, ForeignKey("post_interaction_types.post_interaction_type_id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-    liked = Column(Boolean, default=False)
-    disliked = Column(Boolean, default=False)
-    hated = Column(Boolean, default=False)
-    loved = Column(Boolean, default=False)
-    saved = Column(Boolean, default=False)
-    shared = Column(Boolean, default=False)
-    reported = Column(Boolean, default=False)
-    commented = Column(Boolean, default=False)
-    replied = Column(Boolean, default=False)
-
+    # For performance, add indexes on commonly queried combinations
+    __table_args__ = (
+        Index('idx_post_user_type', post_id, user_id, post_interaction_type_id, unique=True),
+        Index('idx_post_type', post_id, post_interaction_type_id),
+    )
 
     user = relationship("User", back_populates="post_interactions")
     post = relationship("Post", back_populates="interactions")
@@ -154,10 +147,25 @@ class PostInteractionType(Base):
     __tablename__ = "post_interaction_types"
 
     post_interaction_type_id = Column(Integer, primary_key=True)
-    post_interaction_type_name = Column(String, unique=True, nullable=False)
-    interactions = relationship("PostInteraction", back_populates="interaction_type")
+    post_interaction_type_name = Column(String(50), unique=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    display_order = Column(Integer)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    #interactions = relationship("PostInteraction", back_populates="interaction_type")
 
 
+class PostInteractionCounts(Base):
+    __tablename__ = "post_interaction_counts"
+
+    post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"), primary_key=True)
+    type_id = Column(Integer, ForeignKey("post_interaction_types.type_id"), primary_key=True)
+    count = Column(Integer, default=0)
+    last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index('idx_post_counts', post_id, type_id),
+    )
 class PostAnalysis(Base):
     __tablename__ = "post_analysis"
 

@@ -48,10 +48,13 @@ interface EngagementResponse {
 // API Configuration
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const ENGAGEMENT_URL = `${API_URL}/posts/engagement`;
+const TOKEN_KEY = 'access_token';
 
 // Helper Functions
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
+const getAuthToken = () => {
+  const token = localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+  console.log('Retrieved token:', token ? 'Present' : 'Missing');
+  return token;
 };
 
 const makeAuthenticatedRequest = async (
@@ -71,20 +74,20 @@ const makeAuthenticatedRequest = async (
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      credentials: 'include',
-      ...(body ? { body: JSON.stringify(body) } : {}),
+      body: body ? JSON.stringify(body) : undefined,
     });
 
     if (!response.ok) {
       if (response.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = '/login';
         throw new Error('Please log in to interact with posts');
       }
       const errorText = await response.text();
       throw new Error(errorText || 'Failed to process request');
     }
 
-    const data = await response.json();
-    return data;
+    return await response.json();
   } catch (error) {
     console.error('API Request failed:', error);
     throw error instanceof Error ? error : new Error('Unknown error occurred');

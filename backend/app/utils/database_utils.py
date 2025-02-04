@@ -2,6 +2,10 @@
 from sqlalchemy.orm import sessionmaker
 from database.database import engine
 from app.datamodels.post_datamodels import Category, Subcategory, PostType
+from sqlalchemy.orm import Session
+from app.datamodels.post_datamodels import PostInteractionType
+from app.core.exceptions import DatabaseError
+from app.core.logger import logger
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -69,3 +73,69 @@ async def init_post_types():
         db.commit()
     finally:
         db.close()
+
+
+async def init_post_interaction_types(db: Session):
+    """Initialize post interaction types with metadata if they don't exist"""
+    interaction_types = [
+        {
+            "id": 1,
+            "name": "like",
+            "display_order": 1,
+            "is_active": True
+        },
+        {
+            "id": 2,
+            "name": "dislike",
+            "display_order": 2,
+            "is_active": True
+        },
+        {
+            "id": 3,
+            "name": "save",
+            "display_order": 3,
+            "is_active": True
+        },
+        {
+            "id": 4,
+            "name": "share",
+            "display_order": 4,
+            "is_active": True
+        },
+        {
+            "id": 5,
+            "name": "report",
+            "display_order": 5,
+            "is_active": True
+        }
+    ]
+
+    try:
+        for type_data in interaction_types:
+            existing = (
+                db.query(PostInteractionType)
+                .filter_by(post_interaction_type_id=type_data["id"])
+                .first()
+            )
+
+            if existing:
+                # Update existing record with any new fields
+                for key, value in type_data.items():
+                    if key != "id":  # Don't update the ID
+                        setattr(existing, f"post_interaction_type_{key}", value)
+            else:
+                # Create new record
+                new_type = PostInteractionType(
+                    post_interaction_type_id=type_data["id"],
+                    post_interaction_type_name=type_data["name"],
+                    display_order=type_data["display_order"],
+                    is_active=type_data["is_active"]
+                )
+                db.add(new_type)
+
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error initializing interaction types: {str(e)}")
+        raise DatabaseError("Failed to initialize interaction types")

@@ -1,17 +1,15 @@
 # services/post_service.py
 # are calculate_post_engagement and create_post_interaction and update_metrics correct?
 # doe get_post and get_all_posts have the required columns? do they ahve redudant columns?
-from fastapi import HTTPException, UploadFile, File, Path
+from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import func, desc
-from app.datamodels.datamodels import User, UserProfile
-from app.datamodels.post_datamodels import Post, PostInteraction, PostInteractionType, Tag, PostType, PostAnalysis, PostEngagement, Category
-from app.schemas.post_schemas import PostCreate, PostInteractionCreate, PostEngagementUpdate
+from sqlalchemy import desc
+from app.datamodels.datamodels import User
+from app.datamodels.post_datamodels import Post, PostInteraction, PostInteractionType, PostType, PostAnalysis, PostEngagement
+from app.schemas.post_schemas import PostCreate, PostInteractionCreate
 from app.utils.response_utils import create_response, Response
-from app.datamodels.post_datamodels import Category, Subcategory
 import os
-from core.config import settings
 from datetime import datetime, timedelta
 from typing import Optional, List
 from werkzeug.utils import secure_filename

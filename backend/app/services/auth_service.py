@@ -2,7 +2,10 @@
 from app.auth.auth import hash_password, verify_password
 from app.auth.utils import create_access_token
 from app.schemas.schemas import UserCreate, UserLogin, UserResponse, TokenResponse
-from database.database import database # added import
+from app.datamodels.datamodels import User, UserProfile
+from database.database import database
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 from typing import Dict, Any
 from app.utils.response_utils import create_response
 

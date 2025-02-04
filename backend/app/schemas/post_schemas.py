@@ -152,14 +152,14 @@ class PostResponse(BaseModel):
     quality_score: Optional[float]
 
     # Fields for tracking user interactions
-    liked: bool = False
-    disliked: bool = False
-    hated: bool = False
-    loved: bool = False
-    shared: bool = False
-    reported: bool = False
-    commented: bool = False
-    replied: bool = False
+    like: bool = False
+    dislike: bool = False
+    hate: bool = False
+    love: bool = False
+    share: bool = False
+    report: bool = False
+    comment: bool = False
+    reply: bool = False
 
     class Config:
         orm_mode = True

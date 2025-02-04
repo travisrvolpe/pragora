@@ -1,13 +1,10 @@
 // types/auth.ts
-// Basic auth types
-// Basic user type matching your database schema
 export interface User {
   user_id: number;
   email: string;
   profile?: UserProfile;
 }
 
-// Profile type matching your database schema
 export interface UserProfile {
   user_id: number;
   username: string;
@@ -25,17 +22,15 @@ export interface UserProfile {
   date_joined?: string;
 }
 
-// Form data types
 export interface LoginFormData {
   email: string;
   password: string;
 }
 
 export interface RegisterFormData extends LoginFormData {
-  // No additional fields needed based on your backend
+  // Add any additional registration fields here
 }
 
-// API response types
 export interface AuthResponse {
   success: boolean;
   access_token: string;
@@ -43,7 +38,25 @@ export interface AuthResponse {
   user: User;
 }
 
-// Auth context state
+// FastAPI default error response
+export interface FastAPIError {
+  detail: string;
+}
+
+// Extended error response that includes potential validation errors
+export interface ValidationError {
+  loc: string[];
+  msg: string;
+  type: string;
+}
+
+// Combined error response type
+export interface ErrorResponse {
+  detail: string | ValidationError[];
+  statusCode?: number;
+  message?: string;
+}
+
 export interface AuthState {
   user: User | null;
   loading: boolean;

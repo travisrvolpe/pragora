@@ -222,11 +222,14 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
             <LikeButton
-              count={normalizedPost.likes_count}
-              onClick={handleLike}
-              disabled={isLoading.like}
-              active={normalizedPost.liked}
-              error={isError.like}
+                count={normalizedPost.likes_count}
+                onClick={() => {
+                  console.log('Like button clicked in PostWrapper');
+                  handleLike();
+                }}
+                disabled={isLoading.like}
+                active={normalizedPost.liked}
+                error={isError.like}
             />
             <DislikeButton
               count={normalizedPost.dislikes_count}

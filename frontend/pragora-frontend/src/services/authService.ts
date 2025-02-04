@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from "axios";
-import { LoginFormData, RegisterFormData, AuthResponse, User } from "@/types/auth";
+import { LoginFormData, RegisterFormData, AuthResponse, User, ErrorResponse, FastAPIError, ValidationError } from "@/types/auth";
 import { ApiResponse } from "@/types/api";
 
 const API_BASE_URL = "http://localhost:8000/auth";
@@ -25,7 +25,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Add response interceptor for debugging
+// Add response interceptor for debugging and error handling
 api.interceptors.response.use(
   response => {
     console.log('Response:', response.data);
@@ -33,6 +33,10 @@ api.interceptors.response.use(
   },
   (error: AxiosError) => {
     console.error('Response error:', error.response?.data);
+    if (error.response?.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );
@@ -56,13 +60,13 @@ const authService: AuthService = {
         localStorage.setItem(TOKEN_KEY, access_token);
         api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       }
-
       return response.data;
     } catch (error) {
-      console.error('Login error:', (error as AxiosError).response?.data);
-      throw error;
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error('Login error:', axiosError.response?.data);
+      throw axiosError;
     }
-  },
+    },
 
   async register(userData: RegisterFormData): Promise<AuthResponse> {
     try {

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
-import { User, LoginFormData, RegisterFormData, AuthState } from "@/types/auth";
+import { User, LoginFormData, RegisterFormData, AuthState,  ErrorResponse, FastAPIError, ValidationError } from "@/types/auth";
+import { AxiosError } from "axios";
 
 interface AuthContextType extends AuthState {
   loginUser: (credentials: LoginFormData) => Promise<void>;
@@ -65,18 +66,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 
   const loginUser = async (credentials: LoginFormData): Promise<void> => {
-    try {
-      const response = await authService.login(credentials);
-      if (response.user) {
-        setUser(response.user);
-        setError(null);
-        navigate("/Dialectica");
+      try {
+          const response = await authService.login(credentials);
+          if (response.user) {
+              setUser(response.user);
+              setError(null);
+              navigate("/Dialectica");
+          }
+      } catch (err) {
+          const error = err as AxiosError<ErrorResponse>;
+          console.error("Login failed:", error);
+
+          // Handle the error detail which could be string or ValidationError[]
+          const errorDetail = error.response?.data?.detail;
+          let errorMessage: string;
+
+          if (Array.isArray(errorDetail)) {
+              // If it's validation errors, join them into a single message
+              errorMessage = errorDetail.map(err => err.msg).join(', ');
+          } else if (typeof errorDetail === 'string') {
+              // If it's a simple string error
+              errorMessage = errorDetail;
+          } else {
+              // Fallback error message
+              errorMessage = "Invalid login credentials.";
+          }
+          setError(errorMessage);
+          throw error;
       }
-    } catch (error) {
-      console.error("Login failed:", error);
-      setError("Invalid login credentials.");
-      throw error;
-    }
   };
 
   const registerUser = async (userData: RegisterFormData): Promise<void> => {
