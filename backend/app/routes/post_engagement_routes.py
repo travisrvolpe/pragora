@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Optional
 import logging
-
 from app.utils.database_utils import get_db
 from app.schemas.post_schemas import PostMetricsUpdate
 from app.auth.utils import get_current_user

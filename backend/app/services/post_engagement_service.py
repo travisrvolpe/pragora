@@ -1,6 +1,6 @@
 # app/services/post_engagement_service.py
 from fastapi import BackgroundTasks
-from sqlalchemy import and_, update, select
+#from sqlalchemy import and_, update, select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Dict, Any, List, Optional
@@ -15,11 +15,9 @@ from app.core.exceptions import (
     CacheError
 )
 from app.core.metrics import get_metrics_collector
-from app.datamodels.post_datamodels import (
-    Post,
-    PostInteraction,
-    PostInteractionType
-)
+from app.datamodels.post_datamodels import Post
+from app.datamodels.interaction_datamodels import PostInteraction, InteractionType
+from app.schemas.post_schemas import PostMetricsUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +58,7 @@ class PostEngagementService:
     async def _get_interaction_counts(self, post_id: int) -> Dict[str, int]:
         """Get interaction counts with caching"""
         # Try cache first
+        # TODO Add a cache expiration policy (e.g., refresh every minute / 30 min...).
         cached_counts = await self._get_cached_counts(post_id)
         if cached_counts:
             return cached_counts
@@ -70,10 +69,10 @@ class PostEngagementService:
             for interaction_type in self.VALID_INTERACTIONS:
                 count = (
                     self.db.query(PostInteraction)
-                    .join(PostInteractionType)
+                    .join(InteractionType)
                     .filter(
                         PostInteraction.post_id == post_id,
-                        PostInteractionType.post_interaction_type_name == interaction_type
+                        InteractionType.interaction_type_name == interaction_type
                     )
                     .count()
                 )
@@ -94,14 +93,14 @@ class PostEngagementService:
             raise PostNotFoundError(post_id)
         return post
 
-    async def _get_interaction_type(self, interaction_type: str) -> PostInteractionType:
+    async def _get_interaction_type(self, interaction_type: str) -> InteractionType:
         """Get interaction type record"""
         if interaction_type not in self.VALID_INTERACTIONS:
             raise InvalidInteractionTypeError(interaction_type)
 
         interaction_type_record = (
-            self.db.query(PostInteractionType)
-            .filter(PostInteractionType.post_interaction_type_name == interaction_type)
+            self.db.query(InteractionType)
+            .filter(InteractionType.interaction_type_name == interaction_type)
             .first()
         )
 
@@ -109,6 +108,13 @@ class PostEngagementService:
             raise DatabaseError("retrieving interaction type")
 
         return interaction_type_record
+
+    # TODO OPTIMIZE toggle_interaction BY USING get_or_create
+    # existing = db.query(PostInteraction).filter(
+    #    PostInteraction.post_id == post_id,
+    #    PostInteraction.user_id == user_id,
+    #    PostInteraction.interaction_type_id == interaction_type_record.interaction_type_id
+    # ).first()
 
     async def toggle_interaction(
             self,
@@ -118,49 +124,69 @@ class PostEngagementService:
             background_tasks: BackgroundTasks,
             metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Toggle a post interaction"""
-        try:
-            # Verify post and get interaction type
-            post = await self._verify_post(post_id)
-            interaction_type_record = await self._get_interaction_type(interaction_type)
+        """Toggle a post interaction (like, dislike, save, etc.)"""
 
-            # Check for existing interaction
+        try:
+            logger.info(f"🔄 Processing interaction: {interaction_type} for post {post_id} by user {user_id}")
+
+            # Step 1: Verify that the post exists
+            post = await self._verify_post(post_id)
+            logger.info(f"✅ Verified post {post_id}")
+
+            # Step 2: Verify that the interaction type exists
+            interaction_type_record = await self._get_interaction_type(interaction_type)
+            logger.info(
+                f"✅ Verified interaction type '{interaction_type}' (ID: {interaction_type_record.interaction_type_id})")
+
+            # Step 3: Check for existing interaction
             existing = (
                 self.db.query(PostInteraction)
                 .filter(
                     PostInteraction.post_id == post_id,
                     PostInteraction.user_id == user_id,
-                    PostInteraction.post_interaction_type_id == interaction_type_record.post_interaction_type_id
+                    PostInteraction.interaction_type_id == interaction_type_record.interaction_type_id
                 )
                 .first()
             )
 
             action = "remove" if existing else "add"
+            logger.info(f"📝 Existing interaction found: {bool(existing)} (Action: {action})")
 
             try:
-                # Update database
+                # Step 4: Insert or remove interaction
                 if existing:
+                    logger.info(f"❌ Removing interaction for post {post_id}, user {user_id}")
                     self.db.delete(existing)
-                    setattr(post, f"{interaction_type}_count",
-                            max(0, getattr(post, f"{interaction_type}_count") - 1))
+                    column_name = f"{interaction_type}_count"  # Make sure this matches DB column names
+                    current_value = getattr(post, column_name, 0)  # Default to 0 if None
+
+                    if current_value is None:
+                        logger.warning(f"⚠️ {column_name} is None for post {post_id}. Setting it to 0.")
+                        current_value = 0
+
+                    setattr(post, column_name, max(0, current_value - 1))
                 else:
+                    logger.info(f"✅ Adding new interaction for post {post_id}, user {user_id}")
+
                     new_interaction = PostInteraction(
                         post_id=post_id,
                         user_id=user_id,
-                        post_interaction_type_id=interaction_type_record.post_interaction_type_id
+                        interaction_type_id=interaction_type_record.interaction_type_id,
+                        target_type="POST"  # ✅ FIX: Ensure target_type is set
                     )
-                    self.db.add(new_interaction)
-                    setattr(post, f"{interaction_type}_count",
-                            getattr(post, f"{interaction_type}_count") + 1)
 
+                    self.db.add(new_interaction)
+                    column_name = f"{interaction_type}_count"
+                    current_value = getattr(post, column_name, 0)  # Default to 0 if None
+                    setattr(post, column_name, current_value + 1)
+
+                # Step 5: Commit changes to database
+                logger.info(f"🔄 Committing changes to database for post {post_id}")
                 self.db.commit()
 
-                # Update cache and record metrics in background
-                background_tasks.add_task(
-                    self._update_cache,
-                    post_id,
-                    {f"{interaction_type}_count": getattr(post, f"{interaction_type}_count")}
-                )
+                # Step 6: Update cache and record metrics in background tasks
+                background_tasks.add_task(self._update_cache, post_id,
+                                          {f"{interaction_type}_count": getattr(post, f"{interaction_type}_count")})
 
                 background_tasks.add_task(
                     self.metrics.record_interaction,
@@ -171,22 +197,34 @@ class PostEngagementService:
                     metadata
                 )
 
+                logger.info(f"✅ Interaction successfully {action}d for post {post_id}, user {user_id}")
+
                 return {
-                    "message": f"{interaction_type} updated successfully",
+                    "message": f"{interaction_type} {action}d successfully",
                     f"{interaction_type}_count": getattr(post, f"{interaction_type}_count"),
                     interaction_type: action == "add"
                 }
 
             except SQLAlchemyError as e:
                 self.db.rollback()
-                logger.error(f"Database error in toggle_interaction: {str(e)}")
-                raise DatabaseError("updating interaction")
+                logger.error(f"❌ Database error in toggle_interaction: {str(e)}")
+                raise DatabaseError("Error processing interaction")
 
-        except (PostNotFoundError, InvalidInteractionTypeError, DatabaseError, CacheError) as e:
+        except PostNotFoundError as e:
+            logger.error(f"❌ Post not found: {str(e)}")
+            raise DatabaseError("Post not found")
+
+        except InvalidInteractionTypeError as e:
+            logger.error(f"❌ Invalid interaction type: {str(e)}")
+            raise DatabaseError("Invalid interaction type")
+
+        except DatabaseError as e:
+            logger.error(f"❌ General database error: {str(e)}")
             raise e
+
         except Exception as e:
-            logger.error(f"Unexpected error in toggle_interaction: {str(e)}")
-            raise DatabaseError("processing interaction")
+            logger.error(f"❌ Unexpected error in toggle_interaction: {str(e)}")
+            raise DatabaseError("Unexpected error while processing interaction")
 
     # Specific interaction methods
     async def like_post(
@@ -253,18 +291,17 @@ class PostEngagementService:
             background_tasks: BackgroundTasks
     ) -> Dict[str, Any]:
         """Handle post reports"""
-        metadata = {"reason": reason} if reason else None
+        try:
+            result = await self.toggle_interaction(
+                post_id=post_id,
+                user_id=user_id,
+                interaction_type="report",
+                background_tasks=background_tasks,
+                metadata={"reason": reason}
+            )
 
-        result = await self.toggle_interaction(
-            post_id,
-            user_id,
-            "report",
-            background_tasks,
-            metadata
-        )
-
-        if result.get("report", False):
-            try:
+            if result.get("report", False):
+                # Update interaction metadata if needed
                 interaction = (
                     self.db.query(PostInteraction)
                     .filter(
@@ -273,15 +310,14 @@ class PostEngagementService:
                     )
                     .first()
                 )
-
-                if interaction:
-                    interaction.report_reason = reason
+                if interaction and not interaction.interaction_metadata:
+                    interaction.interaction_metadata = {"reason": reason}
                     self.db.commit()
-            except SQLAlchemyError as e:
-                logger.error(f"Error updating report reason: {str(e)}")
-                # Don't raise - report was still recorded
 
-        return result
+            return result
+        except Exception as e:
+            logger.error(f"Error in report_post: {str(e)}")
+            raise DatabaseError("processing report")
 
     async def get_user_interactions(
             self,
@@ -293,9 +329,9 @@ class PostEngagementService:
             interactions = (
                 self.db.query(
                     PostInteraction.post_id,
-                    PostInteractionType.post_interaction_type_name
+                    InteractionType.interaction_type_name
                 )
-                .join(PostInteractionType)
+                .join(InteractionType)
                 .filter(
                     PostInteraction.post_id.in_(post_ids),
                     PostInteraction.user_id == user_id
@@ -346,13 +382,14 @@ class PostEngagementService:
             metrics_data = metrics.dict(exclude_unset=True)  # Only get set values
 
             # Map metric names to post fields
+            #Should this be plural or lowercase
             metric_fields = {
-                'likes': 'likes_count',
-                'dislikes': 'dislikes_count',
-                'shares': 'shares_count',
-                'saves': 'saves_count',
-                'comments': 'comments_count',
-                'reports': 'reports_count'
+                'like': 'like_count',
+                'dislike': 'dislike_count',
+                'share': 'share_count',
+                'save': 'save_count',
+                'comment': 'comment_count',
+                'report': 'report_count'
             }
 
             # Update each provided metric
@@ -389,12 +426,12 @@ class PostEngagementService:
                 return {
                     "message": "Metrics updated successfully",
                     "metrics": {
-                        "likes_count": post.likes_count,
-                        "dislikes_count": post.dislikes_count,
-                        "shares_count": post.shares_count,
-                        "saves_count": post.saves_count,
-                        "comments_count": post.comments_count,
-                        "reports_count": post.reports_count
+                        "like_count": post.like_count,
+                        "dislike_count": post.dislike_count,
+                        "share_count": post.share_count,
+                        "save_count": post.save_count,
+                        "comment_count": post.comment_count,
+                        "report_count": post.report_count
                     }
                 }
 

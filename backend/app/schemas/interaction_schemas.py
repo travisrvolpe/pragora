@@ -29,11 +29,11 @@ class InteractionResponse(BaseModel):
         orm_mode = True
 
 class InteractionMetrics(BaseModel):
-    likes_count: int = 0
-    dislikes_count: int = 0
-    saves_count: int = 0
-    shares_count: int = 0
-    reports_count: int = 0
+    like_count: int = 0
+    dislike_count: int = 0
+    save_count: int = 0
+    share_count: int = 0
+    report_count: int = 0
 
     class Config:
         orm_mode = True

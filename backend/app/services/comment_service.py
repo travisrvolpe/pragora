@@ -2,9 +2,13 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from app.datamodels.comment_datamodels import Comment, CommentInteraction, CommentInteractionType
+from app.datamodels.comment_datamodels import Comment
+from app.datamodels.interaction_datamodels import CommentInteraction
 from app.schemas.comment_schemas import CommentCreate, CommentInteractionCreate
 from app.utils.response_utils import create_response, ResponseType
+# In comment_service.py
+from app.datamodels.comment_datamodels import Comment
+from app.datamodels.interaction_datamodels import CommentInteraction, InteractionType
 
 async def create_comment(db: Session, user_id: int, comment: CommentCreate) -> ResponseType:
     db_comment = Comment(
@@ -29,21 +33,21 @@ async def create_comment(db: Session, user_id: int, comment: CommentCreate) -> R
         raise HTTPException(status_code=500, detail="Failed to create comment")
 
 async def create_comment_interaction(db: Session, interaction: CommentInteractionCreate) -> ResponseType:
-    interaction_type = db.query(CommentInteractionType).filter_by(comment_interaction_types_id=interaction.interaction_type_id).first()
+    interaction_type = db.query(InteractionType).filter_by(interaction_type_id=interaction.interaction_type_id).first()
     if not interaction_type:
         raise HTTPException(status_code=400, detail="Invalid interaction type")
 
     comment_interaction = CommentInteraction(
         user_id=interaction.user_id,
         comment_id=interaction.comment_id,
-        comment_interaction_types_id=interaction.interaction_type_id
+        interaction_type_id=interaction.interaction_type_id
     )
 
     # Prevent duplicate interactions
     existing_interaction = db.query(CommentInteraction).filter_by(
         user_id=interaction.user_id,
         comment_id=interaction.comment_id,
-        comment_interaction_types_id=interaction.interaction_type_id
+        interaction_type_id=interaction.interaction_type_id
     ).first()
 
     if existing_interaction:
@@ -57,3 +61,4 @@ async def create_comment_interaction(db: Session, interaction: CommentInteractio
     except SQLAlchemyError:
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to create comment interaction")
+

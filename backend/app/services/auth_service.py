@@ -19,10 +19,12 @@ async def register_user(user: UserCreate) -> Dict[str, Any]:
     # Generate default username if not provided
     username = user.email.split("@")[0]
 
-    # Check for duplicate email
+    # Check for duplicate email TODO CHANGE TO ORM
     query = "SELECT EXISTS (SELECT 1 FROM users WHERE email = :email)"
     values = {"email": user.email}
     email_exists = await database.fetch_one(query=query, values=values)
+    #email_exists = db.query(User).filter(User.email == user.email).first()
+
 
     if email_exists and email_exists[0]:
         raise Exception("A user with this email already exists")

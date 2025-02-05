@@ -13,10 +13,10 @@ interface PostEngagementMetrics {
 }
 
 interface PostEngagementState {
-  liked: boolean;
-  disliked: boolean;
-  saved: boolean;
-  reported: boolean;
+  like: boolean;
+  dislike: boolean;
+  save: boolean;
+  report: boolean;
 }
 
 interface Post extends PostEngagementMetrics, PostEngagementState {
@@ -39,10 +39,10 @@ interface EngagementResponse {
   saves_count?: number;
   shares_count?: number;
   reports_count?: number;
-  liked?: boolean;
-  disliked?: boolean;
-  saved?: boolean;
-  reported?: boolean;
+  like?: boolean;
+  dislike?: boolean;
+  save?: boolean;
+  report?: boolean;
 }
 
 // API Configuration
@@ -122,10 +122,10 @@ function usePostEngagement(post: Post) {
         saves_count: safeNumber(updates.saves_count, oldPost.saves_count),
         shares_count: safeNumber(updates.shares_count, oldPost.shares_count),
         // Update boolean states
-        liked: updates.liked ?? oldPost.liked,
-        disliked: updates.disliked ?? oldPost.disliked,
-        saved: updates.saved ?? oldPost.saved,
-        reported: updates.reported ?? oldPost.reported,
+        like: updates.like ?? oldPost.like,
+        dislike: updates.dislike ?? oldPost.dislike,
+        save: updates.save ?? oldPost.save,
+        report: updates.report ?? oldPost.report,
       };
     });
 
@@ -146,10 +146,10 @@ function usePostEngagement(post: Post) {
               saves_count: safeNumber(updates.saves_count, p.saves_count),
               shares_count: safeNumber(updates.shares_count, p.shares_count),
               // Update boolean states
-              liked: updates.liked ?? p.liked,
-              disliked: updates.disliked ?? p.disliked,
-              saved: updates.saved ?? p.saved,
-              reported: updates.reported ?? p.reported,
+              like: updates.like ?? p.like,
+              dislike: updates.dislike ?? p.dislike,
+              save: updates.save ?? p.save,
+              report: updates.report ?? p.report,
             } : p
           )
         }))
@@ -172,11 +172,11 @@ function usePostEngagement(post: Post) {
 
       // Optimistic update
       updatePostCache({
-        likes_count: post.liked ? post.likes_count - 1 : post.likes_count + 1,
-        liked: !post.liked,
+        likes_count: post.like ? post.likes_count - 1 : post.likes_count + 1,
+        like: !post.like,
         // Remove dislike if it exists
-        dislikes_count: post.disliked ? post.dislikes_count - 1 : post.dislikes_count,
-        disliked: false,
+        dislikes_count: post.dislike ? post.dislikes_count - 1 : post.dislikes_count,
+        dislike: false,
       });
 
       return { previousPost };
@@ -217,11 +217,11 @@ function usePostEngagement(post: Post) {
 
       // Optimistic update
       updatePostCache({
-        dislikes_count: post.disliked ? post.dislikes_count - 1 : post.dislikes_count + 1,
-        disliked: !post.disliked,
+        dislikes_count: post.dislike ? post.dislikes_count - 1 : post.dislikes_count + 1,
+        dislike: !post.dislike,
         // Remove like if it exists
-        likes_count: post.liked ? post.likes_count - 1 : post.likes_count,
-        liked: false,
+        likes_count: post.like ? post.likes_count - 1 : post.likes_count,
+        like: false,
       });
 
       return { previousPost };
@@ -262,8 +262,8 @@ function usePostEngagement(post: Post) {
 
       // Optimistic update
       updatePostCache({
-        saves_count: post.saved ? post.saves_count - 1 : post.saves_count + 1,
-        saved: !post.saved,
+        saves_count: post.save ? post.saves_count - 1 : post.saves_count + 1,
+        save: !post.save,
       });
 
       return { previousPost };
@@ -316,7 +316,7 @@ function usePostEngagement(post: Post) {
     onSuccess: (data) => {
       updatePostCache({
         reports_count: data.reports_count,
-        reported: true,
+        report: true,
       });
       toast({
         title: "Report Submitted",

@@ -4,6 +4,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database.database import Base
 from app.datamodels.post_datamodels import saved_posts_table
+from app.datamodels.interaction_datamodels import PostInteraction, CommentInteraction
 
 class User(Base):
     __tablename__ = "users"
@@ -17,10 +18,13 @@ class User(Base):
     profile = relationship("UserProfile", back_populates="user", cascade="all, delete-orphan", uselist=False) # Ensures one-to-one
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     posts = relationship("Post", back_populates="user", cascade="all, delete-orphan")
-    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="user")
+    #comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    #interactions = relationship("BaseInteraction", back_populates="user")
     post_interactions = relationship("PostInteraction", back_populates="user", cascade="all, delete-orphan")
     comment_interactions = relationship("CommentInteraction", back_populates="user", cascade="all, delete-orphan")
     saved_posts = relationship("Post", secondary=saved_posts_table, back_populates="saved_by_users")
+
 
 class Session(Base):
     __tablename__ = "sessions"

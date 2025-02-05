@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.routes import auth_routes, profile_routes, post_routes, comment_routes, category_routes, post_engagement_routes
 from database.database import database, Base, engine,SessionLocal
 from app.utils.database_utils import init_categories, init_post_types, init_post_interaction_types
-from core.config import settings
+from app.core.config import settings
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()

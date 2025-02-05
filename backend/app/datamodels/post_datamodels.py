@@ -52,14 +52,14 @@ class Post(Base):
     custom_subcategory = Column(String, nullable=True)
 
     # Interaction Metrics
-    likes_count = Column(Integer, default=0)
-    dislikes_count = Column(Integer, default=0)
-    loves_count = Column(Integer, default=0)
-    hates_count = Column(Integer, default=0)
-    saves_count = Column(Integer, default=0)
-    shares_count = Column(Integer, default=0)
-    comments_count = Column(Integer, default=0)
-    reports_count = Column(Integer, default=0)
+    like_count = Column(Integer, default=0)
+    dislike_count = Column(Integer, default=0)
+    love_count = Column(Integer, default=0)
+    hate_count = Column(Integer, default=0)
+    save_count = Column(Integer, default=0)
+    share_count = Column(Integer, default=0)
+    comment_count = Column(Integer, default=0)
+    report_count = Column(Integer, default=0)
 
     # Timestamps and Status
     status = Column(String, default='active')
@@ -67,7 +67,7 @@ class Post(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Add this before the relationships section
-    #@validates('likes_count', 'dislikes_count', 'saves_count', 'shares_count')
+    #@validates('like_count', 'dislike_count', 'save_count', 'share_count')
     #def validate_count(self, key, count):
     #    return max(0, count or 0)
 
@@ -79,11 +79,11 @@ class Post(Base):
     comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
     interactions = relationship("PostInteraction", back_populates="post", cascade="all, delete-orphan")
     saved_by_users = relationship("User", secondary=saved_posts_table, back_populates="saved_posts")
-    replies = relationship(
-        'Post',
-        backref=backref('parent', remote_side=[post_id]), # Unresolved reference 'backref'
-        cascade="all, delete-orphan"
-    )
+    # TODO ADD REPLIES
+    #replies = relationship("Post",
+    #                       backref="parent",
+    #                       remote_side=[post_id],
+    #                       cascade="all, delete-orphan")
     analysis = relationship("PostAnalysis", back_populates="post", uselist=False)
     engagement = relationship("PostEngagement", back_populates="post", uselist=False)
     #if adding threaded posts parent_post_id = Column(Integer, ForeignKey("posts.post_id"), nullable=True)
@@ -125,7 +125,7 @@ class Subcategory(Base):
     category = relationship("Category", back_populates="subcategories")
 
 
-class PostInteraction(Base):
+'''class PostInteraction(Base):
     __tablename__ = "post_interactions"
 
     interaction_id = Column(Integer, primary_key=True)
@@ -141,9 +141,9 @@ class PostInteraction(Base):
 
     user = relationship("User", back_populates="post_interactions")
     post = relationship("Post", back_populates="interactions")
-    interaction_type = relationship("PostInteractionType", back_populates="interactions")
+    interaction_type = relationship("PostInteractionType", back_populates="interactions")'''
 
-class PostInteractionType(Base):
+'''class PostInteractionType(Base):
     __tablename__ = "post_interaction_types"
 
     post_interaction_type_id = Column(Integer, primary_key=True)
@@ -152,10 +152,10 @@ class PostInteractionType(Base):
     display_order = Column(Integer)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    #interactions = relationship("PostInteraction", back_populates="interaction_type")
+    #interactions = relationship("PostInteraction", back_populates="interaction_type")'''
 
 
-class PostInteractionCounts(Base):
+'''class PostInteractionCounts(Base):
     __tablename__ = "post_interaction_counts"
 
     post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"), primary_key=True)
@@ -165,7 +165,7 @@ class PostInteractionCounts(Base):
 
     __table_args__ = (
         Index('idx_post_counts', post_id, type_id),
-    )
+    )'''
 class PostAnalysis(Base):
     __tablename__ = "post_analysis"
 

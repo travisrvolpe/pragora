@@ -24,6 +24,16 @@ class Post(BaseModel):
     embedded_content: Optional[Dict] = None
     link_preview: Optional[Dict] = None
 
+    # Aggregated Interaction Metrics
+    like_count: int = 0
+    dislike_count: int = 0
+    love_count: int = 0
+    hate_count: int = 0
+    save_count: int = 0
+    share_count: int = 0
+    comment_count: int = 0
+    report_count: int = 0
+
     # Post metadata
     visibility: Optional[str] = "public"
     is_pinned: Optional[bool] = False
@@ -135,14 +145,14 @@ class PostResponse(BaseModel):
 
     # Interaction metrics
 
-    likes_count: int
-    dislikes_count: int
-    loves_count: int
-    hates_count: int
-    saves_count: int
-    shares_count: int
-    comments_count: int
-    reports_count: int
+    like_count: int = 0
+    dislike_count: int = 0
+    love_count: int = 0
+    hate_count: int = 0
+    save_count: int = 0
+    share_count: int = 0
+    comment_count: int = 0
+    report_count: int = 0
 
     # Engagement metrics
     view_count: Optional[int]
@@ -178,16 +188,16 @@ class PostInteractionResponse(PostInteractionCreate):
 
     class Config:
         orm_mode = True
-
+# should this be plural?
 class PostMetricsUpdate(BaseModel):
-    likes: Optional[int] = Field(default=0)
-    dislikes: Optional[int] = Field(default=0)
-    loves: Optional[int] = Field(default=0)
-    hates: Optional[int] = Field(default=0)
-    saves: Optional[int] = Field(default=0)
-    shares: Optional[int] = Field(default=0)
-    comments: Optional[int] = Field(default=0)
-    reports: Optional[int] = Field(default=0)
+    like_count: Optional[int] = Field(default=0)
+    dislike_count: Optional[int] = Field(default=0)
+    love_count: Optional[int] = Field(default=0)
+    hate_count: Optional[int] = Field(default=0)
+    save_count: Optional[int] = Field(default=0)
+    share_count: Optional[int] = Field(default=0)
+    comment_count: Optional[int] = Field(default=0)
+    report_count: Optional[int] = Field(default=0)
 
 # Additional schemas for new features
 class PostEngagementUpdate(BaseModel):

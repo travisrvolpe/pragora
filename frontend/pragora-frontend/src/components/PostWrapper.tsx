@@ -76,10 +76,10 @@ interface Post {
   reports_count: number;
 
   // User interaction states
-  liked: boolean;
-  disliked: boolean;
-  saved: boolean;
-  reported: boolean;
+  like: boolean;
+  dislike: boolean;
+  save: boolean;
+  report: boolean;
 }
 
 interface PostWrapperProps {
@@ -112,10 +112,10 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
     shares_count: post.shares_count || 0,
     comments_count: post.comments_count || 0,
     reports_count: post.reports_count || 0,
-    liked: Boolean(post.liked),
-    disliked: Boolean(post.disliked),
-    saved: Boolean(post.saved),
-    reported: Boolean(post.reported),
+    like: Boolean(post.like),
+    dislike: Boolean(post.dislike),
+    save: Boolean(post.save),
+    report: Boolean(post.report),
   };
 
   const {
@@ -228,14 +228,14 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
                   handleLike();
                 }}
                 disabled={isLoading.like}
-                active={normalizedPost.liked}
+                active={normalizedPost.like}
                 error={isError.like}
             />
             <DislikeButton
               count={normalizedPost.dislikes_count}
               onClick={handleDislike}
               disabled={isLoading.dislike}
-              active={normalizedPost.disliked}
+              active={normalizedPost.dislike}
               error={isError.dislike}
             />
             <EngagementButton
@@ -261,7 +261,7 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
               count={normalizedPost.saves_count}
               onClick={handleSave}
               disabled={isLoading.save}
-              active={normalizedPost.saved}
+              active={normalizedPost.save}
               error={isError.save}
             />
           </div>

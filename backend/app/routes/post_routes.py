@@ -9,7 +9,8 @@ from app.schemas.post_schemas import PostCreate, PostResponse, PostInteractionCr
 from app.services import post_service
 from app.auth.utils import get_current_user
 from app.services.post_service import upload_post_image, create_post, get_post
-from app.datamodels.post_datamodels import Post, PostInteraction
+from app.datamodels.post_datamodels import Post
+from app.datamodels.interaction_datamodels import PostInteraction
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from app.datamodels.datamodels import User

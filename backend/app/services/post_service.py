@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import desc
 from app.datamodels.datamodels import User
-from app.datamodels.post_datamodels import Post, PostInteraction, PostInteractionType, PostType, PostAnalysis, PostEngagement
+from app.datamodels.post_datamodels import Post, PostType, PostAnalysis, PostEngagement
 from app.schemas.post_schemas import PostCreate, PostInteractionCreate
+from app.datamodels.interaction_datamodels import PostInteraction, InteractionType
 from app.utils.response_utils import create_response, Response
 import os
 from datetime import datetime, timedelta
@@ -290,18 +291,18 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
             "updated_at": post.updated_at,
 
             # Interaction counts - with defensive handling
-            "likes_count": post.likes_count or 0,
-            "dislikes_count": post.dislikes_count or 0,
-            "loves_count": post.loves_count or 0,
-            "hates_count": post.hates_count or 0,
-            "saves_count": post.saves_count or 0,
-            "shares_count": post.shares_count or 0,
-            "comments_count": post.comments_count or 0,
-            "reports_count": post.reports_count or 0,
+            "like_count": post.like_count or 0,
+            "dislike_count": post.dislike_count or 0,
+            "love_count": post.love_count or 0,
+            "hate_count": post.hate_count or 0,
+            "save_count": post.save_count or 0,
+            "share_count": post.share_count or 0,
+            "comment_count": post.comment_count or 0,
+            "report_count": post.report_count or 0,
 
             # Engagement metrics
             **engagement_dict,
-
+            # TODO Ensure that this is updated based on the most recent schema changes!!
             # User-specific interaction flags - with defensive handling
             "liked": user_interaction.liked if user_interaction else False,
             "disliked": user_interaction.disliked if user_interaction else False,
@@ -395,11 +396,11 @@ async def get_all_posts(db: Session, skip: int = 0, limit: int = 20, category_id
         "category_id": post.category_id,
         "subcategory_id": post.subcategory_id,
         "custom_subcategory": post.custom_subcategory,
-        "likes_count": post.likes_count,
-        "dislikes_count": post.dislikes_count,
-        "comments_count": post.comments_count,
-        "saves_count": post.saves_count,
-        "shares_count": post.shares_count,
+        "like_count": post.like_count,
+        "dislike_count": post.dislike_count,
+        "comment_count": post.comment_count,
+        "save_count": post.save_count,
+        "share_count": post.share_count,
         "status": post.status,
         "created_at": post.created_at,
         "updated_at": post.updated_at
@@ -454,21 +455,21 @@ async def upload_post_image(file: UploadFile, post_id: int, db: Session):
 
 # Interaction Services
 async def create_post_interaction(db: Session, interaction: PostInteractionCreate) -> Response:
-    interaction_type = db.query(PostInteractionType).filter_by(post_interaction_type_id=interaction.interaction_type_id).first()
+    interaction_type = db.query(InteractionType).filter_by(interaction_type_id=interaction.interaction_type_id).first()
     if not interaction_type:
         raise HTTPException(status_code=400, detail="Invalid interaction type")
 
     post_interaction = PostInteraction(
         user_id=interaction.user_id,
         post_id=interaction.post_id,
-        post_interaction_type_id=interaction.interaction_type_id
+        interaction_type_id=interaction.interaction_type_id
     )
 
     # Prevent duplicate interactions
     existing_interaction = db.query(PostInteraction).filter_by(
         user_id=interaction.user_id,
         post_id=interaction.post_id,
-        post_interaction_type_id=interaction.interaction_type_id
+        interaction_type_id=interaction.interaction_type_id
     ).first()
 
     if existing_interaction:
@@ -543,6 +544,7 @@ async def calculate_post_engagement(post_id: int, db: Session) -> None:
             (completion_rate * 0.2) +
             ((1 - bounce_rate) * 0.2)
     )
+    # TODO REVIEW THIS FORMULA EX engagement_score += (likes * 0.2) + (shares * 0.2) + (comments * 0.3)
 
     engagement.engagement_score = engagement_score
     engagement.last_calculated = datetime.utcnow()
@@ -600,7 +602,7 @@ async def mark_post_as_read(user_id: int, post_id: int, db: Session) -> dict:
     interaction = PostInteraction(
         user_id=user_id,
         post_id=post_id,
-        post_interaction_type_id=1  # Assuming 1 is for "read"
+        interaction_type_id=1  # Assuming 1 is for "read"
     )
     db.add(interaction)
     db.commit()

@@ -147,6 +147,7 @@ class MetricsCollector:
         """Get recent interaction history for a user"""
         try:
             history_key = f"{self.metrics_prefix}user:{user_id}:history"
+            #await self.cache.set(history_key, current_history, expire=604800)  # 7 day retention?
             history = await self.cache.get(history_key) or []
             return history[:limit]
 
