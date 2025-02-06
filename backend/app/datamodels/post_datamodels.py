@@ -52,14 +52,14 @@ class Post(Base):
     custom_subcategory = Column(String, nullable=True)
 
     # Interaction Metrics
-    like_count = Column(Integer, default=0)
-    dislike_count = Column(Integer, default=0)
-    love_count = Column(Integer, default=0)
-    hate_count = Column(Integer, default=0)
-    save_count = Column(Integer, default=0)
-    share_count = Column(Integer, default=0)
-    comment_count = Column(Integer, default=0)
-    report_count = Column(Integer, default=0)
+    like_count = Column(Integer, default=0, nullable=False)
+    dislike_count = Column(Integer, default=0, nullable=False)
+    love_count = Column(Integer, default=0, nullable=False)
+    hate_count = Column(Integer, default=0, nullable=False)
+    save_count = Column(Integer, default=0, nullable=False)
+    share_count = Column(Integer, default=0, nullable=False)
+    comment_count = Column(Integer, default=0, nullable=False)
+    report_count = Column(Integer, default=0, nullable=False)
 
     # Timestamps and Status
     status = Column(String, default='active')

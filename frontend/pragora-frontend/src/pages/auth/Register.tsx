@@ -1,26 +1,30 @@
 import React, { useState, FormEvent, ChangeEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
-import FormInput from "../../components/FormInput";
-import { LoginFormData } from "../../types/auth";
-import "../../styles/pages/Login.css";
+import { useAuth } from "../../contexts/auth/AuthContext";
+import FormInput from "../../components/forms/FormInput";
+import { RegisterFormData } from "../../types/auth";
+import "../../styles/pages/Register.css";
+
+//const { loginUser, registerUser } = useAuth();
 
 interface FormErrors {
   email?: string;
   password?: string;
 }
 
-const Login: React.FC = () => {
-  const [formData, setFormData] = useState<LoginFormData>({
+const Register: React.FC = () => {
+  const auth = useAuth();
+  const { registerUser, loginUser } = auth;
+  const [formData, setFormData] = useState<RegisterFormData>({
     email: "",
     password: ""
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [message, setMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { loginUser } = useAuth();
   const navigate = useNavigate();
 
+  // Keep these functions
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -55,12 +59,18 @@ const Login: React.FC = () => {
     }
 
     try {
+      console.log('Submitting registration form:', formData);
+      await registerUser(formData);
+      setMessage("Registration successful!");
+      console.log('Attempting login after registration');
       await loginUser(formData);
-      setMessage("Login successful!");
       setTimeout(() => navigate("/dialectica"), 500);
     } catch (error: any) {
-      console.error("Login error:", error);
-      setMessage(error.response?.data?.detail || "Login failed. Please try again.");
+      console.error("Registration/login error full details:", error);
+      const errorMessage = error.response?.data?.detail
+          || error.message
+          || "Registration failed. Please try again.";
+      setMessage(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -71,8 +81,11 @@ const Login: React.FC = () => {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            Create your account
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Join us and start your journey
+          </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -86,7 +99,7 @@ const Login: React.FC = () => {
               error={errors.email}
               autoComplete="email"
               required
-              className="rounded-t-md"
+              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
             />
 
             <FormInput
@@ -96,9 +109,9 @@ const Login: React.FC = () => {
               onChange={handleInputChange}
               placeholder="Password"
               error={errors.password}
-              autoComplete="current-password"
+              autoComplete="new-password"
               required
-              className="rounded-b-md"
+              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
             />
           </div>
 
@@ -126,20 +139,20 @@ const Login: React.FC = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Signing in...
+                  Creating account...
                 </span>
               ) : (
-                "Sign in"
+                "Create account"
               )}
             </button>
           </div>
 
           <div className="text-sm text-center">
             <Link
-              to="/register"
+              to="/login"
               className="font-medium text-primary hover:text-primary-dark"
             >
-              Don't have an account? Sign up
+              Already have an account? Sign in
             </Link>
           </div>
         </form>
@@ -148,4 +161,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default Register;

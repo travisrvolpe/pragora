@@ -1,8 +1,22 @@
 // types/auth.ts
 export interface User {
   user_id: number;
+  username: string;
   email: string;
+  avatar_img?: string;
   profile?: UserProfile;
+  role?: string;
+}
+
+// Add token type
+export interface Token {
+  access_token: string;
+  token_type: string;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
 }
 
 export interface UserProfile {
@@ -62,4 +76,13 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  login: (credentials: { email: string; password: string }) => Promise<void>;
+  logout: () => Promise<void>;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
 }

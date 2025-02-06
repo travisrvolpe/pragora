@@ -5,7 +5,7 @@ from app.schemas.schemas import UserCreate, UserLogin, UserResponse, TokenRespon
 from app.datamodels.datamodels import User, UserProfile
 from database.database import database
 from sqlalchemy.exc import SQLAlchemyError
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from typing import Dict, Any
 from app.utils.response_utils import create_response
 
@@ -15,6 +15,7 @@ async def register_user(user: UserCreate) -> Dict[str, Any]:
     """
     # Hash the password
     hashed_password = hash_password(user.password)
+    print(f"Registering user with email: {user.email}")
 
     # Generate default username if not provided
     username = user.email.split("@")[0]
@@ -23,6 +24,7 @@ async def register_user(user: UserCreate) -> Dict[str, Any]:
     query = "SELECT EXISTS (SELECT 1 FROM users WHERE email = :email)"
     values = {"email": user.email}
     email_exists = await database.fetch_one(query=query, values=values)
+    print(f"Email exists check result: {email_exists}")
     #email_exists = db.query(User).filter(User.email == user.email).first()
 
 
@@ -51,6 +53,7 @@ async def register_user(user: UserCreate) -> Dict[str, Any]:
     }
 
     new_user = await database.fetch_one(query=insert_user_query, values=user_values)
+    print(f"New user created: {new_user}")
 
     # Create the user profile in the `user_profile` table
     insert_profile_query = """
@@ -80,9 +83,53 @@ async def register_user(user: UserCreate) -> Dict[str, Any]:
             }
         }
     )
-
+    #except Exception as e:
+        #print(f"Registration error: {str(e)}")
+        #raise
 
 async def login_user(user: UserLogin) -> Dict[str, Any]:
+    """
+    Authenticate a user and return a response with a token.
+    """
+    try:
+        # Find the user by email
+        user_query = "SELECT user_id, email, password_hash FROM users WHERE email = :email"
+        db_user = await database.fetch_one(query=user_query, values={"email": user.email})
+
+        if not db_user:
+            raise Exception("User not found")
+
+        # Verify the password
+        if not verify_password(user.password, db_user["password_hash"]):
+            raise Exception("Invalid credentials")
+
+        # Retrieve the username from the user_profile table
+        profile_query = "SELECT username FROM user_profile WHERE user_id = :user_id"
+        db_profile = await database.fetch_one(query=profile_query, values={"user_id": db_user["user_id"]})
+
+        if not db_profile:
+            raise Exception("User profile not found")
+
+        # Generate token for the authenticated user
+        access_token = create_access_token(data={"sub": str(db_user["user_id"])})
+
+        # Return a response with relevant data
+        return {
+            "success": True,
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "user_id": db_user["user_id"],
+                "email": db_user["email"]
+            }
+        }
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+'''async def login_user(user: UserLogin) -> Dict[str, Any]:
     """
     Authenticate a user and return a response with a token.
     """
@@ -119,10 +166,24 @@ async def login_user(user: UserLogin) -> Dict[str, Any]:
 
     return {
         "success": True,
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "user_id": db_user["user_id"],
+            "email": db_user["email"]
+        }
+    }
+    except Exception as e:
+    print(f"Login error: {str(e)}")
+    raise
+
+
+    return {
+        "success": True,
         "access_token": response.access_token,
         "token_type": response.token_type,
         "user": {
             "user_id": response.user.user_id,
             "email": response.user.email
         }
-    }
+    }'''

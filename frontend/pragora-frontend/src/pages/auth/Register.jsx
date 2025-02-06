@@ -1,18 +1,18 @@
-// src/components/Login.jsx
-import React, { useState } from "react";
+// src/components/Register.jsx
+import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "@/contexts/auth/AuthContext";
 import FormInput from "../../components/FormInput";
-import "../../styles/pages/Login.css";
+import '../../styles/pages/Register.css';
 
-const Login = () => {
+const Register = () => {
   const [formData, setFormData] = useState({
-    email: "",
-    password: ""
+    email: '',
+    password: '',
   });
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
-  const { loginUser } = useAuth();
+  const [message, setMessage] = useState('');
+  const { registerUser } = useAuth();
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -45,18 +45,29 @@ const Login = () => {
     }
 
     try {
-      await loginUser(formData);
-      setMessage("Login successful!");
+      await registerUser(formData);
+      setMessage("Registration successful!");
+      navigate(`/profile`);
+      //navigate("/profile", { state: { userId: response.data.user_id } });
     } catch (error) {
-      console.error("Login error:", error);
-      setMessage(error.response?.data?.detail || "Login failed. Please try again.");
+      console.error("Registration error:", error);
+      const errorMessage = error.response?.data?.detail || "Registration failed. Please try again.";
+      setMessage(errorMessage);
+      if (Array.isArray(errorMessage)) {
+        const errorsObj = {};
+        errorMessage.forEach(err => {
+          const field = err.loc[1];
+          errorsObj[field] = err.msg;
+        });
+        setErrors(errorsObj);
+      }
     }
   };
 
   return (
-    <div className="login-container">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <h2>Login</h2>
+    <div className="register-container">
+      <form className="register-form" onSubmit={handleSubmit}>
+        <h2>Sign up</h2>
 
         <FormInput
           type="email"
@@ -77,7 +88,7 @@ const Login = () => {
         />
 
         <button type="submit" className="submit-button">
-          Login
+          Create Account
         </button>
 
         {message && (
@@ -86,12 +97,12 @@ const Login = () => {
           </p>
         )}
 
-        <div className="signup-link">
-          Don't have an account? <a href="/register">Sign up</a>
+        <div className="login-link">
+          Already have an account? <a href="/login">Login</a>
         </div>
       </form>
     </div>
   );
 };
 
-export default Login;
+export default Register;

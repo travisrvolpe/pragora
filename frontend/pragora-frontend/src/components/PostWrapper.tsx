@@ -10,33 +10,16 @@
 import React from 'react';
 import { Card } from './ui/card';
 import usePostEngagement from '../hooks/usePostEngagement';
-import {
-  ThumbsUp,
-  ThumbsDown,
-  Bookmark,
-  Share2,
-  MessageCircle,
-  CornerDownRight,
-  MoreHorizontal,
-  Flag,
-} from 'lucide-react';
-
+import { MoreHorizontal, Flag, CornerDownRight } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  type DropdownMenuContentProps,
-  type DropdownMenuItemProps,
 } from "./ui/dropdown-menu";
-
 import ViewPostButton from './buttons/ViewPostButton';
-import EngagementButton from './buttons/EngagementButton';
 import BackButton from './buttons/BackButton';
-import LikeButton from './buttons/LikeButton';
-import DislikeButton from './buttons/DislikeButton';
-import SaveButton from './buttons/SaveButton';
-import ShareButton from './buttons/ShareButton';
+import EngagementMetricsHandler from './EngagementMetricsHandler';
 
 // Types for post structure
 interface PostAnalysis {
@@ -145,15 +128,6 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
     }
   };
 
-  // Handle optional callbacks safely
-  const handleCommentClick = () => {
-    if (onComment) onComment();
-  };
-
-  const handleThreadedReplyClick = () => {
-    if (onThreadedReply) onThreadedReply();
-  };
-
   return (
     <Card className="w-full max-w-2xl bg-white">
       {/* Header */}
@@ -218,53 +192,31 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
 
       {/* Footer */}
       <div className="p-4 border-t">
-        {/* Action Buttons with Integrated Metrics */}
         <div className="flex items-center justify-between">
-          <div className="flex space-x-2">
-            <LikeButton
-                count={normalizedPost.likes_count}
-                onClick={() => {
-                  console.log('Like button clicked in PostWrapper');
-                  handleLike();
-                }}
-                disabled={isLoading.like}
-                active={normalizedPost.like}
-                error={isError.like}
-            />
-            <DislikeButton
-              count={normalizedPost.dislikes_count}
-              onClick={handleDislike}
-              disabled={isLoading.dislike}
-              active={normalizedPost.dislike}
-              error={isError.dislike}
-            />
-            <EngagementButton
-              icon={MessageCircle}
-              count={normalizedPost.comments_count}
-              onClick={handleCommentClick}
-              className="text-gray-600"
-            />
-            {variant === 'feed' && (
-              <EngagementButton
-                icon={CornerDownRight}
-                onClick={handleThreadedReplyClick}
-                className="text-gray-600"
-              />
-            )}
-            <ShareButton
-              count={normalizedPost.shares_count}
-              onClick={handleShare}
-              disabled={isLoading.share}
-              error={isError.share}
-            />
-            <SaveButton
-              count={normalizedPost.saves_count}
-              onClick={handleSave}
-              disabled={isLoading.save}
-              active={normalizedPost.save}
-              error={isError.save}
-            />
-          </div>
+          <EngagementMetricsHandler
+            type="post"
+            metrics={{
+              likes_count: normalizedPost.likes_count,
+              dislikes_count: normalizedPost.dislikes_count,
+              comments_count: normalizedPost.comments_count,
+              shares_count: normalizedPost.shares_count,
+              saves_count: normalizedPost.saves_count
+            }}
+            states={{
+              like: normalizedPost.like,
+              dislike: normalizedPost.dislike,
+              save: normalizedPost.save,
+              report: normalizedPost.report
+            }}
+            loading={isLoading}
+            error={isError}
+            onLike={handleLike}
+            onDislike={handleDislike}
+            onComment={onComment}
+            onShare={handleShare}
+            onSave={handleSave}
+          />
+
 
           {/* Conditional rendering of View/Back button based on variant */}
           {variant === 'feed' && <ViewPostButton post_id={post.post_id} />}

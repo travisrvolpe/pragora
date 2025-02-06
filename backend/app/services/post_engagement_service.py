@@ -177,7 +177,7 @@ class PostEngagementService:
 
                     self.db.add(new_interaction)
                     column_name = f"{interaction_type}_count"
-                    current_value = getattr(post, column_name, 0)  # Default to 0 if None
+                    current_value = getattr(post, column_name, 0) or 0  # Convert None to 0
                     setattr(post, column_name, current_value + 1)
 
                 # Step 5: Commit changes to database

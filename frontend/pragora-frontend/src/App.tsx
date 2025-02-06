@@ -1,9 +1,12 @@
+// src/App.tsx
 import React from "react";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AppRoutes from "./AppRoutes";
-import { AuthProvider } from "./contexts/AuthContext";
-import { ProfileProvider } from "./contexts/ProfileContext";
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { AuthProvider } from "./contexts/auth/AuthContext";
+import { ProfileProvider } from "./contexts/profile/ProfileContext";
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import AuthDebug from './components/debug/AuthDebug';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -21,6 +24,8 @@ const App: React.FC = () => {
       <AuthProvider>
         <ProfileProvider>
           <AppRoutes />
+          {/* Only show AuthDebug in development */}
+          {process.env.NODE_ENV === 'development' && <AuthDebug />}
         </ProfileProvider>
       </AuthProvider>
       <ReactQueryDevtools initialIsOpen={false} />

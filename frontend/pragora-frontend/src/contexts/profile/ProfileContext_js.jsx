@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { getProfile, updateProfile } from "../services/profileService";
+import { getProfile, updateProfile } from "../../services/user/profileService";
 import _ from "lodash"; // Import Lodash for debouncing
+
 
 const ProfileContext = createContext();
 

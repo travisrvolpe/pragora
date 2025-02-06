@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { UserPlus, LogIn, Brain, Target, Users } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext"; // Import AuthContext for login
+import { useAuth } from "../../contexts/auth/AuthContext"; // Import AuthContext for login
 import "../../styles/pages/Home.css";
 import logo from "../../assets/images/ZERO_CROP.PNG";
 

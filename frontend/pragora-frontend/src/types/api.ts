@@ -1,8 +1,9 @@
 // src/types/api.ts
 export interface ApiResponse<T> {
   status: 'success' | 'error';
-  data?: T;
   message?: string;
+  data: T;
+  errors?: string[];
 }
 
 export interface PaginatedResponse<T> {
@@ -17,7 +18,13 @@ export interface PaginatedResponse<T> {
 }
 
 export interface ApiError {
-  status: 'error';
+  status: string;
   message: string;
-  errors?: Record<string, string[]>;
+  errors?: string[];
 }
+
+//export interface ApiError {
+//  status: 'error';
+//  message: string;
+//  errors?: Record<string, string[]>;
+//}

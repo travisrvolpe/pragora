@@ -1,12 +1,25 @@
+// src/components/TopBar.tsx
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/auth/AuthContext";
 import { FaUser, FaInbox, FaSignInAlt, FaUserPlus } from "react-icons/fa";
-import logo from "../assets/images/ZERO_CROP.PNG";
 import "../styles/layout.css";
 
-const TopBar = () => {
-  const { user, logoutUser } = useAuth();
+const logo = require("../assets/images/ZERO_CROP.PNG");
+
+const TopBar: React.FC = () => {
+  const { user, logoutUser, isAuthenticated } = useAuth();
+
+  // Debug log to help diagnose auth state
+  console.log('Auth state in TopBar:', { user, isAuthenticated });
+
+  const handleLogout = () => {
+    try {
+      logoutUser();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <div className="top-bar">
@@ -39,7 +52,7 @@ const TopBar = () => {
 
       {/* Right Section: User Profile or Auth Links */}
       <div className="right-section">
-        {user ? (
+        {isAuthenticated && user ? (
           <>
             <Link to="/inbox" className="inbox-link nav-link">
               <FaInbox className="icon" />
@@ -47,10 +60,10 @@ const TopBar = () => {
             </Link>
             <Link to="/profile" className="profile-link nav-link">
               <FaUser className="icon" />
-              <span>Profile</span>
+              <span>{user.username || 'Profile'}</span>
             </Link>
             <button
-              onClick={logoutUser}
+              onClick={handleLogout}
               className="logout-button text-red-500 hover:text-red-600 font-medium"
             >
               Logout

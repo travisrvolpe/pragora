@@ -36,7 +36,7 @@ api.interceptors.response.use(
   }
 );
 
-const authService = {
+const authService_oldjs = {
   async login(credentials) {
     try {
       const response = await api.post('/login', credentials);
@@ -79,4 +79,4 @@ const authService = {
   }
 };
 
-export default authService;
+export default authService_oldjs;
