@@ -42,7 +42,7 @@ class UserProfile(Base):
     __tablename__ = "user_profile"
 
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True)
-    username = Column(String, unique=True)
+    username = Column(String, unique=True, nullable=False)
     avatar_img = Column(String, default='default_url')
     about = Column(Text)
     post_cnt = Column(Integer, default=0)
@@ -55,7 +55,7 @@ class UserProfile(Base):
     is_messaging = Column(Boolean, default=True)
     is_networking = Column(Boolean, default=True)
     reputation_score = Column(Integer, default=5)
-    reputation_cat = Column(String(50), default='Newbie')
+    reputation_cat = Column(String(50), default='New Joiner')
     interests = Column(Text)
     credentials = Column(String)
     expertise_area = Column(String)
@@ -64,11 +64,12 @@ class UserProfile(Base):
     sex = Column(String(1))
     worldview_u = Column(String)
     worldview_ai = Column(String)
-    date_joined = Column(DateTime(timezone=True), server_default=func.now())
+    date_joined = Column(DateTime(timezone=True), server_default=func.now()) # should be created_at from user table not now
     logon_time = Column(DateTime(timezone=True), server_default=func.now())
     last_active = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     role = Column(String(50), default='user')
     is_admin = Column(Boolean, default=False)
     is_instructor = Column(Boolean, default=False)
+    #Whare are some additional fields to add?
 
     user = relationship("User", back_populates="profile")

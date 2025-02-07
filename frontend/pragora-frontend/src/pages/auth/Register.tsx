@@ -59,18 +59,28 @@ const Register: React.FC = () => {
     }
 
     try {
-      console.log('Submitting registration form:', formData);
+      console.log('Starting registration process...', formData.email);
       await registerUser(formData);
-      setMessage("Registration successful!");
-      console.log('Attempting login after registration');
+      setMessage("✅ Registration successful!");
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Initiating automatic login...');
       await loginUser(formData);
-      setTimeout(() => navigate("/dialectica"), 500);
+      //TODO change to profile and add skip for noe button
+      navigate("/Dialectica");
+      setMessage("Welcome! Complete your profile to get started.");
     } catch (error: any) {
-      console.error("Registration/login error full details:", error);
+      console.error("Registration error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+
       const errorMessage = error.response?.data?.detail
-          || error.message
+          || (error.response?.status === 401 ? "Authentication failed. Please try logging in manually." : error.message)
           || "Registration failed. Please try again.";
-      setMessage(errorMessage);
+
+      setMessage(`❌ ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }

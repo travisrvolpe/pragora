@@ -6,7 +6,8 @@ import AppRoutes from "./AppRoutes";
 import { AuthProvider } from "./contexts/auth/AuthContext";
 import { ProfileProvider } from "./contexts/profile/ProfileContext";
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import AuthDebug from './components/debug/AuthDebug';
+//import AuthDebug from './components/debug/AuthDebug';
+import DebugPanel from './components/debug/DebugPanel';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -25,7 +26,7 @@ const App: React.FC = () => {
         <ProfileProvider>
           <AppRoutes />
           {/* Only show AuthDebug in development */}
-          {process.env.NODE_ENV === 'development' && <AuthDebug />}
+          {process.env.NODE_ENV === 'development' && <DebugPanel />}
         </ProfileProvider>
       </AuthProvider>
       <ReactQueryDevtools initialIsOpen={false} />

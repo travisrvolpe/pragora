@@ -9,6 +9,7 @@ import {
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Profile, ProfileUpdateDto, StatCardProps, TabButtonProps, InputFieldProps } from '@/types/profile';
 
+
 const UserProfile: React.FC = () => {
   const { user } = useAuth();
   const { profile, isLoading, error, fetchProfile, updateProfileData } = useProfile();

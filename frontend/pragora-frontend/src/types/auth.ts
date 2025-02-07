@@ -86,3 +86,12 @@ export interface AuthContextType {
   isLoading: boolean;
   error: string | null;
 }
+
+export interface AuthError {
+  response?: {
+    data?: {
+      detail?: string;
+    };
+  };
+  message?: string;
+}

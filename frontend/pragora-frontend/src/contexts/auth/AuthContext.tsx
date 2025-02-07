@@ -1,7 +1,8 @@
 // src/contexts/auth/AuthContext.tsx
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../../services/auth/authService";
+import {  authService } from "../../services/auth/authService";
 import { User, LoginFormData, RegisterFormData, AuthState, ErrorResponse } from "@/types/auth";
 import { AxiosError } from "axios";
 
@@ -88,15 +89,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const registerUser = async (userData: RegisterFormData): Promise<void> => {
+  const registerUser = async (formData: RegisterFormData): Promise<void> => {
     try {
-      const response = await authService.register(userData);
-      await fetchCurrentUser();
-      setError(null);
-      navigate("/dialectica");
+      const response = await authService.register(formData);
+      if (response.access_token) {
+        localStorage.setItem('access_token', response.access_token);
+        //api.defaults.headers.common['Authorization'] = `Bearer ${response.access_token}`;
+        const currentUser = await fetchCurrentUser();
+        setUser(currentUser);
+        setError(null);
+      }
     } catch (error) {
       console.error("Registration failed:", error);
-      setError("Registration failed. Please try again.");
       throw error;
     }
   };

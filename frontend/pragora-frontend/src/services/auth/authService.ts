@@ -67,20 +67,19 @@ class AuthService {
     }
   }
 
-  async register(userData: RegisterFormData): Promise<AuthResponse> {
-    try {
-      const response = await api.post<AuthResponse>(API_ENDPOINTS.AUTH_REGISTER, userData);
-      const { access_token } = response.data;
-      if (access_token) {
-        localStorage.setItem(TOKEN_KEY, access_token);
-        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      }
-      return response.data;
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+async register(userData: RegisterFormData): Promise<AuthResponse> {
+  try {
+    const response = await api.post<AuthResponse>(API_ENDPOINTS.AUTH_REGISTER, userData);
+    if (response.data.access_token) {
+      localStorage.setItem(TOKEN_KEY, response.data.access_token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
     }
+    return response.data;
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw error;
   }
+}
 
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);
@@ -93,3 +92,10 @@ class AuthService {
 }
 
 export const authService = new AuthService();
+
+//export const api: AxiosInstance = axios.create({
+//  baseURL: process.env.REACT_APP_API_URL || "http://localhost:8000",
+//  headers: {
+//    "Content-Type": "application/json",
+//  },
+//});

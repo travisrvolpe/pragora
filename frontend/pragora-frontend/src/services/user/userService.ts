@@ -1,3 +1,4 @@
+// is this correct you are importing the entire api folder?
 import { api } from '../../api';
 import API_ENDPOINTS from "../../api/apiConfig";
 import { User, UserProfile } from "@/types/auth";

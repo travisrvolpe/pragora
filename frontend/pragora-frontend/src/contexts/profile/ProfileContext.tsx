@@ -2,7 +2,9 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Profile, ProfileUpdateDto } from '@/types/profile';
-import { profileService } from '../../api/profile/profile';
+//import { profileService } from '../../api/profile/profile';
+import { profileService } from '../../services/user/profileService';
+
 import _ from 'lodash';
 
 interface ProfileContextType {

@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await authService.register(userData);
       setUser(response.user);
       setError(null);
-      navigate('/dialectica');
+      navigate('/profiles/me');
     } catch (error: any) {
       setError(error.response?.data?.detail || 'Registration failed');
       throw error;
