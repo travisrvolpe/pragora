@@ -6,11 +6,9 @@
  * Currently using flattened structure from backend
  * TODO: Consider standardizing on nested structure in future
  */
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from './ui/card';
-import usePostEngagement from '../hooks/usePostEngagement';
-import { MoreHorizontal, Flag, CornerDownRight } from 'lucide-react';
+import { MoreHorizontal, Flag } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -20,8 +18,9 @@ import {
 import ViewPostButton from './buttons/ViewPostButton';
 import BackButton from './buttons/BackButton';
 import EngagementMetricsHandler from './EngagementMetricsHandler';
+import engageService from '../services/engagement/engageService';
 
-// Types for post structure
+// Types
 interface PostAnalysis {
   fallacy_types?: string[];
   evidence_score: number;
@@ -35,7 +34,6 @@ interface PostUser {
   reputation_score?: number;
 }
 
-// Define valid post types
 type PostType = 1 | 2 | 3;
 
 interface Post {
@@ -51,12 +49,12 @@ interface Post {
   analysis?: PostAnalysis;
 
   // Engagement metrics
-  likes_count: number;
-  dislikes_count: number;
-  saves_count: number;
-  shares_count: number;
-  comments_count: number;
-  reports_count: number;
+  like_count: number;
+  dislike_count: number;
+  save_count: number;
+  share_count: number;
+  comment_count: number;
+  report_count: number;
 
   // User interaction states
   like: boolean;
@@ -73,7 +71,22 @@ interface PostWrapperProps {
   onThreadedReply?: () => void;
 }
 
-// Define gradient styles with proper typing
+interface InteractionState {
+  like: boolean;
+  dislike: boolean;
+  save: boolean;
+  report: boolean;
+}
+
+interface MetricsState {
+  like_count: number;
+  dislike_count: number;
+  save_count: number;
+  share_count: number;
+  comment_count: number;
+  report_count: number;
+}
+
 const POST_TYPE_GRADIENTS: Record<PostType, string> = {
   1: 'from-purple-300 to-purple-800',
   2: 'from-red-300 to-red-800',
@@ -87,29 +100,182 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
   onComment,
   onThreadedReply
 }) => {
-  const normalizedPost = {
-    ...post,
-    likes_count: post.likes_count || 0,
-    dislikes_count: post.dislikes_count || 0,
-    saves_count: post.saves_count || 0,
-    shares_count: post.shares_count || 0,
-    comments_count: post.comments_count || 0,
-    reports_count: post.reports_count || 0,
-    like: Boolean(post.like),
-    dislike: Boolean(post.dislike),
-    save: Boolean(post.save),
-    report: Boolean(post.report),
+  // State
+  const [isLoading, setIsLoading] = useState({
+    like: false,
+    dislike: false,
+    save: false,
+    share: false,
+    report: false
+  });
+
+  const [isError, setIsError] = useState({
+    like: false,
+    dislike: false,
+    save: false,
+    share: false,
+    report: false
+  });
+
+  const [interactionState, setInteractionState] = useState<InteractionState>({
+    like: post.like || false,
+    dislike: post.dislike || false,
+    save: post.save || false,
+    report: post.report || false
+  });
+
+  const [metrics, setMetrics] = useState<MetricsState>({
+    like_count: post.like_count || 0,
+    dislike_count: post.dislike_count || 0,
+    save_count: post.save_count || 0,
+    share_count: post.share_count || 0,
+    comment_count: post.comment_count || 0,
+    report_count: post.report_count || 0
+  });
+
+  useEffect(() => {
+    setInteractionState({
+      like: post.like || false,
+      dislike: post.dislike || false,
+      save: post.save || false,
+      report: post.report || false
+    });
+    setMetrics({
+      like_count: post.like_count || 0,
+      dislike_count: post.dislike_count || 0,
+      save_count: post.save_count || 0,
+      share_count: post.share_count || 0,
+      comment_count: post.comment_count || 0,
+      report_count: post.report_count || 0
+    });
+  }, [post]);
+
+  // Handlers
+  const handleLike = async () => {
+    try {
+      setIsLoading(prev => ({ ...prev, like: true }));
+      setIsError(prev => ({ ...prev, like: false }));
+
+      const response = await engageService.likePost(post.post_id);
+
+      setInteractionState(prev => ({
+        ...prev,
+        like: response.like,
+        dislike: false // Reset dislike if like is successful
+      }));
+
+      setMetrics(prev => ({
+        ...prev,
+        likes_count: response.like_count,
+        dislikes_count: interactionState.dislike ? prev.dislike_count - 1 : prev.dislike_count
+      }));
+    } catch (error) {
+      setIsError(prev => ({ ...prev, like: true }));
+      console.error('Error liking post:', error);
+    } finally {
+      setIsLoading(prev => ({ ...prev, like: false }));
+    }
   };
 
-  const {
-    handleLike,
-    handleDislike,
-    handleSave,
-    handleShare,
-    handleReport,
-    isLoading,
-    isError
-  } = usePostEngagement(normalizedPost);
+  const handleDislike = async () => {
+    try {
+      setIsLoading(prev => ({ ...prev, dislike: true }));
+      setIsError(prev => ({ ...prev, dislike: false }));
+
+      const response = await engageService.dislikePost(post.post_id);
+
+      setInteractionState(prev => ({
+        ...prev,
+        dislike: response.dislike,
+        like: false // Reset like if dislike is successful
+      }));
+
+      setMetrics(prev => ({
+        ...prev,
+        dislikes_count: response.dislike_count,
+        likes_count: interactionState.like ? prev.like_count - 1 : prev.like_count
+      }));
+    } catch (error) {
+      setIsError(prev => ({ ...prev, dislike: true }));
+      console.error('Error disliking post:', error);
+    } finally {
+      setIsLoading(prev => ({ ...prev, dislike: false }));
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsLoading(prev => ({ ...prev, save: true }));
+      setIsError(prev => ({ ...prev, save: false }));
+
+      const response = await engageService.savePost(post.post_id);
+
+      setInteractionState(prev => ({
+        ...prev,
+        save: response.save
+      }));
+
+      setMetrics(prev => ({
+        ...prev,
+        saves_count: response.save_count
+      }));
+    } catch (error) {
+      setIsError(prev => ({ ...prev, save: true }));
+      console.error('Error saving post:', error);
+    } finally {
+      setIsLoading(prev => ({ ...prev, save: false }));
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      setIsLoading(prev => ({ ...prev, share: true }));
+      setIsError(prev => ({ ...prev, share: false }));
+
+      const response = await engageService.sharePost(post.post_id);
+
+      setMetrics(prev => ({
+        ...prev,
+        shares_count: response.share_count
+      }));
+    } catch (error) {
+      setIsError(prev => ({ ...prev, share: true }));
+      console.error('Error sharing post:', error);
+    } finally {
+      setIsLoading(prev => ({ ...prev, share: false }));
+    }
+  };
+
+  const handleReport = async (reason: string) => {
+    try {
+      setIsLoading(prev => ({ ...prev, report: true }));
+      setIsError(prev => ({ ...prev, report: false }));
+
+      const response = await engageService.reportPost(post.post_id, reason);
+
+      setInteractionState(prev => ({
+        ...prev,
+        report: response.report
+      }));
+
+      setMetrics(prev => ({
+        ...prev,
+        reports_count: response.report_count
+      }));
+    } catch (error) {
+      setIsError(prev => ({ ...prev, report: true }));
+      console.error('Error reporting post:', error);
+    } finally {
+      setIsLoading(prev => ({ ...prev, report: false }));
+    }
+  };
+
+  const handleReportClick = () => {
+    const reason = window.prompt('Please provide a reason for reporting this post:');
+    if (reason) {
+      handleReport(reason);
+    }
+  };
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -120,13 +286,6 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
   };
 
   const displayUsername = post.username || post.user?.username || 'Anonymous';
-
-  const handleReportClick = () => {
-    const reason = window.prompt('Please provide a reason for reporting this post:');
-    if (reason) {
-      handleReport(reason);
-    }
-  };
 
   return (
     <Card className="w-full max-w-2xl bg-white">
@@ -195,19 +354,8 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
         <div className="flex items-center justify-between">
           <EngagementMetricsHandler
             type="post"
-            metrics={{
-              likes_count: normalizedPost.likes_count,
-              dislikes_count: normalizedPost.dislikes_count,
-              comments_count: normalizedPost.comments_count,
-              shares_count: normalizedPost.shares_count,
-              saves_count: normalizedPost.saves_count
-            }}
-            states={{
-              like: normalizedPost.like,
-              dislike: normalizedPost.dislike,
-              save: normalizedPost.save,
-              report: normalizedPost.report
-            }}
+            metrics={metrics}
+            states={interactionState}
             loading={isLoading}
             error={isError}
             onLike={handleLike}
@@ -217,9 +365,8 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
             onSave={handleSave}
           />
 
-
           {/* Conditional rendering of View/Back button based on variant */}
-          {variant === 'feed' && <ViewPostButton post_id={post.post_id} />}
+          {variant === 'feed' && <ViewPostButton postId={post.post_id} />}
           {variant === 'detail' && <BackButton />}
         </div>
 

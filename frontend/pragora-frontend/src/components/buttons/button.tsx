@@ -6,11 +6,12 @@ import { cn } from "../../lib/utils";
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   label?: string;
   icon?: LucideIcon;
+  tooltip?: string;
   variant?: 'default' | 'ghost' | 'outline';
   size?: 'sm' | 'md' | 'lg';
 }
 
-const Button: React.FC<ButtonProps> = ({
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   label,
   icon: Icon,
   onClick,
@@ -18,11 +19,13 @@ const Button: React.FC<ButtonProps> = ({
   disabled = false,
   variant = 'default',
   size = 'md',
+  tooltip,
   children,
   ...props
-}) => {
+}, ref) => {
   return (
     <button
+      ref={ref}
       className={cn(
         "button",
         "inline-flex items-center justify-center",
@@ -43,6 +46,7 @@ const Button: React.FC<ButtonProps> = ({
       )}
       onClick={onClick}
       disabled={disabled}
+      title={tooltip}
       {...props}
     >
       {Icon && <Icon className="w-4 h-4 mr-2" />}
@@ -50,6 +54,8 @@ const Button: React.FC<ButtonProps> = ({
       {children}
     </button>
   );
-};
+});
+
+Button.displayName = "Button";
 
 export default Button;

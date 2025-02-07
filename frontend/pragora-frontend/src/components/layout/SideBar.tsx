@@ -1,11 +1,16 @@
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import TopicCard from "./TopicCard";
-import "../styles/layout.css";
+import { useLocation } from "react-router-dom";
+import { SidebarProps } from '../../types/layout';
+import TopicCard from "../TopicCard";
+import "../../styles/layout.css";
 
-const Sidebar = ({ categories = [], selectedCategory, onSelectCategory, onSubcategoryChange }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  categories,
+  selectedCategory,
+  onSelectCategory,
+  onSubcategoryChange
+}) => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const getSidebarContent = () => {
     if (location.pathname.startsWith("/dialectica")) {
@@ -35,6 +40,5 @@ const Sidebar = ({ categories = [], selectedCategory, onSelectCategory, onSubcat
     </div>
   );
 };
-
 
 export default Sidebar;

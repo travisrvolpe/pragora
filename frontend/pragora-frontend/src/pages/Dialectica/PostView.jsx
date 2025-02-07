@@ -53,11 +53,11 @@ const PostView = () => {
                     expertise_area: rawPost.expertise_area,
                     worldview_ai: rawPost.worldview_ai,
                     tags: rawPost.tags || [],
-                    likes_count: rawPost.likes_count || 0,
-                    dislikes_count: rawPost.dislikes_count || 0,
-                    saves_count: rawPost.saves_count || 0,
-                    shares_count: rawPost.shares_count || 0,
-                    comments_count: rawPost.comments_count || 0,
+                    like_count: rawPost.like_count || 0,
+                    dislike_count: rawPost.dislike_count || 0,
+                    save_count: rawPost.save_count || 0,
+                    share_count: rawPost.share_count || 0,
+                    comment_count: rawPost.comment_count || 0,
                     category_id: rawPost.category_id,
                     subcategory_id: rawPost.subcategory_id,
                     custom_subcategory: rawPost.custom_subcategory
@@ -103,10 +103,10 @@ const PostView = () => {
         if (response.data.status === 'success' && response.data.data?.post) {
             setPost(prev => ({
                 ...prev,
-                likes_count: response.data.data.post.likes_count || 0,
-                dislikes_count: response.data.data.post.dislikes_count || 0,
-                saves_count: response.data.data.post.saves_count || 0,
-                shares_count: response.data.data.post.shares_count || 0
+                like_count: response.data.data.post.like_count || 0,
+                dislike_count: response.data.data.post.dislike_count || 0,
+                save_count: response.data.data.post.save_count || 0,
+                share_count: response.data.data.post.share_count || 0
             }));
         }
     } catch (error) {

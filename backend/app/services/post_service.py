@@ -293,8 +293,6 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
             # Interaction counts - with defensive handling
             "like_count": post.like_count or 0,
             "dislike_count": post.dislike_count or 0,
-            "love_count": post.love_count or 0,
-            "hate_count": post.hate_count or 0,
             "save_count": post.save_count or 0,
             "share_count": post.share_count or 0,
             "comment_count": post.comment_count or 0,
@@ -304,14 +302,12 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
             **engagement_dict,
             # TODO Ensure that this is updated based on the most recent schema changes!!
             # User-specific interaction flags - with defensive handling
-            "liked": user_interaction.liked if user_interaction else False,
-            "disliked": user_interaction.disliked if user_interaction else False,
-            "hated": user_interaction.hated if user_interaction else False,
-            "loved": user_interaction.loved if user_interaction else False,
-            "shared": user_interaction.shared if user_interaction else False,
-            "reported": user_interaction.reported if user_interaction else False,
-            "commented": user_interaction.commented if user_interaction else False,
-            "replied": user_interaction.replied if user_interaction else False,
+            "like": user_interaction.like if user_interaction else False,
+            "dislike": user_interaction.dislike if user_interaction else False,
+            "share": user_interaction.share if user_interaction else False,
+            "report": user_interaction.report if user_interaction else False,
+            "comment": user_interaction.comment if user_interaction else False,
+            "reply": user_interaction.reply if user_interaction else False,
         }
 
         print(f"✅ Successfully retrieved post {post_id}")

@@ -54,8 +54,6 @@ class Post(Base):
     # Interaction Metrics
     like_count = Column(Integer, default=0, nullable=False)
     dislike_count = Column(Integer, default=0, nullable=False)
-    love_count = Column(Integer, default=0, nullable=False)
-    hate_count = Column(Integer, default=0, nullable=False)
     save_count = Column(Integer, default=0, nullable=False)
     share_count = Column(Integer, default=0, nullable=False)
     comment_count = Column(Integer, default=0, nullable=False)

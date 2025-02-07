@@ -27,8 +27,6 @@ class Post(BaseModel):
     # Aggregated Interaction Metrics
     like_count: int = 0
     dislike_count: int = 0
-    love_count: int = 0
-    hate_count: int = 0
     save_count: int = 0
     share_count: int = 0
     comment_count: int = 0
@@ -147,8 +145,6 @@ class PostResponse(BaseModel):
 
     like_count: int = 0
     dislike_count: int = 0
-    love_count: int = 0
-    hate_count: int = 0
     save_count: int = 0
     share_count: int = 0
     comment_count: int = 0
@@ -164,8 +160,6 @@ class PostResponse(BaseModel):
     # Fields for tracking user interactions
     like: bool = False
     dislike: bool = False
-    hate: bool = False
-    love: bool = False
     share: bool = False
     report: bool = False
     comment: bool = False
@@ -192,8 +186,6 @@ class PostInteractionResponse(PostInteractionCreate):
 class PostMetricsUpdate(BaseModel):
     like_count: Optional[int] = Field(default=0)
     dislike_count: Optional[int] = Field(default=0)
-    love_count: Optional[int] = Field(default=0)
-    hate_count: Optional[int] = Field(default=0)
     save_count: Optional[int] = Field(default=0)
     share_count: Optional[int] = Field(default=0)
     comment_count: Optional[int] = Field(default=0)

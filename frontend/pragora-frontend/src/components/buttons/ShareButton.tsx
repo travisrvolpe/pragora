@@ -1,6 +1,6 @@
 // src/components/buttons/ShareButton.tsx
 import React from 'react';
-import { Bookmark } from 'lucide-react';
+import { Share } from 'lucide-react';
 import EngagementButton from './EngagementButton';
 
 interface ShareButtonProps {
@@ -19,7 +19,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({
 }) => {
   return (
     <EngagementButton
-      icon={Bookmark}
+      icon={Share}
       count={count}
       onClick={onClick}
       disabled={disabled}

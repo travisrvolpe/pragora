@@ -6,12 +6,13 @@ import ShareButton from './buttons/ShareButton';
 import { MessageCircle } from 'lucide-react';
 import EngagementButton from './buttons/EngagementButton';
 
+// TODO MOVE TO A GLOBAL TYPES FILE
 interface MetricsData {
-  likes_count: number;
-  dislikes_count: number;
-  comments_count: number;
-  shares_count: number;
-  saves_count: number;
+  like_count: number;
+  dislike_count: number;
+  comment_count: number;
+  share_count: number;
+  save_count: number;
 }
 
 interface MetricStates {
@@ -43,11 +44,11 @@ interface EngagementMetricsHandlerProps {
   states: MetricStates;
   loading: LoadingStates;
   error: ErrorStates;
-  onLike: () => void;
-  onDislike: () => void;
+  onLike: () => Promise<void>;  // Update to handle async
+  onDislike: () => Promise<void>;
   onComment?: () => void;
-  onShare: () => void;
-  onSave: () => void;
+  onShare: () => Promise<void>;
+  onSave: () => Promise<void>;
   className?: string;
 }
 
@@ -61,30 +62,28 @@ const EngagementMetricsHandler: React.FC<EngagementMetricsHandlerProps> = ({
   onDislike,
   onComment,
   onShare,
-  onSave,
-  className = ''
+  onSave
 }) => {
-  // Ensure metrics have default values
-  const safeMetrics = {
-    likes_count: metrics.likes_count || 0,
-    dislikes_count: metrics.dislikes_count || 0,
-    comments_count: metrics.comments_count || 0,
-    shares_count: metrics.shares_count || 0,
-    saves_count: metrics.saves_count || 0
+  const handleInteraction = async (handler: () => Promise<void>) => {
+    try {
+      await handler();
+    } catch (error) {
+      console.error('Error handling interaction:', error);
+    }
   };
 
   return (
-    <div className={`flex space-x-2 ${className}`}>
+    <div className="flex items-center space-x-4">
       <LikeButton
-        count={safeMetrics.likes_count}
-        onClick={onLike}
+        count={metrics.like_count}
+        onClick={() => handleInteraction(onLike)}
         disabled={loading.like}
         active={states.like}
         error={error.like}
       />
       <DislikeButton
-        count={safeMetrics.dislikes_count}
-        onClick={onDislike}
+        count={metrics.dislike_count}
+        onClick={() => handleInteraction(onDislike)}
         disabled={loading.dislike}
         active={states.dislike}
         error={error.dislike}
@@ -92,19 +91,19 @@ const EngagementMetricsHandler: React.FC<EngagementMetricsHandlerProps> = ({
       {type === 'post' && onComment && (
         <EngagementButton
           icon={MessageCircle}
-          count={safeMetrics.comments_count}
+          count={metrics.comment_count}
           onClick={onComment}
           className="text-gray-600"
         />
       )}
       <ShareButton
-        count={safeMetrics.shares_count}
+        count={metrics.share_count}
         onClick={onShare}
         disabled={loading.share}
         error={error.share}
       />
       <SaveButton
-        count={safeMetrics.saves_count}
+        count={metrics.save_count}
         onClick={onSave}
         disabled={loading.save}
         active={states.save}

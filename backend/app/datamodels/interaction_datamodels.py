@@ -32,6 +32,15 @@ class BaseInteraction(Base):
         return relationship("InteractionType", back_populates=f"{cls.__tablename__}")
 
 class PostInteraction(BaseInteraction):
+    #TODO ADDED INTERACTION NAMES DUE TO ERROR WITH **engagement_dict, IN POST SERVICE. THIS ERROR STARTED AFTER THE CREATION OF
+    # SPECIFIC INTERACTION / ENGAGEMENT DATAMODEL AND SCHEMA AND THE USE OF init_post_interaction_types IN DATABASE_UTILS TO GET
+    # INTERACTION TYPES - NEED TO CONFIRM THIS IS CORRECT WAY TO FIX THE ERROR-
+    reply = None
+    comment = None
+    report = None
+    like = None
+    share = None
+    dislike = None
     __tablename__ = "post_interactions"
 
     #interaction_id = Column(

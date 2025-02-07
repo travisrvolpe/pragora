@@ -43,17 +43,27 @@ const PostFeed = ({ selectedTab, selectedCategory }) => {
     }
   };
 
-  const handleInteraction = async (postId, action) => {
-    try {
-      await axios.post(`http://localhost:8000/posts/${postId}/${action}`, {}, {
-        withCredentials: true
-      });
-      // Refresh the posts list
-      fetchPosts();
-    } catch (error) {
-      console.error(`Failed to ${action} post:`, error);
-    }
-  };
+const handleInteraction = async (postId, action) => {
+  try {
+    await axios.post(`http://localhost:8000/posts/engagement/${postId}/${action}`, {}, {
+      withCredentials: true
+    });
+
+    // Fetch updated post data
+    const response = await axios.get(`http://localhost:8000/posts/${postId}`, {
+      withCredentials: true
+    });
+
+    // Update the post in state
+    setPosts(currentPosts =>
+      currentPosts.map(post =>
+        post.post_id === postId ? response.data.data.post : post
+      )
+    );
+  } catch (error) {
+    console.error(`Failed to ${action} post:`, error);
+  }
+};
 
   const handleViewPost = (postId) => {
     console.log("Navigating to post:", postId);

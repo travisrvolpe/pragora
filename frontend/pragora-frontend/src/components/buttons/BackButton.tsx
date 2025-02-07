@@ -1,12 +1,14 @@
+// src/components/buttons/BackButton.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import Button from './Button';
+import Button from './button';
+import { NavigationButtonProps } from '../../types/buttons';
 
-const BackButton = () => {
+const BackButton: React.FC<NavigationButtonProps> = ({ className }) => {
   const navigate = useNavigate();
 
-  const handleClick = (e) => {
+  const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigate(-1);
   };
@@ -16,7 +18,7 @@ const BackButton = () => {
       icon={ArrowLeft}
       label="Back"
       onClick={handleClick}
-      className="bg-gray-900 text-white hover:bg-gray-800"
+      className={className}
     />
   );
 };
