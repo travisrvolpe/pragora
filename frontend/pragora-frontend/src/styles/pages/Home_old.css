@@ -13,7 +13,7 @@
   --white: #ffffff;
 }
 
-/* Main layout */
+/* Main navigation */
 .homepage-container {
   min-height: 100vh;
   background: linear-gradient(to bottom right, var(--emerald-600), var(--emerald-900));

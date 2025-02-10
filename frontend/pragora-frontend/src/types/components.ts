@@ -1,3 +1,8 @@
+// TODO EXTRACT ANY USEFUL TYPES/INTERFACTS NOT COVER IN POSTS
+// - Types that aren't in our new structure
+// - Types that might be used elsewhere in your application
+// - Types that might need to be migrated to different modules
+
 import { ReactNode, ButtonHTMLAttributes } from 'react';
 
 // Base component props

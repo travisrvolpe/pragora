@@ -1,6 +1,6 @@
 // src/components/buttons/NetworkButtons.tsx
 import React from 'react';
-import Button from './button';
+import Button from '../ui/button';
 import { NetworkButtonProps } from '../../types/buttons';
 
 export const AcceptRequestButton: React.FC<Omit<NetworkButtonProps, 'networkAction'>> = ({

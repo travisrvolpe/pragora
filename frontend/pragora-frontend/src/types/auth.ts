@@ -1,97 +1,44 @@
-// types/auth.ts
-export interface User {
-  user_id: number;
-  username: string;
-  email: string;
-  avatar_img?: string;
-  profile?: UserProfile;
-  role?: string;
-}
+import { BaseUser } from './user';
 
-// Add token type
-export interface Token {
-  access_token: string;
-  token_type: string;
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface UserProfile {
-  user_id: number;
-  username: string;
-  avatar_img?: string;
-  about?: string;
-  reputation_score?: number;
-  reputation_cat?: string;
-  post_cnt?: number;
-  comment_cnt?: number;
-  upvote_cnt?: number;
-  interests?: string;
-  credentials?: string;
-  expertise_area?: string;
-  location?: string;
-  date_joined?: string;
-}
-
+// What the backend expects
 export interface LoginFormData {
   email: string;
   password: string;
 }
 
 export interface RegisterFormData extends LoginFormData {
-  // Add any additional registration fields here
+  // Add any registration-specific fields here
 }
 
-export interface AuthResponse {
-  success: boolean;
+// What the backend returns
+export interface TokenData {
   access_token: string;
   token_type: string;
-  user: User;
 }
 
-// FastAPI default error response
-export interface FastAPIError {
-  detail: string;
+// The complete auth response from the backend
+export interface AuthResponse {
+  status: 'success' | 'error';
+  access_token: string;
+  token_type: string;
+  user: User;  // This User extends BaseUser, so it has user_id
 }
 
-// Extended error response that includes potential validation errors
-export interface ValidationError {
-  loc: string[];
-  msg: string;
-  type: string;
+// The User type inherits from BaseUser which has user_id
+export interface User extends BaseUser {
+  // Auth-specific user properties can be added here
 }
 
-// Combined error response type
-export interface ErrorResponse {
-  detail: string | ValidationError[];
-  statusCode?: number;
-  message?: string;
-}
-
+// State management for auth
 export interface AuthState {
-  user: User | null;
+  user: User | null;  // This User type has user_id from BaseUser
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
 }
 
-export interface AuthContextType {
-  user: User | null;
-  login: (credentials: { email: string; password: string }) => Promise<void>;
-  logout: () => Promise<void>;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-}
-
-export interface AuthError {
-  response?: {
-    data?: {
-      detail?: string;
-    };
-  };
-  message?: string;
+export interface AuthContextType extends AuthState {
+  loginUser: (credentials: LoginFormData) => Promise<void>;
+  registerUser: (userData: RegisterFormData) => Promise<void>;
+  logoutUser: () => void;
 }

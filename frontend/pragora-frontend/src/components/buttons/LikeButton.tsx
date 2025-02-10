@@ -1,34 +1,49 @@
-// src/components/buttons/LikeButton.tsx
-import React from 'react';
-import { ThumbsUp } from 'lucide-react';
-import EngagementButton from './EngagementButton';
+// components/buttons/LikeButton.tsx
+'use client'
 
-interface LikeButtonProps {
-  count: number;
-  onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
-  error?: boolean;
+import * as React from 'react'
+import { ThumbsUp } from 'lucide-react'
+import { EngagementButton, EngagementButtonProps } from './EngagementButton'
+import { cn } from '../../lib/utils/utils'
+
+type LikeButtonProps = Omit<EngagementButtonProps, 'icon'> & {
+  onClick: () => Promise<void>
 }
 
-const LikeButton: React.FC<LikeButtonProps> = ({
-  count,
+export const LikeButton = React.forwardRef<HTMLButtonElement, LikeButtonProps>(({
   onClick,
-  disabled,
   active,
-  error
-}) => {
+  disabled,
+  error,
+  className,
+  ...props
+}, ref) => {
+  const handleClick = async () => {
+    try {
+      await onClick()
+    } catch (err) {
+      console.error('Error handling like:', err)
+    }
+  }
+
   return (
     <EngagementButton
+      ref={ref}
       icon={ThumbsUp}
-      count={count}
-      onClick={onClick}
-      disabled={disabled}
+      onClick={handleClick}
       active={active}
+      disabled={disabled}
       error={error}
-      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+      tooltip={active ? 'Unlike' : 'Like'}
+      className={cn(
+        'text-blue-600 hover:text-blue-700 hover:bg-blue-50',
+        className
+      )}
+      {...props}
     />
-  );
-};
+  )
+})
 
-export default LikeButton;
+LikeButton.displayName = 'LikeButton'
+
+export default LikeButton

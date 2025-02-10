@@ -1,6 +1,8 @@
+// src/components/forms/FormInput.tsx
+'use client'
+
 import React, { InputHTMLAttributes } from "react";
 
-// Extend HTML input props while adding our custom props
 interface FormInputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   label?: string;

@@ -1,6 +1,6 @@
 import React from "react";
 import Button from "./Button";
-import '../../styles/components/NetworkButtons.css';
+import '@/src/styles/components/NetworkButtons.css';
 
 
 export const AcceptRequestButton = ({ onClick }) => (

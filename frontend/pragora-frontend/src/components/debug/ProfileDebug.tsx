@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Alert, AlertDescription } from '../ui/alert';
 
 const ProfileDebug = () => {
   useEffect(() => {

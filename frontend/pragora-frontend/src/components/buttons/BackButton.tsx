@@ -1,16 +1,17 @@
-// src/components/buttons/BackButton.tsx
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import Button from './button';
-import { NavigationButtonProps } from '../../types/buttons';
+// components/buttons/BackButton.tsx
+'use client';
 
-const BackButton: React.FC<NavigationButtonProps> = ({ className }) => {
-  const navigate = useNavigate();
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { NavigationButtonProps } from '@/types/buttons';
+
+export const BackButton: React.FC<NavigationButtonProps> = ({ className }) => {
+  const router = useRouter();
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(-1);
+    router.back();
   };
 
   return (
@@ -18,9 +19,8 @@ const BackButton: React.FC<NavigationButtonProps> = ({ className }) => {
       icon={ArrowLeft}
       label="Back"
       onClick={handleClick}
+      variant="ghost"
       className={className}
     />
   );
 };
-
-export default BackButton;

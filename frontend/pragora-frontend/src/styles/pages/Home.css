@@ -17,7 +17,7 @@
   max-width: 1200px; /* Constrain max width for better readability */
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center content within column layout */
+  align-items: center; /* Center content within column navigation */
   box-sizing: border-box; /* Ensure padding/border included in width */
 }
 
@@ -74,7 +74,7 @@
   gap: 1rem;
   flex-wrap: wrap;
   width: 100%;
-  max-width: 800px; /* Limit width for better layout */
+  max-width: 800px; /* Limit width for better navigation */
 }
 
 .register-btn {

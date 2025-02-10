@@ -1,34 +1,49 @@
-// src/components/buttons/DislikeButton.tsx
-import React from 'react';
-import { ThumbsDown } from 'lucide-react';
-import EngagementButton from './EngagementButton';
+// components/buttons/DislikeButton.tsx
+'use client'
 
-interface DislikeButtonProps {
-  count: number;
-  onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
-  error?: boolean;
+import * as React from 'react'
+import { ThumbsDown } from 'lucide-react'
+import { EngagementButton, EngagementButtonProps } from './EngagementButton'
+import { cn } from '../../lib/utils/utils'
+
+type DislikeButtonProps = Omit<EngagementButtonProps, 'icon'> & {
+  onClick: () => Promise<void>
 }
 
-const DislikeButton: React.FC<DislikeButtonProps> = ({
-  count,
+export const DislikeButton = React.forwardRef<HTMLButtonElement, DislikeButtonProps>(({
   onClick,
-  disabled,
   active,
-  error
-}) => {
+  disabled,
+  error,
+  className,
+  ...props
+}, ref) => {
+  const handleClick = async () => {
+    try {
+      await onClick()
+    } catch (err) {
+      console.error('Error handling dislike:', err)
+    }
+  }
+
   return (
     <EngagementButton
+      ref={ref}
       icon={ThumbsDown}
-      count={count}
-      onClick={onClick}
-      disabled={disabled}
+      onClick={handleClick}
       active={active}
+      disabled={disabled}
       error={error}
-      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+      tooltip={active ? 'Remove Dislike' : 'Dislike'}
+      className={cn(
+        'text-red-600 hover:text-red-700 hover:bg-red-50',
+        className
+      )}
+      {...props}
     />
-  );
-};
+  )
+})
 
-export default DislikeButton;
+DislikeButton.displayName = 'DislikeButton'
+
+export default DislikeButton

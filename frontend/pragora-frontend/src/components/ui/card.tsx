@@ -1,6 +1,6 @@
 // src/components/ui/card.tsx
 import React from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "../../lib/utils/utils";
 
 // Base component props interface
 interface CardBaseProps extends React.HTMLAttributes<HTMLElement> {

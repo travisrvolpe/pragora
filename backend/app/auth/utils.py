@@ -23,6 +23,8 @@ async def get_current_user(
         token: Optional[str] = Depends(oauth2_scheme),
         db: Session = Depends(get_db)
 ) -> User:
+    print(f"📢 Received token in FastAPI: {token}")
+
     """Decode and validate JWT token, and retrieve user from database."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -33,7 +35,7 @@ async def get_current_user(
     # Get token from OAuth2 scheme or Authorization header
     if not token:
         auth_header = request.headers.get("Authorization")
-        print(f"🔑 Auth header: {auth_header}")
+        print(f"🔑 Auth header from request: {auth_header}")
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ")[1]
         else:

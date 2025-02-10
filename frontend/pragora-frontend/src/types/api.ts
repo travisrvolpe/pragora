@@ -6,6 +6,12 @@ export interface ApiResponse<T> {
   errors?: string[];
 }
 
+export interface ValidationError {
+  loc: string[];
+  msg: string;
+  type: string;
+}
+
 export interface PaginatedResponse<T> {
   status: 'success' | 'error';
   data?: {
@@ -23,8 +29,4 @@ export interface ApiError {
   errors?: string[];
 }
 
-//export interface ApiError {
-//  status: 'error';
-//  message: string;
-//  errors?: Record<string, string[]>;
-//}
+export type ApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

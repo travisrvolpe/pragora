@@ -1,11 +1,9 @@
-// src/contexts/profile/ProfileContext.tsx
+'use client'
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Profile, ProfileUpdateDto } from '@/types/profile';
-//import { profileService } from '../../api/profile/profile';
-import { profileService } from '../../services/user/profileService';
-
-import _ from 'lodash';
+import { profileService } from '@/lib/services/user/profileService';
+import { useAuth } from '@/contexts/auth/AuthContext';
 
 interface ProfileContextType {
   profile: Profile | null;
@@ -16,21 +14,25 @@ interface ProfileContextType {
   updateAvatar: (file: File) => Promise<void>;
 }
 
-const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
+const ProfileContext = createContext<ProfileContextType>({
+  profile: null,
+  isLoading: false,
+  error: null,
+  fetchProfile: async () => {},
+  updateProfileData: async () => {},
+  updateAvatar: async () => {},
+});
 
-interface ProfileProviderProps {
-  children: ReactNode;
-}
-
-export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) => {
+export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
 
-  const fetchProfileImpl = async () => {
-    if (isLoading) return;
+  const fetchProfile = async () => {
+    if (!isAuthenticated) return;
+
     setIsLoading(true);
-    setError(null);
     try {
       const profileData = await profileService.getProfile();
       setProfile(profileData);
@@ -42,20 +44,8 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
     }
   };
 
-  // Create the debounced version of the fetch function
-  const debouncedFetchProfileImpl = _.debounce(fetchProfileImpl, 500);
-
-  // Wrap the debounced function to ensure it returns a Promise
-  const fetchProfile = async () => {
-    return new Promise<void>((resolve) => {
-      debouncedFetchProfileImpl();
-      resolve();
-    });
-  };
-
   const updateProfileData = async (updatedProfile: ProfileUpdateDto) => {
     setIsLoading(true);
-    setError(null);
     try {
       const profileData = await profileService.updateProfile(updatedProfile);
       setProfile(profileData);
@@ -70,7 +60,6 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
 
   const updateAvatar = async (file: File) => {
     setIsLoading(true);
-    setError(null);
     try {
       const { avatar_url } = await profileService.updateAvatar(file);
       if (profile) {
@@ -85,33 +74,32 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
     }
   };
 
-  // Clean up debounced function on unmount
   useEffect(() => {
-    return () => {
-      debouncedFetchProfileImpl.cancel();
-    };
-  }, []);
+    if (isAuthenticated) {
+      fetchProfile();
+    }
+  }, [isAuthenticated]);
+
+  const value = {
+    profile,
+    isLoading,
+    error,
+    fetchProfile,
+    updateProfileData,
+    updateAvatar,
+  };
 
   return (
-    <ProfileContext.Provider
-      value={{
-        profile,
-        isLoading,
-        error,
-        fetchProfile,
-        updateProfileData,
-        updateAvatar,
-      }}
-    >
+    <ProfileContext.Provider value={value}>
       {children}
     </ProfileContext.Provider>
   );
-};
+}
 
-export const useProfile = (): ProfileContextType => {
+export function useProfile() {
   const context = useContext(ProfileContext);
   if (!context) {
     throw new Error('useProfile must be used within a ProfileProvider');
   }
   return context;
-};
+}

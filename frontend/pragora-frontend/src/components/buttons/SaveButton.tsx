@@ -1,34 +1,49 @@
-// src/components/buttons/SaveButton.tsx
-import React from 'react';
-import { Bookmark } from 'lucide-react';
-import EngagementButton from './EngagementButton';
+// components/buttons/SaveButton.tsx
+'use client'
 
-interface SaveButtonProps {
-  count: number;
-  onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
-  error?: boolean;
+import * as React from 'react'
+import { Bookmark } from 'lucide-react'
+import { EngagementButton, EngagementButtonProps } from './EngagementButton'
+import { cn } from '../../lib/utils/utils'
+
+type SaveButtonProps = Omit<EngagementButtonProps, 'icon'> & {
+  onClick: () => Promise<void>
 }
 
-const SaveButton: React.FC<SaveButtonProps> = ({
-  count,
+export const SaveButton = React.forwardRef<HTMLButtonElement, SaveButtonProps>(({
   onClick,
-  disabled,
   active,
-  error
-}) => {
+  disabled,
+  error,
+  className,
+  ...props
+}, ref) => {
+  const handleClick = async () => {
+    try {
+      await onClick()
+    } catch (err) {
+      console.error('Error handling save:', err)
+    }
+  }
+
   return (
     <EngagementButton
+      ref={ref}
       icon={Bookmark}
-      count={count}
-      onClick={onClick}
-      disabled={disabled}
+      onClick={handleClick}
       active={active}
+      disabled={disabled}
       error={error}
-      className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+      tooltip={active ? 'Unsave' : 'Save'}
+      className={cn(
+        'text-purple-600 hover:text-purple-700 hover:bg-purple-50',
+        className
+      )}
+      {...props}
     />
-  );
-};
+  )
+})
 
-export default SaveButton;
+SaveButton.displayName = 'SaveButton'
+
+export default SaveButton

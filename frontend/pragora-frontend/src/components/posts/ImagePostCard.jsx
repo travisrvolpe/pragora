@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import PostWrapper from '../PostWrapper';
+import PostWrapper from './wrapper/PostWrapper';
 
 const ImagePostCard = ({
   post,

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { InfiniteScroll } from "../InfiniteScroll";
-import PostCardFactory from "../factories/PostCardFactory";
+import PostCardFactory from "./PostCardFactory";
 
 const PostFeed = ({ selectedTab, selectedCategory }) => {
   const navigate = useNavigate();

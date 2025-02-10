@@ -1,4 +1,9 @@
 // src/types/post.ts
+// TODO EXTRACT ANY USEFUL TYPES/INTERFACTS NOT COVER IN POSTS
+// - Types that aren't in our new structure
+// - Types that might be used elsewhere in your application
+// - Types that might need to be migrated to different modules
+// NOTHING SHOULD BE REFERENCING THIS
 
 // User/Author related types
 export interface Author {
@@ -14,14 +19,14 @@ export interface Author {
 
 // Post metrics/interaction types
 export interface PostMetrics {
-  likes_count: number;
-  dislikes_count: number;
-  loves_count: number;
-  hates_count: number;
-  saves_count: number;
-  shares_count: number;
-  comments_count: number;
-  reports_count: number;
+  like_count: number;
+  dislike_count: number;
+  love_count: number;
+  hate_count: number;
+  save_count: number;
+  share_count: number;
+  comment_count: number;
+  report_count: number;
 }
 
 // Base post interface matching your PostBase schema

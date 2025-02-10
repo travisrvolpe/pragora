@@ -1,6 +1,6 @@
 // src/components/TopicSection.jsx
 import React from 'react';
-import PostCard from '../components/posts/PostCard';
+import PostCard from '../components/posts/BasePostCard';
 
 const TopicSection = ({ title, posts }) => (
   <div className="mb-8">

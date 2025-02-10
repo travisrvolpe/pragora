@@ -1,5 +1,5 @@
 import React from 'react';
-import PostWrapper from '../PostWrapper';
+import PostWrapper from './wrapper/PostWrapper';
 
 const ThoughtPostCard = ({
   post,

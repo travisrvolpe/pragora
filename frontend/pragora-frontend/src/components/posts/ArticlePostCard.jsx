@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock, BookOpen } from 'lucide-react';
-import PostWrapper from '../PostWrapper';
+import PostWrapper from './wrapper/PostWrapper';
 
 const ArticlePostCard = ({
   post,

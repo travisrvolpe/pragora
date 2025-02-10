@@ -1,4 +1,4 @@
-// types/layout/index.ts
+// types/navigation/index.ts
 import * as React from "react";
 
 export interface Category {

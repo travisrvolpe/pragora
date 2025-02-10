@@ -1,33 +1,48 @@
-// src/components/buttons/ShareButton.tsx
-import React from 'react';
-import { Share } from 'lucide-react';
-import EngagementButton from './EngagementButton';
+// components/buttons/ShareButton.tsx
+'use client'
 
-interface ShareButtonProps {
-  count: number;
-  onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
-  error?: boolean;
+import * as React from 'react'
+import { Share2 } from 'lucide-react'
+import { EngagementButton, EngagementButtonProps } from './EngagementButton'
+import { cn } from '../../lib/utils/utils'
+type ShareButtonProps = Omit<EngagementButtonProps, 'icon'> & {
+  onClick: () => Promise<void>
 }
-const ShareButton: React.FC<ShareButtonProps> = ({
-  count,
+
+export const ShareButton = React.forwardRef<HTMLButtonElement, ShareButtonProps>(({
   onClick,
-  disabled,
   active,
-  error
-}) => {
+  disabled,
+  error,
+  className,
+  ...props
+}, ref) => {
+  const handleClick = async () => {
+    try {
+      await onClick()
+    } catch (err) {
+      console.error('Error handling share:', err)
+    }
+  }
+
   return (
     <EngagementButton
-      icon={Share}
-      count={count}
-      onClick={onClick}
-      disabled={disabled}
+      ref={ref}
+      icon={Share2}
+      onClick={handleClick}
       active={active}
+      disabled={disabled}
       error={error}
-      className="text-green-600 hover:text-green-700 hover:bg-purple-50"
+      tooltip="Share"
+      className={cn(
+        'text-green-600 hover:text-green-700 hover:bg-green-50',
+        className
+      )}
+      {...props}
     />
-  );
-};
+  )
+})
 
-export default ShareButton;
+ShareButton.displayName = 'ShareButton'
+
+export default ShareButton

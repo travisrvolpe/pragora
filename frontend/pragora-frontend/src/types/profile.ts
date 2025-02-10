@@ -1,17 +1,23 @@
-// src/types/profile.ts
+import { 
+  BaseUser, 
+  UserMetrics, 
+  UserPreferences, 
+  UserRole, 
+  UserTimestamps,
+  UserEngagement,
+  UserPost,
+  UserComment,
+  UserDraft,
+  UserSavedPost
+} from './user';
 import { LucideIcon } from 'lucide-react';
 
-export interface Profile {
-  user_id: number;
+export interface Profile extends BaseUser, UserMetrics, UserPreferences, UserRole, UserTimestamps {
+  user_id: number;  // Explicit inclusion for clarity
   username: string;
-  email: string;
   avatar_img?: string;
   about?: string;
-  post_cnt: number;
-  comment_cnt: number;
-  upvote_cnt: number;
-  is_messaging: boolean;
-  is_networking: boolean;
+  goals?: string;
   reputation_score: number;
   reputation_cat: string;
   interests?: string;
@@ -19,22 +25,64 @@ export interface Profile {
   expertise_area?: string;
   location?: string;
   gender?: string;
-  date_joined: string;
-  role: string;
-  goals?: string;
-  plan_comp_cnt?: number;
+  sex?: string;
+}
+
+export interface ProfileWithContent extends Profile {
+  engagement: UserEngagement;
+}
+
+export interface ProfileResponse {
+  status: string;
+  message?: string;
+  data: {
+    profile: Profile;
+  };
+}
+
+export interface ProfileContentResponse {
+  posts: UserPost[];
+  comments: UserComment[];
+  drafts: UserDraft[];
+  saved_posts: UserSavedPost[];
 }
 
 export interface ProfileUpdateDto {
   username?: string;
   about?: string;
   location?: string;
-  gender?: string;
   interests?: string;
   credentials?: string;
   expertise_area?: string;
   is_networking?: boolean;
   goals?: string;
+  gender?: string;
+  sex?: string;
+  worldview_u?: string;
+}
+
+// UI Component Types
+export interface ProfileTabData {
+  posts: {
+    data: UserPost[];
+    isLoading: boolean;
+    error: string | null;
+  };
+  comments: {
+    data: UserComment[];
+    isLoading: boolean;
+    error: string | null;
+  };
+  drafts: {
+    data: UserDraft[];
+    isLoading: boolean;
+    error: string | null;
+  };
+  saved: {
+    data: UserSavedPost[];
+    isLoading: boolean;
+    error: string | null;
+  };
 }
 
 export interface StatCardProps {
@@ -44,7 +92,7 @@ export interface StatCardProps {
 }
 
 export interface TabButtonProps {
-  icon: LucideIcon;  // Using LucideIcon type
+  icon: LucideIcon;
   label: string;
   active: boolean;
   onClick: () => void;
@@ -69,3 +117,5 @@ export interface AlertProps {
 export interface AlertDescriptionProps {
   children?: React.ReactNode;
 }
+
+export type { UserPost, UserComment, UserDraft, UserSavedPost } from './user';

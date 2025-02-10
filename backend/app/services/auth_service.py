@@ -75,7 +75,7 @@ async def register_user(user: UserCreate) -> Dict[str, Any]:
         message="User registered successfully",
         data={
             "access_token": access_token,
-            "token_type": "bearer",
+            "token_type": "Bearer",
             "username": username,
             "user": {
                 "user_id": new_user["user_id"],
@@ -117,7 +117,7 @@ async def login_user(user: UserLogin) -> Dict[str, Any]:
         return {
             "success": True,
             "access_token": access_token,
-            "token_type": "bearer",
+            "token_type": "Bearer",
             "user": {
                 "user_id": db_user["user_id"],
                 "email": db_user["email"]
@@ -157,7 +157,7 @@ async def login_user(user: UserLogin) -> Dict[str, Any]:
     # Create the response using the Pydantic model
     response = TokenResponse(
         access_token=access_token,
-        token_type="bearer",
+        token_type="Bearer",
         user=UserResponse(
             user_id=int(db_user["user_id"]),
             email=str(db_user["email"])
@@ -167,7 +167,7 @@ async def login_user(user: UserLogin) -> Dict[str, Any]:
     return {
         "success": True,
         "access_token": access_token,
-        "token_type": "bearer",
+        "token_type": "Bearer",
         "user": {
             "user_id": db_user["user_id"],
             "email": db_user["email"]

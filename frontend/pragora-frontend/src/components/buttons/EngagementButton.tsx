@@ -1,34 +1,51 @@
-// src/components/buttons/EngagementButton.tsx
-import React from 'react';
-import Button from './button';
-import { cn } from '../../lib/utils';
-import { LucideIcon } from 'lucide-react';
+// components/buttons/EngagementButton.tsx
+'use client'
 
-interface EngagementButtonProps {
-  icon: LucideIcon;
-  count?: number;
-  onClick: () => void;
-  disabled?: boolean;
-  active?: boolean;
-  error?: boolean;
-  className?: string;
+import * as React from 'react'
+import { Button } from '@/components/ui/button'
+import { cn } from '../../lib/utils/utils'
+import { LucideIcon } from 'lucide-react'
+
+export interface EngagementButtonProps {
+  icon: LucideIcon
+  count?: number
+  onClick: () => void
+  disabled?: boolean
+  active?: boolean
+  error?: boolean
+  className?: string
+  tooltip?: string
+  variant?: 'default' | 'ghost' | 'outline' | 'primary'
+  size?: 'sm' | 'md' | 'lg'
 }
 
-const EngagementButton: React.FC<EngagementButtonProps> = ({
+export const EngagementButton = React.forwardRef<HTMLButtonElement, EngagementButtonProps>(({
   icon: Icon,
   count,
   onClick,
   disabled = false,
   active = false,
   error = false,
-  className
-}) => {
+  className,
+  tooltip,
+  variant = 'ghost',
+  size = 'sm'
+}, ref) => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation() // Prevent event bubbling
+    if (!disabled && onClick) {
+      onClick()
+    }
+  }
+
   return (
     <Button
-      variant="ghost"
-      size="sm"
-      onClick={onClick}
+      ref={ref}
+      variant={variant}
+      size={size}
+      onClick={handleClick}
       disabled={disabled}
+      title={tooltip}
       className={cn(
         'flex items-center gap-1 px-2 py-1 rounded-lg transition-all duration-200',
         'hover:bg-gray-100',
@@ -39,21 +56,27 @@ const EngagementButton: React.FC<EngagementButtonProps> = ({
         className
       )}
     >
-      <Icon className={cn(
-        'w-4 h-4 transition-transform duration-200',
-        active && 'scale-110',
-        disabled && 'opacity-50'
-      )} />
-      {typeof count === 'number' && (
-        <span className={cn(
-          'text-sm',
-          active && 'font-semibold',
-        )}>
-          {count.toLocaleString()}
-        </span>
-      )}
+      <div className="flex items-center space-x-1">
+        <Icon
+          className={cn(
+            'w-4 h-4 transition-transform duration-200',
+            active && 'scale-110',
+            disabled && 'opacity-50'
+          )}
+        />
+        {typeof count === 'number' && (
+          <span className={cn(
+            'text-sm',
+            active && 'font-semibold',
+          )}>
+            {count.toLocaleString()}
+          </span>
+        )}
+      </div>
     </Button>
-  );
-};
+  )
+})
 
-export default EngagementButton;
+EngagementButton.displayName = 'EngagementButton'
+
+export default EngagementButton
