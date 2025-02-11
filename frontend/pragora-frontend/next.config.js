@@ -5,6 +5,7 @@ const nextConfig = {
     },
     reactStrictMode: true,
     images: {
+        domains: ['localhost'],
         remotePatterns: [
             {
                 protocol: 'http',
@@ -27,6 +28,8 @@ const nextConfig = {
         NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
     },
 }
+
+module.exports = nextConfig
 
 //DOES THIS NEED TO BE INTRGATED?
   /*

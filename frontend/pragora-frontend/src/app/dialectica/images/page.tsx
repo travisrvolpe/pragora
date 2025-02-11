@@ -5,7 +5,7 @@
 import React from 'react';
 import { Image } from 'lucide-react';
 import { ImageForm } from '@/components/create/forms/ImageForm';
-import { postService } from '@/lib/services/post/postService';
+import postService from '@/lib/services/post/postService';
 
 export default function CreateImagePage() {
   return (

@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PostWrapper } from '@/components/posts/wrapper';
 import { PostCardFactory } from '@/components/posts/PostCardFactory';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { postService } from '@/lib/services/post/postService';
+import postService from '@/lib/services/post/postService';
 import type { PostWithEngagement } from '@/types/posts/engagement';
 
 interface PostViewPageProps {
@@ -19,12 +19,29 @@ export default function PostViewPage({ params }: PostViewPageProps) {
   const { postId } = params;
 
   const { data: post, isLoading, isError, error } = useQuery<PostWithEngagement>({
-    queryKey: ['post', postId],
-    queryFn: async () => {
-      const response = await postService.getPostById(Number(postId));
-      return response as PostWithEngagement;
-    }
-  });
+  queryKey: ['post', postId],
+  queryFn: async () => {
+    const response = await postService.getPostById(Number(postId));
+    // Safely convert to PostWithEngagement
+    return {
+      ...response,
+      metrics: {
+        like_count: response.metrics?.like_count ?? 0,
+        dislike_count: response.metrics?.dislike_count ?? 0,
+        save_count: response.metrics?.save_count ?? 0,
+        share_count: response.metrics?.share_count ?? 0,
+        report_count: response.metrics?.report_count ?? 0,
+      },
+      interaction_state: {
+        like: false,
+        dislike: false,
+        save: false,
+        report: false,
+      },
+      post_type_id: response.post_type_id
+    } as unknown as PostWithEngagement;
+  }
+});
 
   const handleComment = () => {
     // Implement comment functionality
@@ -145,7 +162,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PostWrapper } from '@/components/posts/wrapper';
 import { PostCardFactory } from '@/components/posts/PostCardFactory';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { postService } from '@/lib/services/post/postService';
+import postService from '@/lib/services/post/postService';
 import type { PostWithEngagement } from '@/types/posts/engagement';
 import type { Post } from '@/types/posts';
 

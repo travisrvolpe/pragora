@@ -1,8 +1,10 @@
 // components/user/UserAvatar.tsx
-'use client'
+'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { cn } from '../../lib/utils/utils';
+import { DEFAULT_AVATAR_URL } from '@/lib/constants';
 
 interface UserAvatarProps {
   username: string;
@@ -11,48 +13,60 @@ interface UserAvatarProps {
   className?: string;
 }
 
-const sizeClasses = {
-  sm: 'w-8 h-8',
-  md: 'w-10 h-10',
-  lg: 'w-12 h-12'
-};
+const sizeMap = {
+  sm: 'h-8 w-8',
+  md: 'h-12 w-12',
+  lg: 'h-16 w-16',
+} as const;
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({
   username,
   avatarUrl,
   size = 'md',
-  className
+  className,
 }) => {
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const imageSizes = {
+    sm: 32,
+    md: 48,
+    lg: 64,
   };
 
-  const baseClasses = 'relative rounded-full overflow-hidden flex items-center justify-center';
-  const sizeClass = sizeClasses[size];
+  const imageSize = imageSizes[size];
+
+  // Function to get the proper image source
+  const getImageSource = (url: string | null | undefined): string => {
+    if (!url || url === 'default_url') {
+      return DEFAULT_AVATAR_URL;
+    }
+
+    // If the URL is already absolute, use it
+    if (url.startsWith('http') || url.startsWith('/')) {
+      return url;
+    }
+
+    // Otherwise, prepend the default path
+    return `/images/avatars/${url}`;
+  };
 
   return (
-    <div className={cn(baseClasses, sizeClass, className)}>
-      {avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt={`${username}'s avatar`}
-          className="w-full h-full object-cover"
-          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-            e.currentTarget.src = '/api/placeholder/120/120';
-          }}
-        />
-      ) : (
-        <div className="w-full h-full bg-primary/10 text-primary font-medium flex items-center justify-center">
-          {getInitials(username)}
-        </div>
+    <div
+      className={cn(
+        'relative rounded-full overflow-hidden bg-gray-200',
+        sizeMap[size],
+        className
       )}
+    >
+      <Image
+        src={getImageSource(avatarUrl)}
+        alt={`${username}'s avatar`}
+        width={imageSize}
+        height={imageSize}
+        className="object-cover w-full h-full"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.src = DEFAULT_AVATAR_URL;
+        }}
+      />
     </div>
   );
 };
-
-export default UserAvatar;

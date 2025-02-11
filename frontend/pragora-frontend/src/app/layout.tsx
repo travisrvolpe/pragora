@@ -1,10 +1,9 @@
+// app/layout.tsx
 import * as React from 'react'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import "@/styles/globals.css"
-import { LayoutProvider } from '@/components/layout/LayoutProvider'
-import { AuthProvider } from '@/contexts/auth/AuthContext'
-import { ProfileProvider } from '@/contexts/profile/ProfileContext'
+import { Providers } from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,13 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <ProfileProvider>
-            <LayoutProvider>
-              {children}
-            </LayoutProvider>
-          </ProfileProvider>
-        </AuthProvider>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )

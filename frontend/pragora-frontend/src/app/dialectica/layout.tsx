@@ -10,22 +10,17 @@ interface DialecticaLayoutProps {
 export default function DialecticaLayout({ children }: DialecticaLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="h-16 flex items-center justify-between">
-            {/* Left side - Branding */}
             <div className="flex items-center">
               <Link href="/dialectica" className="text-xl font-bold">
                 Dialectica
               </Link>
             </div>
 
-            {/* Right side - Actions */}
             <div className="flex items-center space-x-4">
-              <StartPostButton
-                onClick={() => window.location.href = '/dialectica/create'}
-              />
+              <StartPostButton />
             </div>
           </div>
         </div>

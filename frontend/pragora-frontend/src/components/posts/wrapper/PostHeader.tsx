@@ -7,13 +7,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { UserAvatar } from '@/components/user/UserAvatar';
 import { PostComponentProps } from './types';
 import { formatDate } from '@/lib/utils/utils';
+import { PostTypeId } from '@/types/posts/post-types';
 
-const POST_TYPE_GRADIENTS = {
+const POST_TYPE_GRADIENTS: Record<PostTypeId, string> = {
   1: 'from-purple-300 to-purple-800',
   2: 'from-red-300 to-red-800',
-  3: 'from-emerald-300 to-emerald-800'
+  3: 'from-emerald-300 to-emerald-800',
+  4: 'from-blue-300 to-blue-800'
 } as const;
 
 export const PostHeader: FC<PostComponentProps & {
@@ -21,29 +24,22 @@ export const PostHeader: FC<PostComponentProps & {
   isReportLoading?: boolean;
 }> = ({ post, onReport, isReportLoading }) => {
   const displayUsername = post.username || post.user?.username || 'Anonymous';
+  const gradientClass = POST_TYPE_GRADIENTS[post.post_type_id] || POST_TYPE_GRADIENTS[1];
+  const avatarUrl = post.user?.avatar_url;
 
   return (
     <div className="flex items-center justify-between p-4">
       <div className="flex items-center space-x-3">
-        {/* Avatar */}
-        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${POST_TYPE_GRADIENTS[post.post_type_id]} p-0.5`}>
-          <div className="w-full h-full rounded-full bg-white p-0.5">
-            {post.user?.avatar_url ? (
-              <img
-                src={post.user.avatar_url}
-                alt={displayUsername}
-                className="w-full h-full rounded-full object-cover"
-                onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                  e.currentTarget.src = '/images/default-avatar.png';
-                }}
-              />
-            ) : (
-              <div className="w-full h-full rounded-full bg-gray-200" />
-            )}
+        <div className={`rounded-full bg-gradient-to-br ${gradientClass} p-0.5`}>
+          <div className="bg-white p-0.5 rounded-full">
+            <UserAvatar
+              username={displayUsername}
+              avatarUrl={avatarUrl}
+              size="md"
+            />
           </div>
         </div>
 
-        {/* User Info */}
         <div>
           <div className="flex items-center space-x-2">
             <span className="font-semibold">{displayUsername}</span>

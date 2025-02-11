@@ -6,7 +6,7 @@ import { ViewPostButton } from '@/components/buttons/ViewPostButton'
 import { BackButton } from '@/components/buttons/BackButton'
 import { EngagementMetricsHandler } from '@/components/engagement/EngagementMetricsHandler'
 import { PostComponentProps } from './types'
-import { PostVariant } from '@/types/posts/component-types'
+import { PostVariant } from '@/types/posts/post-types';
 import { MetricsData, MetricStates, LoadingStates, ErrorStates } from '@/types/posts/engagement'
 
 interface PostFooterProps extends PostComponentProps {

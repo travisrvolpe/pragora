@@ -67,14 +67,15 @@ export const EngagementMetricsHandler = ({
       />
 
       {type === 'post' && onComment && (
-        <EngagementButton
-          icon={MessageCircle}
-          count={metrics.comment_count}
-          onClick={typeof onComment === 'function' ? onComment : () => {}}
-          disabled={false}
-          tooltip="Comment"
-          className="text-gray-600"
-        />
+
+          <EngagementButton
+              icon={MessageCircle}
+              count={0}
+              onClick={typeof onComment === 'function' ? onComment : () => {}}
+              disabled={false}
+              tooltip="Comment"
+              className="text-gray-600"
+          />
       )}
 
       <ShareButton

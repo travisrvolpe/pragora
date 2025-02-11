@@ -1,15 +1,15 @@
 // components/posts/PostFeed.tsx
-'use client'
+'use client';
 
-import React from 'react'
-import { useRouter } from 'next/navigation'
-import { useInfiniteQuery } from '@tanstack/react-query'
-import { PostCardFactory } from './PostCardFactory'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { InfiniteScroll } from '@/components/InfiniteScroll'
-import { postService } from '../../lib/services/post/postService'
-import type { PostWithEngagement } from '@/types/posts/engagement'
-import type { PostFeedProps, PostsResponse } from '@/types/posts/page-types'
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { PostCardFactory } from './PostCardFactory';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { InfiniteScroll } from '@/components/InfiniteScroll';
+import postService from '@/lib/services/post/postService';
+import type { PostWithEngagement } from '@/types/posts/engagement';
+import type { PostFeedProps, PostsResponse } from '@/types/posts/page-types';
 
 export const PostFeed = ({
   selectedTab = 'recent',
@@ -18,7 +18,7 @@ export const PostFeed = ({
   searchQuery,
   limit = 20
 }: PostFeedProps) => {
-  const router = useRouter()
+  const router = useRouter();
 
   const {
     data,
@@ -30,21 +30,27 @@ export const PostFeed = ({
   } = useInfiniteQuery<PostsResponse>({
     queryKey: ['posts', selectedTab, selectedCategory, selectedSubcategory, searchQuery],
     queryFn: async ({ pageParam = 0 }) => {
-      const response = await postService.fetchPosts({
-        skip: Number(pageParam) * limit,
-        limit,
-        tab: selectedTab,
-        category: selectedCategory,
-        subcategory: selectedSubcategory,
-        search: searchQuery
-      })
-      return response
+      try {
+        const response = await postService.fetchPosts({
+          skip: Number(pageParam) * limit,
+          limit,
+          tab: selectedTab,
+          category: selectedCategory,
+          subcategory: selectedSubcategory,
+          search: searchQuery
+        });
+        console.log('Posts fetched:', response); // Add logging
+        return response;
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        throw error;
+      }
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
-      return lastPage.data.hasMore ? allPages.length : undefined
+      return lastPage.data.hasMore ? allPages.length : undefined;
     }
-  })
+  });
 
   if (isError) {
     return (
@@ -53,7 +59,7 @@ export const PostFeed = ({
           Error loading posts. Please try again later.
         </div>
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -67,7 +73,7 @@ export const PostFeed = ({
           ))}
         </div>
       </div>
-    )
+    );
   }
 
   if (!data?.pages?.[0]?.data.posts.length) {
@@ -77,14 +83,14 @@ export const PostFeed = ({
           <p className="text-gray-600">No posts found.</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <InfiniteScroll
       loadMore={async () => {
         if (hasNextPage) {
-          await fetchNextPage()
+          await fetchNextPage();
         }
       }}
       hasMore={!!hasNextPage}
@@ -111,7 +117,7 @@ export const PostFeed = ({
                     save: rawPost.interaction_state?.save ?? false,
                     report: rawPost.interaction_state?.report ?? false
                   }
-                }
+                };
 
                 return (
                   <div key={post.post_id} className="flex justify-center">
@@ -121,14 +127,12 @@ export const PostFeed = ({
                       onViewPost={() => router.push(`/post/${post.post_id}`)}
                     />
                   </div>
-                )
+                );
               })}
             </React.Fragment>
           ))}
         </div>
       </div>
     </InfiniteScroll>
-  )
-}
-
-export default PostFeed
+  );
+};

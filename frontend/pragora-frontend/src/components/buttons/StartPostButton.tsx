@@ -13,37 +13,26 @@ interface StartPostButtonProps {
   variant?: 'default' | 'ghost' | 'outline' | 'primary';
   size?: 'sm' | 'md' | 'lg';
 }
-
-export const StartPostButton = React.forwardRef<HTMLButtonElement, StartPostButtonProps>(({
-  className,
-  disabled = false,
-  variant = 'primary',
-  size = 'md'
-}, ref) => {
+export const StartPostButton = ({
+  className, disabled, variant = 'primary', size = 'md'
+}: StartPostButtonProps) => {
   const router = useRouter();
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleClick = () => {
     router.push('/dialectica/create');
   };
 
   return (
     <Button
-      ref={ref}
-      variant={variant}
-      size={size}
-      onClick={handleClick}
-      disabled={disabled}
       icon={MessageSquare}
       label="Start Post"
-      tooltip="Create a new post"
-      className={cn(
-        'font-semibold',
-        className
-      )}
+      onClick={handleClick}
+      disabled={disabled}
+      className={className}
+      tooltip="Start a new post"
     />
   );
-});
+};
 
 StartPostButton.displayName = 'StartPostButton';
 

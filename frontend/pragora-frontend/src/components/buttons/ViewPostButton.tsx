@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BaseButtonProps } from '@/types/buttons'
-import { PostVariant } from '@/types/posts/component-types'
+import { PostVariant } from '@/types/posts/post-types'
 
 interface ViewPostButtonProps extends Omit<BaseButtonProps, 'onClick' | 'variant'> {
   postId: number
