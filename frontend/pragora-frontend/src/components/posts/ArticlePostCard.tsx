@@ -11,6 +11,7 @@ const isArticlePost = (post: Post): post is ArticlePost => {
   return post.post_type_id === 3;
 };
 
+// components/posts/ArticlePostCard.tsx
 export const ArticlePostCard: React.FC<PostCardProps> = ({
   post,
   variant = 'feed',
@@ -18,14 +19,14 @@ export const ArticlePostCard: React.FC<PostCardProps> = ({
   ...props
 }) => {
   if (!isArticlePost(post)) {
-    return null; // Or some fallback UI
+    return null;
   }
 
   return (
     <BasePostCard
       post={post}
       variant={variant}
-      className={cn('article-post', className)}
+      className={cn('article-post p-4', className)}
       {...props}
     >
       <div className="space-y-6">
@@ -39,7 +40,6 @@ export const ArticlePostCard: React.FC<PostCardProps> = ({
             />
           </div>
         )}
-
 
         <div className="space-y-4">
           {/* Subtitle */}
@@ -66,23 +66,20 @@ export const ArticlePostCard: React.FC<PostCardProps> = ({
           </div>
 
           {/* Preview Content */}
-          {variant === 'feed' ? (
-            <div
-              className="prose prose-gray max-w-none text-gray-600 line-clamp-3"
-              dangerouslySetInnerHTML={{
+          <div className={cn(
+            "prose max-w-none",
+            variant === 'feed' ? 'text-gray-600 line-clamp-3' : 'text-gray-900'
+          )}>
+            {variant === 'feed' ? (
+              <div dangerouslySetInnerHTML={{
                 __html: post.content.substring(0, 300) + (post.content.length > 300 ? '...' : '')
-              }}
-            />
-          ) : (
-            <div
-              className="prose prose-gray max-w-none text-gray-900"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-            />
-          )}
+              }} />
+            ) : (
+              <div dangerouslySetInnerHTML={{ __html: post.content }} />
+            )}
+          </div>
         </div>
       </div>
     </BasePostCard>
   );
 };
-
-export default ArticlePostCard;

@@ -1,138 +1,118 @@
-// components/posts/PostFeed.tsx
 'use client';
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { PostCardFactory } from './PostCardFactory';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { InfiniteScroll } from '@/components/InfiniteScroll';
 import postService from '@/lib/services/post/postService';
-import type { PostWithEngagement } from '@/types/posts/engagement';
+import { PostWrapper } from './wrapper';
+import type { Post } from '@/types/posts/post-types';
+import type { PostMetrics, PostInteractionState, PostWithEngagement } from '@/types/posts/engagement';
 import type { PostFeedProps, PostsResponse } from '@/types/posts/page-types';
+type PostQueryKey = ['posts', string, number | undefined, number | undefined, string | undefined];
 
-export const PostFeed = ({
+export const PostFeed: React.FC<PostFeedProps> = ({
   selectedTab = 'recent',
   selectedCategory,
   selectedSubcategory,
   searchQuery,
   limit = 20
-}: PostFeedProps) => {
+}) => {
   const router = useRouter();
 
   const {
     data,
     isLoading,
-    isError,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage
-  } = useInfiniteQuery<PostsResponse>({
-    queryKey: ['posts', selectedTab, selectedCategory, selectedSubcategory, searchQuery],
-    queryFn: async ({ pageParam = 0 }) => {
-      try {
-        const response = await postService.fetchPosts({
-          skip: Number(pageParam) * limit,
-          limit,
-          tab: selectedTab,
-          category: selectedCategory,
-          subcategory: selectedSubcategory,
-          search: searchQuery
-        });
-        console.log('Posts fetched:', response); // Add logging
-        return response;
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-        throw error;
-      }
-    },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.data.hasMore ? allPages.length : undefined;
+    isError
+  } = useQuery({
+    queryKey: ['posts', selectedTab, selectedCategory, selectedSubcategory, searchQuery] as const,
+    queryFn: async () => {
+      const response = await postService.fetchPosts({
+        skip: 0,
+        limit,
+        tab: selectedTab,
+        category: selectedCategory,
+        subcategory: selectedSubcategory,
+        search: searchQuery
+      });
+      return response as PostsResponse;
     }
   });
 
   if (isError) {
     return (
-      <div className="w-full max-w-2xl mx-auto px-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center text-red-700">
-          Error loading posts. Please try again later.
+        <div className="w-full max-w-2xl mx-auto px-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center text-red-700">
+            Error loading posts. Please try again later.
+          </div>
         </div>
-      </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-2xl mx-auto px-4">
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="bg-gray-100 rounded-lg h-48 w-full">
-              <LoadingSpinner />
-            </div>
-          ))}
+        <div className="w-full max-w-2xl mx-auto px-4">
+          <div className="animate-pulse space-y-4">
+            {Array.from({length: 3}).map((_, i) => (
+                <div key={i} className="bg-gray-100 rounded-lg h-48 w-full flex items-center justify-center">
+                  <LoadingSpinner/>
+                </div>
+            ))}
+          </div>
         </div>
-      </div>
     );
   }
 
-  if (!data?.pages?.[0]?.data.posts.length) {
+  const posts = data?.data?.posts ?? [];
+
+  if (posts.length === 0) {
     return (
-      <div className="w-full max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg p-8 text-center">
-          <p className="text-gray-600">No posts found.</p>
+        <div className="w-full max-w-2xl mx-auto px-4">
+          <div className="bg-white rounded-lg p-8 text-center">
+            <p className="text-gray-600">No posts found.</p>
+          </div>
         </div>
-      </div>
     );
   }
+
+  const transformToEngagementPost = (post: Post): PostWithEngagement => {
+    const metrics: PostMetrics = {
+      like_count: post.metrics?.like_count ?? 0,
+      dislike_count: post.metrics?.dislike_count ?? 0,
+      save_count: post.metrics?.save_count ?? 0,
+      share_count: post.metrics?.share_count ?? 0,
+      report_count: post.metrics?.report_count ?? 0
+    };
+
+    const interaction_state: PostInteractionState = {
+      like: post.interaction_state?.like ?? false,
+      dislike: post.interaction_state?.dislike ?? false,
+      save: post.interaction_state?.save ?? false,
+      report: post.interaction_state?.report ?? false
+    };
+
+    return {
+      ...post,
+      metrics,
+      interaction_state
+    };
+  };
 
   return (
-    <InfiniteScroll
-      loadMore={async () => {
-        if (hasNextPage) {
-          await fetchNextPage();
-        }
-      }}
-      hasMore={!!hasNextPage}
-      isLoading={isFetchingNextPage}
-    >
-      <div className="w-full max-w-2xl mx-auto px-4">
-        <div className="space-y-6">
-          {data.pages.map((page, pageIndex) => (
-            <React.Fragment key={pageIndex}>
-              {page.data.posts.map((rawPost) => {
-                // Convert raw post to PostWithEngagement type
-                const post: PostWithEngagement = {
-                  ...rawPost,
-                  metrics: {
-                    like_count: rawPost.metrics?.like_count ?? 0,
-                    dislike_count: rawPost.metrics?.dislike_count ?? 0,
-                    save_count: rawPost.metrics?.save_count ?? 0,
-                    share_count: rawPost.metrics?.share_count ?? 0,
-                    report_count: rawPost.metrics?.report_count ?? 0
-                  },
-                  interaction_state: {
-                    like: rawPost.interaction_state?.like ?? false,
-                    dislike: rawPost.interaction_state?.dislike ?? false,
-                    save: rawPost.interaction_state?.save ?? false,
-                    report: rawPost.interaction_state?.report ?? false
-                  }
-                };
-
-                return (
-                  <div key={post.post_id} className="flex justify-center">
-                    <PostCardFactory
-                      post={post}
-                      variant="feed"
-                      onViewPost={() => router.push(`/post/${post.post_id}`)}
-                    />
-                  </div>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </div>
+      <div className="w-full max-w-4xl mx-auto space-y-6">
+        {posts.map((rawPost) => {
+          const post = transformToEngagementPost(rawPost);
+          return (
+              <PostWrapper
+                  key={post.post_id}
+                  post={post}
+                  variant="feed"
+              >
+                <PostCardFactory post={post} variant="feed"/>
+              </PostWrapper>
+          );
+        })}
       </div>
-    </InfiniteScroll>
   );
 };

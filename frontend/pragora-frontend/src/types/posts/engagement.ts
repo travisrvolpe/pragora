@@ -1,6 +1,6 @@
 // types/posts/engagement.ts
 // TODO CREATE A UNIQFIED TYPE CONVENTION ACROSS ENGAGEMENTS FOR POST AND COMMENTS
-import {BasePost, PostAnalytics, PostTypeId, PostUser} from './post-types'
+import type {Post, BasePost, PostAnalytics, PostUser, ThoughtPost, ImagePost, ArticlePost, PostTypeId } from './post-types';
 
 export interface PostMetrics {
   like_count: number;
@@ -46,6 +46,7 @@ export interface BasePostWithEngagement extends BasePost {
 
 
 // Create specific post types with engagement
+/*
 export interface ThoughtPostWithEngagement extends BasePostWithEngagement {
   post_type_id: 1;
 }
@@ -59,13 +60,12 @@ export interface ImagePostWithEngagement extends BasePostWithEngagement {
 export interface ArticlePostWithEngagement extends BasePostWithEngagement {
   post_type_id: 3;
   title: string;
-}
+} */
 
-export interface VideoPostWithEngagement extends BasePostWithEngagement {
-  post_type_id: 4
-  video_url: string
-}
-
+//export interface VideoPostWithEngagement extends BasePostWithEngagement {
+//  post_type_id: 4
+//  video_url: string
+//}
 export interface EngagementHandlers {
   onLike: () => Promise<void>
   onDislike: () => Promise<void>
@@ -75,11 +75,20 @@ export interface EngagementHandlers {
   onComment?: () => void
 }
 
-export type PostWithEngagement =
-  | ThoughtPostWithEngagement
-  | ImagePostWithEngagement
-  | ArticlePostWithEngagement
-  | VideoPostWithEngagement
+
+//export interface ThoughtPostWithEngagement extends ThoughtPost, BasePostWithEngagement {}
+//export interface ImagePostWithEngagement extends ImagePost, BasePostWithEngagement {}
+//export interface ArticlePostWithEngagement extends ArticlePost, BasePostWithEngagement {}
+
+export type PostWithEngagement = Post & {
+  metrics: PostMetrics;
+  interaction_state: PostInteractionState;
+};
+//export type PostWithEngagement =
+//  | ThoughtPostWithEngagement
+//  | ImagePostWithEngagement
+//  | ArticlePostWithEngagement;
+  //| VideoPostWithEngagement
 //export type PostWithEngagement = BasePostWithEngagement;
 
 export interface EngagementState {

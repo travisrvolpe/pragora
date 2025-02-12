@@ -11,7 +11,7 @@ export interface Category {
 }
 
 export interface SubCategory {
-  id: number;
+  subcategory_id: number;
   name: string;
   category_id: number;
 }
@@ -31,12 +31,11 @@ export interface PostFeedProps {
 
 export interface TopicCardProps {
   category: Category;
-  isSelected: boolean;
-  selectedSubcategory?: number;
+  currentCategory?: number;  // Changed from selectedCategory for clarity
+  currentSubcategory?: number;  // Changed from selectedSubcategory
+  onSelect?: (categoryId: number) => void;
+  onSubcategoryChange?: (subcategoryId: number) => void;
 }
-
-  //onSelect: (id: number) => void;
-  //onSubcategoryChange: (id: number) => void;
 
 export interface CreateContentProps {
   initialType?: PostTypeId;

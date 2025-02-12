@@ -1,15 +1,13 @@
-// components/buttons/ViewPostButton.tsx
-'use client'
-
-import { useRouter } from 'next/navigation'
-import { Eye } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { BaseButtonProps } from '@/types/buttons'
-import { PostVariant } from '@/types/posts/post-types'
+import { useRouter } from 'next/navigation';
+import { ArrowUpRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils/utils';
+import { BaseButtonProps } from '@/types/buttons';
+import { PostVariant } from '@/types/posts/post-types';
 
 interface ViewPostButtonProps extends Omit<BaseButtonProps, 'onClick' | 'variant'> {
-  postId: number
-  variant?: PostVariant
+  postId: number;
+  variant?: PostVariant;
 }
 
 export const ViewPostButton = ({
@@ -17,21 +15,26 @@ export const ViewPostButton = ({
   className,
   ...props
 }: ViewPostButtonProps) => {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation()
-    router.push(`/post/${postId}`)
-  }
+    e.stopPropagation();
+    router.push(`/dialectica/${postId}`);
+  };
 
   return (
     <Button
       {...props}
-      icon={Eye}
-      label="View"
       onClick={handleClick}
-      variant="ghost"
-      className={className}
-    />
-  )
-}
+      variant="outline"
+      className={cn(
+        "flex items-center gap-2 hover:bg-gray-100 transition-colors",
+        "text-gray-700 hover:text-gray-900",
+        className
+      )}
+    >
+      <span>View Post</span>
+      <ArrowUpRight className="w-4 h-4" />
+    </Button>
+  );
+};

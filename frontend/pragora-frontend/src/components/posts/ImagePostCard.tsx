@@ -117,39 +117,39 @@ export const ImagePostCard: React.FC<PostCardProps> = ({
     <BasePostCard
       post={post}
       variant={variant}
-      className={cn('image-post', className)}
+      className={cn('image-post p-4', className)}
       {...props}
     >
-      <div className="cursor-zoom-in" onClick={() => setIsZoomed(true)}>
-        <ImageContainer />
-      </div>
-
-      {/* Caption */}
-      {post.content && (
-        <div className="mt-4">
-          <p className="text-gray-900">{post.content}</p>
+      <div className="space-y-4">
+        <div className="cursor-zoom-in" onClick={() => setIsZoomed(true)}>
+          <ImageContainer />
         </div>
-      )}
 
-      {/* Zoomed image overlay */}
-      {isZoomed && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center cursor-zoom-out"
-          onClick={() => setIsZoomed(false)}
-        >
-          <button
-            className="absolute top-4 right-4 text-white hover:text-gray-300 z-50"
+        {/* Caption */}
+        {post.content && (
+          <div className="mt-4">
+            <p className="text-gray-900">{post.content}</p>
+          </div>
+        )}
+
+        {/* Zoomed image overlay */}
+        {isZoomed && (
+          <div
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center cursor-zoom-out"
             onClick={() => setIsZoomed(false)}
           >
-            <X className="w-6 h-6" />
-          </button>
-          <div className="max-w-7xl w-full mx-auto px-4">
-            <ImageContainer zoomedView />
+            <button
+              className="absolute top-4 right-4 text-white hover:text-gray-300 z-50"
+              onClick={() => setIsZoomed(false)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="max-w-7xl w-full mx-auto px-4">
+              <ImageContainer zoomedView />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </BasePostCard>
   );
 };
-
-export default ImagePostCard;

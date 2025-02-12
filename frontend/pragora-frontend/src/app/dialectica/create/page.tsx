@@ -1,3 +1,4 @@
+// app/dialectica/create/page.tsx
 'use client'
 
 import React from 'react';
@@ -18,7 +19,7 @@ import {
   Target,
   GitBranch,
 } from 'lucide-react';
-import type { ContentOption, ContentSection } from '../../../types/posts/create-content-types';
+import type { ContentOption, ContentSection } from '@/types/posts/create-content-types';
 
 const CreateContent = () => {
   const basicOptions: ContentOption[] = [
@@ -28,7 +29,7 @@ const CreateContent = () => {
       description: "Quick insights and updates",
       limit: "280 characters",
       color: "bg-blue-500",
-      link: "/share-thoughts"
+      link: "/dialectica/create/thoughts"
     },
     {
       icon: Image,
@@ -36,7 +37,7 @@ const CreateContent = () => {
       description: "Visual content with captions",
       limit: "Up to 4 images",
       color: "bg-green-500",
-      link: "/share-image"
+      link: "/test"
     },
     {
       icon: Video,
@@ -44,7 +45,7 @@ const CreateContent = () => {
       description: "Share video content",
       limit: "Up to 10 minutes",
       color: "bg-red-500",
-      link: "/record-video"
+      link: "/dialectica/create/videos"
     },
     {
       icon: BookOpen,
@@ -52,7 +53,7 @@ const CreateContent = () => {
       description: "In-depth analysis and post",
       limit: "No length limit",
       color: "bg-purple-500",
-      link: "/write-article"
+      link: "/dialectica/create/articles"
     }
   ];
 
@@ -62,28 +63,28 @@ const CreateContent = () => {
       title: "Oxford-style Debate",
       description: "Traditional formal debate format",
       color: "bg-orange-500",
-      link: "/debate/oxford"
+      link: "/dialectica/create/debates/oxford"
     },
     {
       icon: Users2,
       title: "Modified Lincoln-Douglas",
       description: "One-on-one focused debate",
       color: "bg-yellow-600",
-      link: "/debate/lincoln-douglas"
+      link: "/dialectica/create/debates/lincoln-douglas"
     },
     {
       icon: Target,
       title: "Pragma-dialectical",
       description: "Resolution-focused discussion",
       color: "bg-emerald-600",
-      link: "/debate/pragma-dialectical"
+      link: "/dialectica/create/debates/pragma"
     },
     {
       icon: GitBranch,
       title: "Dialectical Inquiry",
       description: "Thesis-antithesis-synthesis approach",
       color: "bg-cyan-600",
-      link: "/debate/dialectical"
+      link: "/dialectica/create/debates/inquiry"
     }
   ];
 
@@ -93,28 +94,28 @@ const CreateContent = () => {
       title: "Group Project",
       description: "Collaborative initiatives",
       color: "bg-red-500",
-      link: "/group-project"
+      link: "/dialectica/create/collaborative/project"
     },
     {
       icon: ChartBar,
       title: "Share Research",
       description: "Data-driven insights",
       color: "bg-indigo-500",
-      link: "/share-research"
+      link: "/dialectica/create/collaborative/research"
     },
     {
       icon: GraduationCap,
       title: "Peer Review",
       description: "Academic discussion format",
       color: "bg-violet-500",
-      link: "/peer-review"
+      link: "/dialectica/create/collaborative/review"
     },
     {
       icon: Calendar,
       title: "Schedule Event",
       description: "Create and share events",
       color: "bg-rose-500",
-      link: "/schedule-event"
+      link: "/dialectica/create/collaborative/event"
     }
   ];
 

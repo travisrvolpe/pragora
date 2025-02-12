@@ -1,29 +1,37 @@
 // components/posts/TopicCard.tsx
-'use client'
+'use client';
 
-import React from 'react'
-import { Card } from '@/components/ui/card'
-import { cn } from '../../lib/utils/utils'
-import type { TopicCardProps } from '@/types/posts/page-types'
+import React from 'react';
+import { Card } from '@/components/ui/card';
+import { cn } from '../../lib/utils/utils';
+import type { TopicCardProps } from '@/types/posts/page-types';
+
 
 export const TopicCard = ({
   category,
-  isSelected,
-  selectedSubcategory
+  currentCategory,
+  currentSubcategory,
+  onSelect,
+  onSubcategoryChange
 }: TopicCardProps) => {
-  const [localSelectedSubcategory, setLocalSelectedSubcategory] = React.useState<number | undefined>(
-    selectedSubcategory
-  )
+  const isSelected = currentCategory === category.category_id;
 
-  const handleSubcategoryChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    e.stopPropagation()
-    const value = Number(e.target.value)
-    setLocalSelectedSubcategory(value)
-    // You can use router.push() here to change the URL with the new filter
-  }
+  const handleCardClick = () => {
+    if (onSelect) {
+      onSelect(category.category_id);
+    }
+  };
+
+  const handleSubcategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.stopPropagation();
+    if (onSubcategoryChange) {
+      onSubcategoryChange(Number(e.target.value));
+    }
+  };
 
   return (
     <Card
+      onClick={handleCardClick}
       className={cn(
         'p-4 cursor-pointer transition-all duration-200',
         isSelected
@@ -38,13 +46,13 @@ export const TopicCard = ({
           {isSelected && category.subcategories && category.subcategories.length > 0 && (
             <select
               className="text-sm border rounded-md px-2 py-1 bg-white"
-              value={localSelectedSubcategory || ''}
+              value={currentSubcategory || ''}
               onChange={handleSubcategoryChange}
               onClick={(e) => e.stopPropagation()}
             >
               <option value="">All Subcategories</option>
               {category.subcategories.map((sub) => (
-                <option key={sub.id} value={sub.id}>
+                <option key={sub.subcategory_id} value={sub.subcategory_id}>
                   {sub.name}
                 </option>
               ))}
@@ -52,15 +60,11 @@ export const TopicCard = ({
           )}
         </div>
 
-        {category.description && (
-          <p className="text-sm text-gray-600">{category.description}</p>
-        )}
-
         {!isSelected && category.subcategories && category.subcategories.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {category.subcategories.slice(0, 3).map((sub) => (
               <span
-                key={sub.id}
+                key={sub.subcategory_id}
                 className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full"
               >
                 {sub.name}

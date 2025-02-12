@@ -85,20 +85,20 @@ export default function PostViewPage({ params }: PostViewPageProps) {
     );
   }
 
-  return (
-    <div className="space-y-8">
-      {/* Main Post */}
-      <PostWrapper
+
+return (
+  <div className="space-y-8">
+    <PostWrapper
+      post={post}
+      variant="detail"
+      onComment={handleComment}
+      onThreadedReply={handleThreadedReply}
+    >
+      <PostCardFactory
         post={post}
         variant="detail"
-        onComment={handleComment}
-        onThreadedReply={handleThreadedReply}
-      >
-        <PostCardFactory
-          post={post}
-          variant="detail"
-        />
-      </PostWrapper>
+      />
+    </PostWrapper>
 
       {/* Comments Section - To be implemented */}
       <div className="bg-white rounded-lg shadow">

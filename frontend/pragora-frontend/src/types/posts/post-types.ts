@@ -1,6 +1,7 @@
 // types/posts/post-types.ts
 import type { PostMetrics, PostInteractionState } from './engagement';
 
+
 export interface PostAuthor {
   user_id: number;
   username: string;
@@ -29,7 +30,7 @@ export interface PostAnalytics {
 
 export type PostStatus = 'draft' | 'published' | 'archived' | 'deleted';
 export type PostVisibility = 'public' | 'private' | 'followers';
-export type PostTypeId = 1 | 2 | 3 | 4; // 1: Thought, 2: Image, 3: Article, 4: Video
+export type PostTypeId = 1 | 2 | 3; // | 4; // 1: Thought, 2: Image, 3: Article, 4: Video
 export type PostVariant = 'feed' | 'detail';
 
 // Base post interface
@@ -47,6 +48,7 @@ export interface BasePost {
   created_at: string;
   updated_at?: string;
   tags?: string[];
+
   metrics?: PostMetrics;
   interaction_state?: PostInteractionState;
   analysis?: PostAnalytics;
@@ -77,11 +79,23 @@ export interface ArticlePost extends BasePost {
   image_url?: string;
 }
 
-export interface VideoPost extends BasePost {
-  post_type_id: 4;
-  video_url: string;
-  video_metadata?: any;
-}
+//export interface VideoPost extends BasePost {
+//  post_type_id: 4;
+//  video_url: string;
+//  video_metadata?: any;
+//}
 
 // Union type for all post types
-export type Post = ThoughtPost | ImagePost | ArticlePost | VideoPost;
+export type Post = ThoughtPost | ImagePost | ArticlePost; // | VideoPost;
+
+export const isThoughtPost = (post: Post): post is ThoughtPost => {
+  return post.post_type_id === 1;
+};
+
+export const isImagePost = (post: Post): post is ImagePost => {
+  return post.post_type_id === 2;
+};
+
+export const isArticlePost = (post: Post): post is ArticlePost => {
+  return post.post_type_id === 3;
+};

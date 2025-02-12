@@ -15,7 +15,7 @@ export const ThoughtPostCard: React.FC<PostCardProps> = ({
     <BasePostCard
       post={post}
       variant={variant}
-      className={cn('thought-post', className)}
+      className={cn('p-4', className)}
       {...props}
     >
       <div className="text-gray-900 whitespace-pre-wrap">
