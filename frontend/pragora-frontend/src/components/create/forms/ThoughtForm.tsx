@@ -1,7 +1,7 @@
 // components/create/forms/ThoughtForm.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ThoughtPostFormData } from '../../../types/posts/create-content-types';
 import { CategorySelector } from '../common/CategorySelector';
 import { TagInput } from '../common/TagInput';
+import { useToast } from '../../../lib/hooks/use-toast';
 
 interface ThoughtFormProps {
   onSubmit: (data: FormData) => Promise<{ post_id: number }>;
@@ -46,8 +47,9 @@ export const ThoughtForm = React.forwardRef<HTMLFormElement, ThoughtFormProps>((
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (!formData.content.trim()) {
       alert('Please enter some content for your thought');
@@ -84,12 +86,19 @@ export const ThoughtForm = React.forwardRef<HTMLFormElement, ThoughtFormProps>((
       formData.tags.forEach(tag => {
         submitData.append('tags', tag);
       });
-
       const response = await onSubmit(submitData);
-      router.push(`/post/${response.post_id}`);
+      if (!response?.post_id) {
+        throw new Error('Invalid response format');
+      }
+      router.push(`/dialectica/${response.post_id}`);
     } catch (error) {
-      console.error('Error creating thought:', error);
-      alert('Failed to create thought. Please try again.');
+      console.error('Error submitting form:', error);
+      const { toast } = useToast(); // Add this line at the top of the catch block
+      toast({
+        title: "Error",
+        description: "Failed to create post. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }

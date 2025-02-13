@@ -44,14 +44,14 @@ import type {
 } from './page-types';
 
 // Type guards
+export const isThoughtPost = (post: Post): post is ThoughtPost =>
+  post.post_type_id === 1;
+
 export const isImagePost = (post: Post): post is ImagePost =>
   post.post_type_id === 2;
 
 export const isArticlePost = (post: Post): post is ArticlePost =>
   post.post_type_id === 3;
-
-export const isThoughtPost = (post: Post): post is ThoughtPost =>
-  post.post_type_id === 1;
 
 export const isVideoPost = (post: Post): post is VideoPost =>
   post.post_type_id === 4;

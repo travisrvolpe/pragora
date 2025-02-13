@@ -6,6 +6,7 @@ import { MessageCircle } from 'lucide-react';
 import { ThoughtForm } from '@/components/create/forms/ThoughtForm';
 import postService from '@/lib/services/post/postService';
 import { useRouter } from 'next/navigation';
+import { ThoughtPost } from '@/types/posts/post-types';
 
 export default function CreateThoughtPage() {
   const router = useRouter();
@@ -13,7 +14,12 @@ export default function CreateThoughtPage() {
   const handleSubmit = async (formData: FormData) => {
     try {
       const response = await postService.createPost(formData);
-      return { post_id: response.post_id };
+      // Since response type is ThoughtPost, we need to access it directly
+      const postId = response.post_id;
+      if (!postId) {
+        throw new Error('No post ID in response');
+      }
+      return { post_id: postId };
     } catch (error) {
       console.error('Error creating thought:', error);
       throw error;

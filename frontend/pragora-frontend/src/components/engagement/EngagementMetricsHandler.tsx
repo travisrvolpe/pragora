@@ -3,12 +3,12 @@
 
 import React from 'react'
 import { MessageCircle } from 'lucide-react'
-import { cn } from '../../lib/utils/utils'
-import LikeButton from '../buttons/LikeButton'
-import DislikeButton from '../buttons/DislikeButton'
-import SaveButton from '../buttons/SaveButton'
-import ShareButton from '../buttons/ShareButton'
-import { EngagementButton } from '../buttons/EngagementButton'
+import { cn } from '@/lib/utils/utils'
+import { LikeButton } from '@/components/buttons/LikeButton'
+import { DislikeButton } from '@/components/buttons/DislikeButton'
+import { SaveButton } from '@/components/buttons/SaveButton'
+import { ShareButton } from '@/components/buttons/ShareButton'
+import { EngagementButton } from '@/components/buttons/EngagementButton'
 import { MetricsData, MetricStates, LoadingStates, ErrorStates } from '@/types/posts/engagement'
 
 interface EngagementMetricsHandlerProps {
@@ -17,15 +17,15 @@ interface EngagementMetricsHandlerProps {
   states: MetricStates
   loading: LoadingStates
   error: ErrorStates
-  onLike: { bind: null } | (() => Promise<void>)
-  onDislike: { bind: null } | (() => Promise<void>)
-  onComment?: { bind: null } | (() => void)
-  onShare: { bind: null } | (() => Promise<void>)
-  onSave: { bind: null } | (() => Promise<void>)
+  onLike: () => Promise<void>
+  onDislike: () => Promise<void>
+  onComment?: () => void
+  onShare: () => Promise<void>
+  onSave: () => Promise<void>
   className?: string
 }
 
-export const EngagementMetricsHandler = ({
+export const EngagementMetricsHandler: React.FC<EngagementMetricsHandlerProps> = ({
   type,
   metrics,
   states,
@@ -37,12 +37,10 @@ export const EngagementMetricsHandler = ({
   onShare,
   onSave,
   className
-}: EngagementMetricsHandlerProps) => {
-  const handleInteraction = async (handler: { bind: null } | (() => Promise<void>)) => {
+}) => {
+  const handleInteraction = async (handler: () => Promise<void>) => {
     try {
-      if (typeof handler === 'function') {
-        await handler()
-      }
+      await handler()
     } catch (err) {
       console.error('Error handling interaction:', err)
     }
@@ -67,15 +65,14 @@ export const EngagementMetricsHandler = ({
       />
 
       {type === 'post' && onComment && (
-
-          <EngagementButton
-              icon={MessageCircle}
-              count={0}
-              onClick={typeof onComment === 'function' ? onComment : () => {}}
-              disabled={false}
-              tooltip="Comment"
-              className="text-gray-600"
-          />
+        <EngagementButton
+          icon={MessageCircle}
+          count={metrics.comment_count || 0}
+          onClick={onComment}
+          disabled={false}
+          tooltip="Comment"
+          className="text-gray-600"
+        />
       )}
 
       <ShareButton

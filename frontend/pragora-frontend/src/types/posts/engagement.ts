@@ -8,13 +8,13 @@ export interface PostMetrics {
   save_count: number;
   share_count: number;
   report_count: number;
-  //comment_count: number;
+  comment_count: number;
 }
 
 export interface MetricsData {
   like_count: number;
   dislike_count: number;
-  //comment_count: number;
+  comment_count: number;
   share_count: number;
   save_count: number;
   report_count: number;
@@ -122,6 +122,7 @@ export interface EngagementResponse {
   save_count?: number
   share_count?: number
   report_count?: number
+  comment_count?: number
   like?: boolean
   dislike?: boolean
   save?: boolean
