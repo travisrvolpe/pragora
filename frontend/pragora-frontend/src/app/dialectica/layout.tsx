@@ -9,7 +9,7 @@ interface DialecticaLayoutProps {
 
 export default function DialecticaLayout({ children }: DialecticaLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="h-16 flex items-center justify-between">
@@ -26,8 +26,8 @@ export default function DialecticaLayout({ children }: DialecticaLayoutProps) {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      {/* Main Content - Added flex-grow and overflow-y-auto */}
+      <main className="flex-grow container mx-auto px-4 py-8 overflow-y-auto">
         {children}
       </main>
 

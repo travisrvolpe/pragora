@@ -1,8 +1,25 @@
+// types/user.ts
 export interface BaseUser {
   user_id: number;
   email: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface UserProfile {
+  username: string;
+  avatar_img?: string;
+  about?: string;
+  location?: string;
+  role: 'user' | 'admin' | 'instructor';
+  is_admin: boolean;
+  is_instructor: boolean;
+}
+
+export interface UserRole {
+  role: 'user' | 'admin' | 'instructor';
+  is_admin: boolean;
+  is_instructor: boolean;
 }
 
 export interface UserMetrics {
@@ -33,19 +50,24 @@ export interface UserPreferences {
   worldview_ai?: string;
 }
 
-export interface UserRole {
-  role: 'user' | 'admin' | 'instructor';
-  is_admin: boolean;
-  is_instructor: boolean;
-}
-
 export interface UserTimestamps {
   date_joined: string;
   logon_time: string;
   last_active: string;
 }
 
-// User Content Types
+export interface User extends BaseUser {
+  role: 'user' | 'admin' | 'instructor';
+  is_admin: boolean;
+  is_instructor: boolean;
+  username?: string;
+  avatar_img?: string;
+  metrics?: UserMetrics;
+  preferences?: UserPreferences;
+  timestamps?: UserTimestamps;
+  engagement?: UserEngagement;
+}
+
 export interface UserPost {
   post_id: number;
   title: string;
@@ -88,4 +110,3 @@ export interface UserSavedPost extends UserPost {
     avatar_img?: string;
   };
 }
-

@@ -37,7 +37,7 @@ const CreateContent = () => {
       description: "Visual content with captions",
       limit: "Up to 4 images",
       color: "bg-green-500",
-      link: "/test"
+      link: "/dialectica/create/images"
     },
     {
       icon: Video,
