@@ -9,7 +9,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CommentThread } from '@/components/comments/CommentThread';
 import postService from '@/lib/services/post/postService';
 import type { PostWithEngagement } from '@/types/posts/engagement';
-
+import AuthDebug from "@/components/debug/AuthDebug";
 interface PostViewPageProps {
   params: {
     postId: string;
@@ -107,6 +107,7 @@ export default function PostViewPage({ params }: PostViewPageProps) {
           <h2 className="text-lg font-semibold">Comments</h2>
         </div>
         <div className="p-4">
+          <AuthDebug />
           <CommentThread
             postId={Number(postId)}
             initialComments={[]}

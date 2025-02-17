@@ -17,7 +17,6 @@ router = APIRouter()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
 
-
 @router.websocket("/ws/post/{post_id}")
 async def websocket_endpoint(
         websocket: WebSocket,
@@ -62,7 +61,6 @@ async def websocket_endpoint(
                             user_id=user_id,
                             comment_data=data["comment"]
                         )
-
                         # Broadcast comment to all clients
                         await manager.broadcast_to_post(
                             post_id,
@@ -81,7 +79,6 @@ async def websocket_endpoint(
                 elif data["type"] == "typing":
                     if not user_id:
                         continue
-
                     # Broadcast typing status
                     await manager.broadcast_to_post(
                         post_id,

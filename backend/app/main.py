@@ -1,30 +1,47 @@
-# main.py
 import strawberry
-from fastapi import FastAPI
-from strawberry.fastapi import GraphQLRouter
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
-from app.routes import (
-    auth_routes, profile_routes, post_routes,
-    comment_routes, category_routes, post_engagement_routes
-)
+from fastapi.middleware.cors import CORSMiddleware
+from strawberry.fastapi import GraphQLRouter
+from strawberry.subscriptions import GRAPHQL_WS_PROTOCOL, GRAPHQL_TRANSPORT_WS_PROTOCOL
+
+from app.lib.graphql.context import get_context
+from app.lib.graphql.schema.schema import Query, Mutation, Subscription
 from database.database import database, Base, engine, SessionLocal
 from app.utils.database_utils import (
     init_categories, init_post_types, init_post_interaction_types
 )
 from app.core.config import settings
 from app.core.cache import init_redis, close_redis
-from app.lib.graphql.schema.schema import Query, Mutation, Subscription
-from app.lib.graphql.resolvers import get_resolvers
+from app.routes import (
+    auth_routes, profile_routes, post_routes,
+    comment_routes, category_routes, post_engagement_routes
+)
+from app.websocket_manager import manager
+from app.middleware.auth_middleware import auth_middleware
+import logging
 
-# Initialize the app
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()  # Outputs to console
+    ]
+)
+
+# Create logger for your app
+logger = logging.getLogger(__name__)
+
+# You can adjust the logging level for specific modules
+logging.getLogger('app.lib.graphql').setLevel(logging.DEBUG)
+logging.getLogger('app.auth').setLevel(logging.DEBUG)
+
+# Create DB tables
 Base.metadata.create_all(bind=engine)
-app = FastAPI()
 
-# Media directory setup
-settings.create_media_directories()
-app.mount("/media", StaticFiles(directory="media"), name="media")
-app.mount("/avatars", StaticFiles(directory="media/avatars"), name="avatars")
+# Initialize FastAPI
+app = FastAPI()
 
 # CORS configuration
 app.add_middleware(
@@ -32,33 +49,58 @@ app.add_middleware(
     allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "Accept",
-        "Origin",
-        "X-Requested-With",
-        "Access-Control-Allow-Origin",
-        "Access-Control-Allow-Methods",
-        "Access-Control-Allow-Headers",
-    ],
+    allow_headers=["*"],
     expose_headers=["*"],
     max_age=600,
 )
+app.middleware("http")(auth_middleware)
 
-# GraphQL setup with Strawberry
+# Static files
+settings.create_media_directories()
+app.mount("/media", StaticFiles(directory="media"), name="media")
+app.mount("/avatars", StaticFiles(directory="media/avatars"), name="avatars")
+
+# Strawberry schema
 schema = strawberry.Schema(
     query=Query,
     mutation=Mutation,
-    subscription=Subscription
+    subscription=Subscription,
 )
 
+# Configure GraphQL with subscriptions
 graphql_app = GraphQLRouter(
     schema,
-    graphiql=True  # Enable GraphiQL interface for development
+    graphql_ide="graphiql",
+    context_getter=get_context,
+    subscription_protocols=[
+        GRAPHQL_WS_PROTOCOL,
+        GRAPHQL_TRANSPORT_WS_PROTOCOL
+    ],
+    allow_queries_via_get=True
 )
 
-# Startup and shutdown events
+# Include routers
+app.include_router(graphql_app, prefix="/graphql")
+app.include_router(auth_routes.router)
+app.include_router(profile_routes.router)
+app.include_router(post_routes.router)
+app.include_router(comment_routes.router)
+app.include_router(category_routes.router)
+app.include_router(post_engagement_routes.router)
+
+# WebSocket endpoint for real-time comments
+@app.websocket("/ws/post/{post_id}")
+async def websocket_endpoint(websocket: WebSocket, post_id: int):
+    await manager.connect(websocket, post_id)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            await manager.broadcast_to_post(post_id, data)
+    except Exception as e:
+        print(f"WebSocket error: {str(e)}")
+    finally:
+        await manager.disconnect(websocket, post_id)
+
 @app.on_event("startup")
 async def startup():
     print("Starting up...")
@@ -76,15 +118,6 @@ async def startup():
 async def shutdown():
     await database.disconnect()
     await close_redis()
-
-# Include routers
-app.include_router(graphql_app, prefix="/graphql")
-app.include_router(auth_routes.router)
-app.include_router(profile_routes.router)
-app.include_router(post_routes.router)
-app.include_router(comment_routes.router)
-app.include_router(category_routes.router)
-app.include_router(post_engagement_routes.router)
 
 @app.get("/")
 async def root():

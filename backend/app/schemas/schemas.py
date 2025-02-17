@@ -19,7 +19,7 @@ class UserResponse(BaseModel):
     email: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -27,7 +27,7 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class TokenData(BaseModel):
     user_id: Optional[int] = None
@@ -77,7 +77,7 @@ class ProfileUpdate(BaseModel):
     date_joined: datetime
 
     class Config:
-        orm_mode = True'''
+        from_attributes = True'''
 
 class ProfileResponse(BaseModel):
     """Profile response schema"""
@@ -127,5 +127,5 @@ class UserProfileResponse(UserResponse):
     profile: Optional[ProfileResponse] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 

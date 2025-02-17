@@ -1,7 +1,7 @@
+# profile_middleware.py
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 from app.datamodels.datamodels import User, UserProfile
-
 
 async def validate_user_profile(user_id: int, db: Session) -> UserProfile:
     """Validate that a user has a complete profile before allowing certain operations"""

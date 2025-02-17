@@ -4,6 +4,12 @@ from typing import Optional, Dict, Any, List, Literal
 from datetime import datetime
 from .interaction_schemas import InteractionBase
 
+'''DEFAULT_INTERACTION_STATE = {
+    "like": False,
+    "dislike": False,
+    "report": False
+}'''
+
 def get_default_interaction_state() -> Dict[str, bool]:
     return {
         "like": False,
@@ -35,7 +41,7 @@ class CommentInteractionResponse(BaseModel):
     metadata: Optional[Dict[str, Any]]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CommentMetrics(BaseModel):
@@ -45,7 +51,7 @@ class CommentMetrics(BaseModel):
     report_count: int = 0
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CommentResponse(BaseModel):

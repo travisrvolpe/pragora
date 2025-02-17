@@ -1,10 +1,10 @@
 // contexts/comment/CommentContext.tsx
 'use client';
 
-import { createContext, useContext, useCallback, type ReactNode } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { createContext, useContext, useCallback } from 'react';
 import { toast } from '@/lib/hooks/use-toast/use-toast';
-import type { CommentWithEngagement } from '@/types/comments';
+import { commentService } from '@/lib/services/comment/commentService';
+import { useAuth } from '@/contexts/auth/AuthContext';
 
 interface CommentContextData {
   createComment: (postId: number, content: string, parentId?: number) => Promise<void>;
@@ -15,176 +15,132 @@ interface CommentContextData {
   reportComment: (commentId: number, reason: string) => Promise<void>;
 }
 
-interface CommentProviderProps {
-  children: ReactNode;
-}
-
 const CommentContext = createContext<CommentContextData | undefined>(undefined);
 
-export function CommentProvider({ children }: CommentProviderProps) {
-  const queryClient = useQueryClient();
+export function CommentProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
 
-  const createCommentMutation = useMutation({
-    mutationFn: async ({ postId, content, parentId }: { postId: number; content: string; parentId?: number }) => {
-      const response = await fetch(`/posts/${postId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ content, post_id: postId, parent_comment_id: parentId }),
+  const createComment = useCallback(async (postId: number, content: string, parentId?: number) => {
+    try {
+      await commentService.createComment({
+        content,
+        postId,
+        parentCommentId: parentId || null
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create comment');
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments'] });
       toast({
         title: 'Success',
-        description: 'Comment created successfully',
+        description: 'Comment posted successfully'
       });
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error('Error creating comment:', error);
       toast({
         title: 'Error',
-        description: error.message,
-        variant: 'destructive',
+        description: error instanceof Error ? error.message : 'Failed to create comment',
+        variant: 'destructive'
       });
-    },
-  });
+      throw error;
+    }
+  }, []);
 
-  const updateCommentMutation = useMutation({
-    mutationFn: async ({ commentId, content }: { commentId: number; content: string }) => {
-      const response = await fetch(`/posts/comments/${commentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ content }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update comment');
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments'] });
+  const updateComment = useCallback(async (commentId: number, content: string) => {
+    try {
+      await commentService.updateComment(commentId, content);
       toast({
         title: 'Success',
-        description: 'Comment updated successfully',
+        description: 'Comment updated successfully'
       });
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error('Error updating comment:', error);
       toast({
         title: 'Error',
-        description: error.message,
-        variant: 'destructive',
+        description: error instanceof Error ? error.message : 'Failed to update comment',
+        variant: 'destructive'
       });
-    },
-  });
+      throw error;
+    }
+  }, []);
 
-  const deleteCommentMutation = useMutation({
-    mutationFn: async (commentId: number) => {
-      const response = await fetch(`/posts/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete comment');
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments'] });
+  const deleteComment = useCallback(async (commentId: number) => {
+    try {
+      await commentService.deleteComment(commentId);
       toast({
         title: 'Success',
-        description: 'Comment deleted successfully',
+        description: 'Comment deleted successfully'
       });
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error('Error deleting comment:', error);
       toast({
         title: 'Error',
-        description: error.message,
-        variant: 'destructive',
+        description: error instanceof Error ? error.message : 'Failed to delete comment',
+        variant: 'destructive'
       });
-    },
-  });
-
-  const handleCreateComment = useCallback(async (postId: number, content: string, parentId?: number) => {
-    await createCommentMutation.mutateAsync({ postId, content, parentId });
-  }, [createCommentMutation]);
-
-  const handleUpdateComment = useCallback(async (commentId: number, content: string) => {
-    await updateCommentMutation.mutateAsync({ commentId, content });
-  }, [updateCommentMutation]);
-
-  const handleDeleteComment = useCallback(async (commentId: number) => {
-    await deleteCommentMutation.mutateAsync(commentId);
-  }, [deleteCommentMutation]);
-
-  const handleLikeComment = useCallback(async (commentId: number) => {
-    const response = await fetch(`/posts/comments/${commentId}/like`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    if (!response.ok) throw new Error('Failed to like comment');
+      throw error;
+    }
   }, []);
 
-  const handleDislikeComment = useCallback(async (commentId: number) => {
-    const response = await fetch(`/posts/comments/${commentId}/dislike`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    if (!response.ok) throw new Error('Failed to dislike comment');
+  const likeComment = useCallback(async (commentId: number) => {
+    try {
+      await commentService.likeComment(commentId);
+    } catch (error) {
+      console.error('Error liking comment:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to like comment',
+        variant: 'destructive'
+      });
+      throw error;
+    }
   }, []);
 
-  const handleReportComment = useCallback(async (commentId: number, reason: string) => {
-    const response = await fetch(`/posts/comments/${commentId}/report`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({ reason }),
-    });
-    if (!response.ok) throw new Error('Failed to report comment');
+  const dislikeComment = useCallback(async (commentId: number) => {
+    try {
+      await commentService.dislikeComment(commentId);
+    } catch (error) {
+      console.error('Error disliking comment:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to dislike comment',
+        variant: 'destructive'
+      });
+      throw error;
+    }
   }, []);
 
-  const contextValue = {
-    createComment: handleCreateComment,
-    updateComment: handleUpdateComment,
-    deleteComment: handleDeleteComment,
-    likeComment: handleLikeComment,
-    dislikeComment: handleDislikeComment,
-    reportComment: handleReportComment
+  const reportComment = useCallback(async (commentId: number, reason: string) => {
+    try {
+      await commentService.reportComment(commentId, reason);
+      toast({
+        title: 'Success',
+        description: 'Comment reported successfully'
+      });
+    } catch (error) {
+      console.error('Error reporting comment:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to report comment',
+        variant: 'destructive'
+      });
+      throw error;
+    }
+  }, []);
+
+  const value = {
+    createComment,
+    updateComment,
+    deleteComment,
+    likeComment,
+    dislikeComment,
+    reportComment
   };
 
   return (
-    <CommentContext.Provider value={contextValue}>
+    <CommentContext.Provider value={value}>
       {children}
     </CommentContext.Provider>
   );
 }
 
-export function useComment(): CommentContextData {
+export function useComment() {
   const context = useContext(CommentContext);
   if (context === undefined) {
     throw new Error('useComment must be used within a CommentProvider');

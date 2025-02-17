@@ -1,6 +1,7 @@
-import { BaseUser, User } from './user';
+// types/auth.ts
+import type { User } from './user';
 
-// What the backend expects
+// Form Data types
 export interface LoginFormData {
   email: string;
   password: string;
@@ -10,35 +11,41 @@ export interface RegisterFormData extends LoginFormData {
   // Add any registration-specific fields here
 }
 
-// What the backend returns
+// Token Response type
 export interface TokenData {
   access_token: string;
   token_type: string;
 }
 
-// The complete auth response from the backend
-export interface AuthResponse {
-  status: 'success' | 'error';
+// API Response types
+export interface AuthSuccess {
+  status: 'success';
   access_token: string;
   token_type: string;
-  user: User;  // This User extends BaseUser, so it has user_id
+  user: User;
 }
 
-// The User type inherits from BaseUser which has user_id
-//export interface User extends BaseUser {
-  // Auth-specific user properties can be added here
-//}
+export interface AuthError {
+  status: 'error';
+  message: string;
+}
 
-// State management for auth
+// Combined Auth Response type
+export type AuthResponse = AuthSuccess | AuthError;
+
+// Auth State management
 export interface AuthState {
-  user: User | null;  // This User type has user_id from BaseUser
+  user: User | null;
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
 }
 
 export interface AuthContextType extends AuthState {
-  loginUser: (credentials: LoginFormData) => Promise<void>;
-  registerUser: (userData: RegisterFormData) => Promise<void>;
+  loginUser: (credentials: LoginFormData) => Promise<AuthResponse>;
+  registerUser: (userData: RegisterFormData) => Promise<AuthResponse>;
   logoutUser: () => void;
 }
+
+// Re-export User type
+export type { User } from './user';

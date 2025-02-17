@@ -4,51 +4,17 @@ import logging
 import json
 import asyncio
 from datetime import datetime
-from asyncio import Queue, CancelledError
+from broadcast import Broadcast
 
 logger = logging.getLogger(__name__)
 
 
-class PubSub:
-    def __init__(self):
-        self._subscribers: Dict[str, Set[Queue]] = {}
-        self._lock = asyncio.Lock()
-
-    async def subscribe(self, channel: str) -> Queue:
-        queue: Queue = Queue()
-        async with self._lock:
-            if channel not in self._subscribers:
-                self._subscribers[channel] = set()
-            self._subscribers[channel].add(queue)
-        return queue
-
-    async def unsubscribe(self, channel: str, queue: Queue) -> None:
-        async with self._lock:
-            if channel in self._subscribers:
-                self._subscribers[channel].discard(queue)
-                if not self._subscribers[channel]:
-                    del self._subscribers[channel]
-
-    async def publish(self, channel: str, message: Any) -> None:
-        if channel not in self._subscribers:
-            return
-
-        async with self._lock:
-            subscribers = self._subscribers[channel].copy()
-
-        for queue in subscribers:
-            try:
-                await queue.put(message)
-            except Exception as e:
-                logger.error(f"Error publishing to subscriber: {str(e)}")
-                await self.unsubscribe(channel, queue)
-
-
 class WebSocketManager:
     def __init__(self):
-        self.pubsub = PubSub()
+        self.broadcast = Broadcast()
         self.active_connections: Dict[int, Set[WebSocket]] = {}
         self.active_users: Dict[int, Set[int]] = {}
+        self._subscribers: Dict[str, Set[WebSocket]] = {}
 
     async def connect(
             self,
@@ -142,22 +108,13 @@ class WebSocketManager:
             post_id: int,
             event: str
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        channel = f"{post_id}:{event}"
-        queue = await self.pubsub.subscribe(channel)
-
-        try:
-            while True:
-                message = await queue.get()
-                yield message
-                queue.task_done()
-        except CancelledError:
-            await self.pubsub.unsubscribe(channel, queue)
-            logger.info(f"Subscription cancelled for {channel}")
-            raise
-        except Exception as e:
-            await self.pubsub.unsubscribe(channel, queue)
-            logger.error(f"Error in subscription: {str(e)}")
-            raise
+        async with self.broadcast.subscribe(channel=f"{post_id}:{event}") as subscriber:
+            try:
+                async for message in subscriber:
+                    yield message
+            except asyncio.CancelledError:
+                logger.info(f"Subscription cancelled for {post_id}:{event}")
+                raise
 
     async def publish(
             self,
@@ -166,7 +123,7 @@ class WebSocketManager:
             data: Dict[str, Any]
     ) -> None:
         channel = f"{post_id}:{event}"
-        await self.pubsub.publish(channel, data)
+        await self.broadcast.publish(channel=channel, message=data)
 
     def get_active_users(self, post_id: int) -> int:
         return len(self.active_users.get(post_id, set()))

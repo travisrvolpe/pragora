@@ -26,7 +26,7 @@ class InteractionResponse(BaseModel):
     metadata: Optional[Dict[str, Any]]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class InteractionMetrics(BaseModel):
     like_count: int = 0
@@ -36,4 +36,4 @@ class InteractionMetrics(BaseModel):
     report_count: int = 0
 
     class Config:
-        orm_mode = True
+        from_attributes = True

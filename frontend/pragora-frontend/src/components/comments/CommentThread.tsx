@@ -6,6 +6,7 @@ import { CommentForm } from './CommentForm';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Alert } from '@/components/ui/alert';
+import { toast } from '@/lib/hooks/use-toast/use-toast';
 import {
   GET_COMMENTS,
   COMMENT_ADDED_SUBSCRIPTION,
@@ -17,7 +18,7 @@ import type { CommentWithEngagement } from '@/types/comments';
 
 interface CommentThreadProps {
   postId: number;
-  initialComments?: CommentWithEngagement[];
+  initialComments?: any[]; // CommentWithEngagement[];
 }
 
 export const CommentThread: React.FC<CommentThreadProps> = ({
@@ -29,13 +30,28 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
 
   // Query for fetching comments
   const { data, loading, error } = useQuery(GET_COMMENTS, {
-    variables: { postId }, // Changed from post_id to postId
-    fetchPolicy: 'cache-and-network'
+    variables: { postId },
+    fetchPolicy: 'cache-and-network',
+    onError: (error) => {
+      console.error('Query error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load comments",
+        variant: "destructive"
+      });
+    }
   });
-
   // Subscribe to comment events
   useSubscription(COMMENT_ADDED_SUBSCRIPTION, {
-    variables: { postId }, // Changed from post_id to postId
+    variables: { postId },
+    onError: (error) => {
+      console.error('Subscription error:', error);
+      toast({
+        title: "Connection Error",
+        description: "Lost connection to comment stream",
+        variant: "destructive"
+      });
+      },
     onData: ({ data }) => {
       if (data?.data?.commentAdded) {
         // Auto-scroll to new comment if at bottom
@@ -55,17 +71,25 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   });
 
   useSubscription(COMMENT_UPDATED_SUBSCRIPTION, {
-    variables: { postId }
+    variables: { postId },
+    onError: (error) => {
+      console.error('Update subscription error:', error);
+    }
   });
 
   useSubscription(COMMENT_DELETED_SUBSCRIPTION, {
-    variables: { postId }
+    variables: { postId },
+    onError: (error) => {
+      console.error('Delete subscription error:', error);
+    }
   });
 
   useSubscription(COMMENT_ACTIVITY_SUBSCRIPTION, {
-    variables: { postId }
+    variables: { postId },
+    onError: (error) => {
+      console.error('Activity subscription error:', error);
+    }
   });
-
   if (loading) {
     return (
       <div className="flex justify-center items-center py-8">

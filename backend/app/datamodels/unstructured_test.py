@@ -26,7 +26,7 @@ class Thought(BaseModel):
     thought: str = Field(...) # the main content
     created_at: Optional[str]
     class Config:
-        orm_mode = True #This config is used for translating from MongoDB documents to data models
+        from_attributes = True #This config is used for translating from MongoDB documents to data models
         allow_population_by_field_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str} #translates bson objects to strings

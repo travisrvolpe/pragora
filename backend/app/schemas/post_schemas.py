@@ -166,7 +166,7 @@ class PostResponse(BaseModel):
     reply: bool = False
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Interaction schemas
 class InteractionBase(BaseModel):
@@ -181,7 +181,7 @@ class PostInteractionResponse(PostInteractionCreate):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 # should this be plural?
 class PostMetricsUpdate(BaseModel):
     like_count: Optional[int] = Field(default=0)
