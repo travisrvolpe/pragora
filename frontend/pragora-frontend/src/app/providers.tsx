@@ -6,6 +6,9 @@ import { AuthProvider } from '@/contexts/auth/AuthContext';
 import { ProfileProvider } from '@/contexts/profile/ProfileContext';
 import { LayoutProvider } from '@/components/layout/LayoutProvider';
 import { PostProvider } from '@/contexts/PostContext';
+import { CommentProvider } from '@/contexts/comment/CommentContext';
+import { ApolloProvider } from '@apollo/client';
+import { apolloClient } from '@/lib/graphql/apollo-client';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,19 +20,22 @@ const queryClient = new QueryClient({
   },
 });
 
-// app/providers.tsx
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ProfileProvider>
-          <PostProvider>
-            <LayoutProvider>
-              {children}
-            </LayoutProvider>
-          </PostProvider>
-        </ProfileProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ApolloProvider client={apolloClient}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ProfileProvider>
+            <PostProvider>
+              <CommentProvider>
+                <LayoutProvider>
+                  {children}
+                </LayoutProvider>
+              </CommentProvider>
+            </PostProvider>
+          </ProfileProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ApolloProvider>
   );
 }

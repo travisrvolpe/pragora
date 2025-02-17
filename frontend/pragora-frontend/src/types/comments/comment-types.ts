@@ -53,6 +53,7 @@ export interface CommentWithEngagement extends BaseComment {
 
 export interface CommentResponse {
   message: string;
+  [key: string]: any; // Add index signature for dynamic properties
   like_count?: number;
   dislike_count?: number;
   report_count?: number;

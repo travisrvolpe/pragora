@@ -1,4 +1,4 @@
-import { BaseUser } from './user';
+import { BaseUser, User } from './user';
 
 // What the backend expects
 export interface LoginFormData {
@@ -25,9 +25,9 @@ export interface AuthResponse {
 }
 
 // The User type inherits from BaseUser which has user_id
-export interface User extends BaseUser {
+//export interface User extends BaseUser {
   // Auth-specific user properties can be added here
-}
+//}
 
 // State management for auth
 export interface AuthState {

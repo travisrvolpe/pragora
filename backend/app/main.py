@@ -14,6 +14,8 @@ from app.utils.database_utils import (
 )
 from app.core.config import settings
 from app.core.cache import init_redis, close_redis
+from app.lib.graphql.schema.schema import Query, Mutation, Subscription
+from app.lib.graphql.resolvers import get_resolvers
 
 # Initialize the app
 Base.metadata.create_all(bind=engine)
@@ -24,12 +26,12 @@ settings.create_media_directories()
 app.mount("/media", StaticFiles(directory="media"), name="media")
 app.mount("/avatars", StaticFiles(directory="media/avatars"), name="avatars")
 
-# CORS configuration with explicit headers
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"], #["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=[
         "Authorization",
         "Content-Type",
@@ -44,15 +46,17 @@ app.add_middleware(
     max_age=600,
 )
 
-# GraphQL setup
-@strawberry.type
-class Query:
-    @strawberry.field
-    def hello(self) -> str:
-        return "Hello, Pragora!"
+# GraphQL setup with Strawberry
+schema = strawberry.Schema(
+    query=Query,
+    mutation=Mutation,
+    subscription=Subscription
+)
 
-schema = strawberry.Schema(query=Query)
-graphql_app = GraphQLRouter(schema)
+graphql_app = GraphQLRouter(
+    schema,
+    graphiql=True  # Enable GraphiQL interface for development
+)
 
 # Startup and shutdown events
 @app.on_event("startup")

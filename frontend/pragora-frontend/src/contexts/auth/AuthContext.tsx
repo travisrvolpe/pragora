@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter, usePathname } from 'next/navigation';
 import { authService } from "@/lib/services/auth/authService";
-import { User, LoginFormData, RegisterFormData, AuthContextType } from "@/types/auth";
+import {LoginFormData, RegisterFormData, AuthContextType } from "@/types/auth";
+import { User } from "@/types/user";
 
 const AuthContext = createContext<AuthContextType>({
   user: null,

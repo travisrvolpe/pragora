@@ -1,14 +1,19 @@
+# database/database.py
 from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from databases import Database
 
 DATABASE_URL = "postgresql://postgres:ugabuga22@localhost:5432/pragora"
-#UPLOAD_FOLDER = "./media/posts/"
-#ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
+# Create the SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base: DeclarativeMeta = declarative_base()
-database = Database(DATABASE_URL)
 
+# Create the sessionmaker
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create the declarative base
+Base: DeclarativeMeta = declarative_base()
+
+# Create the async database instance
+database = Database(DATABASE_URL)

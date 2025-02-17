@@ -7,11 +7,11 @@ from sqlalchemy.orm import Session
 from app.datamodels.interaction_datamodels import PostInteraction, InteractionType
 from app.core.exceptions import DatabaseError
 from app.core.logger import logger
+from database.database import SessionLocal
+from typing import AsyncGenerator
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def get_db():
+async def get_db() -> AsyncGenerator:
+    """Dependency for getting database sessions"""
     db = SessionLocal()
     try:
         yield db

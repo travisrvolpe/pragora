@@ -1,7 +1,7 @@
 // contexts/PostContext.tsx
 import React, { createContext, useContext, useState } from 'react';
-import { Post } from '@/types/posts';
 import postService from '@/lib/services/post/postService';
+import { Post } from '@/types/posts/post-types';
 
 interface PostContextType {
   createPost: (data: FormData) => Promise<Post>;

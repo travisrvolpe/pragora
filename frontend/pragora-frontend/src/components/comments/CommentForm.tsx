@@ -1,26 +1,14 @@
-// CommentForm Component
-import React, { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatDistanceToNow } from 'date-fns';
-import {
-  MessageCircle,
-  ThumbsUp,
-  ThumbsDown,
-  Flag,
-  MoreVertical,
-  Reply,
-  Edit,
-  Trash
-} from 'lucide-react';
-import {useToast, toast } from '../../lib/hooks/use-toast/use-toast';
+// components/comments/CommentForm.tsx
+'use client';
+
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
+import { useComment } from '@/contexts/comment/CommentContext';
 import { Button } from '@/components/ui/button';
-import { CommentWithEngagement } from '@/types/comments';
 
 interface CommentFormProps {
   postId: number;
   parentId?: number;
-  wsConnection: WebSocket | null;
   defaultContent?: string;
   onCancel?: () => void;
   onSuccess?: () => void;
@@ -29,7 +17,6 @@ interface CommentFormProps {
 export const CommentForm: React.FC<CommentFormProps> = ({
   postId,
   parentId,
-  wsConnection,
   defaultContent = '',
   onCancel,
   onSuccess
@@ -37,59 +24,25 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   const [content, setContent] = useState(defaultContent);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  const createCommentMutation = useMutation({
-    mutationFn: async () => {
-      const endpoint = defaultContent
-        ? `/api/comments/${parentId}`  // Edit existing comment
-        : '/api/posts/comments';       // Create new comment
-
-      const response = await fetch(endpoint, {
-        method: defaultContent ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          content,
-          post_id: postId,
-          parent_comment_id: parentId
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to save comment');
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setContent('');
-      // Broadcast new/updated comment via WebSocket
-      if (wsConnection?.readyState === WebSocket.OPEN) {
-        wsConnection.send(JSON.stringify({
-          type: defaultContent ? 'update_comment' : 'new_comment',
-          comment: data
-        }));
-      }
-      onSuccess?.();
-      // Invalidate comments query
-      queryClient.invalidateQueries({
-        queryKey: ['comments', postId]
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
+  const { createComment, updateComment } = useComment();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
+
     setIsSubmitting(true);
     try {
-      await createCommentMutation.mutateAsync();
+      if (defaultContent) {
+        // If defaultContent exists, we're editing an existing comment
+        await updateComment(parentId!, content);
+      } else {
+        // Otherwise, we're creating a new comment
+        await createComment(postId, content, parentId);
+      }
+      setContent('');
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error submitting comment:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -133,3 +86,5 @@ export const CommentForm: React.FC<CommentFormProps> = ({
     </form>
   );
 };
+
+export default CommentForm;

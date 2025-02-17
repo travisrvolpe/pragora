@@ -1,104 +1,108 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatDistanceToNow } from 'date-fns';
-import {
-  MessageCircle,
-  ThumbsUp,
-  ThumbsDown,
-  Flag,
-  MoreVertical,
-  Reply,
-  Edit,
-  Trash
-} from 'lucide-react';
-import {useToast, toast } from '../../lib/hooks/use-toast/use-toast';
-import { useAuth } from '@/contexts/auth/AuthContext';
-import { Button } from '@/components/ui/button';
-import { CommentWithEngagement } from '@/types/comments';
+// components/comments/CommentThread.tsx
+import React, { useRef } from 'react';
+import { useQuery, useSubscription } from '@apollo/client';
 import { CommentCard } from './CommentCard';
 import { CommentForm } from './CommentForm';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useAuth } from '@/contexts/auth/AuthContext';
+import { Alert } from '@/components/ui/alert';
+import {
+  GET_COMMENTS,
+  COMMENT_ADDED_SUBSCRIPTION,
+  COMMENT_UPDATED_SUBSCRIPTION,
+  COMMENT_DELETED_SUBSCRIPTION,
+  COMMENT_ACTIVITY_SUBSCRIPTION
+} from '@/lib/graphql/operations/comments';
+import type { CommentWithEngagement } from '@/types/comments';
 
-// CommentThread Component
-export const CommentThread: React.FC<{
+interface CommentThreadProps {
   postId: number;
   initialComments?: CommentWithEngagement[];
-}> = ({ postId, initialComments = [] }) => {
-  const queryClient = useQueryClient();
-  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
+}
+
+export const CommentThread: React.FC<CommentThreadProps> = ({
+  postId,
+  initialComments = []
+}) => {
   const commentListRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
   // Query for fetching comments
-  const { data: comments, isLoading } = useQuery({
-    queryKey: ['comments', postId],
-    queryFn: async () => {
-      const response = await fetch(`/api/posts/${postId}/comments`);
-      if (!response.ok) throw new Error('Failed to fetch comments');
-      return response.json();
-    },
-    initialData: initialComments
+  const { data, loading, error } = useQuery(GET_COMMENTS, {
+    variables: { postId }, // Changed from post_id to postId
+    fetchPolicy: 'cache-and-network'
   });
 
-  // WebSocket connection
-  useEffect(() => {
-    const ws = new WebSocket(`ws://localhost:8000/ws/post/${postId}`);
-
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      setWsConnection(ws);
-    };
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'new_comment') {
-        // Update comments cache
-        queryClient.setQueryData(['comments', postId], (old: any) => ({
-          ...old,
-          comments: [data.comment, ...(old?.comments || [])]
-        }));
-
-        // Scroll to new comment if at bottom
+  // Subscribe to comment events
+  useSubscription(COMMENT_ADDED_SUBSCRIPTION, {
+    variables: { postId }, // Changed from post_id to postId
+    onData: ({ data }) => {
+      if (data?.data?.commentAdded) {
+        // Auto-scroll to new comment if at bottom
         if (commentListRef.current) {
           const { scrollTop, scrollHeight, clientHeight } = commentListRef.current;
           if (scrollHeight - scrollTop === clientHeight) {
-            commentListRef.current.scrollTop = scrollHeight;
+            setTimeout(() => {
+              commentListRef.current?.scrollTo({
+                top: scrollHeight,
+                behavior: 'smooth'
+              });
+            }, 100);
           }
         }
       }
-    };
+    }
+  });
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      toast({
-        title: "Connection Error",
-        description: "Failed to connect to comment stream",
-        variant: "destructive"
-      });
-    };
+  useSubscription(COMMENT_UPDATED_SUBSCRIPTION, {
+    variables: { postId }
+  });
 
-    return () => {
-      ws.close();
-    };
-  }, [postId]);
+  useSubscription(COMMENT_DELETED_SUBSCRIPTION, {
+    variables: { postId }
+  });
 
-  if (isLoading) {
-    return <div className="animate-pulse">Loading comments...</div>;
+  useSubscription(COMMENT_ACTIVITY_SUBSCRIPTION, {
+    variables: { postId }
+  });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <LoadingSpinner />
+      </div>
+    );
   }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <p>Error loading comments: {error.message}</p>
+      </Alert>
+    );
+  }
+
+  const comments = data?.comments || initialComments;
 
   return (
     <div className="space-y-4">
-      <CommentForm postId={postId} wsConnection={wsConnection} />
+      <CommentForm postId={postId} />
       <div
         ref={commentListRef}
-        className="space-y-4 max-h-[600px] overflow-y-auto"
+        className="space-y-4 max-h-[600px] overflow-y-auto scroll-smooth"
       >
-        {comments?.map((comment: CommentWithEngagement) => (
+        {comments.map((comment: CommentWithEngagement) => (
           <CommentCard
-            key={comment.comment_id}
+            key={comment.comment_id} // Changed from commentId
             comment={comment}
-            wsConnection={wsConnection}
           />
         ))}
+
+        {comments.length === 0 && (
+          <div className="text-center text-gray-500 py-8">
+            No comments yet. Be the first to comment!
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
 # datamodels/comment_datamodels.py
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Index, JSON
+from sqlalchemy import Integer, String, DateTime, ForeignKey, Text, Boolean, Index, JSON
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship, validates
+from sqlalchemy.orm import relationship, validates, backref
 from database.database import Base
-
+from sqlalchemy.sql.schema import Column
 
 class Comment(Base):
     __tablename__ = "comments"
@@ -15,9 +15,10 @@ class Comment(Base):
 
     # Enhanced threading support
     parent_comment_id = Column(Integer, ForeignKey("comments.comment_id", ondelete="CASCADE"), nullable=True)
+    root_comment_id = Column(Integer, ForeignKey("comments.comment_id"), nullable=True)
     path = Column(String, nullable=False)  # Materialized path for efficient tree traversal
     depth = Column(Integer, default=0)  # Nesting level
-    root_comment_id = Column(Integer, ForeignKey("comments.comment_id"), nullable=True)  # Top-level parent
+
 
     # Metrics
     like_count = Column(Integer, default=0)
@@ -41,10 +42,22 @@ class Comment(Base):
     post = relationship("Post", back_populates="comments")
     replies = relationship(
         "Comment",
-        backref=relationship.backref('parent', remote_side=[comment_id]),
+        backref=backref(
+            "parent",
+            remote_side="[Comment.comment_id]"
+        ),
+        foreign_keys="[Comment.parent_comment_id]",
         cascade="all, delete-orphan",
         lazy='select'
     )
+
+    root_comment = relationship(
+        "Comment",
+        foreign_keys="[Comment.root_comment_id]",
+        remote_side="[Comment.comment_id]",
+        backref="child_comments"
+    )
+
     interactions = relationship(
         "CommentInteraction",
         back_populates="comment",

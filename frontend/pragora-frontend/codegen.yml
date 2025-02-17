@@ -1,0 +1,40 @@
+# codegen.yml
+overwrite: true
+#schema: "src/lib/graphql/schema/**/*.graphql"
+#documents: "src/lib/graphql/operations/**/*.ts"
+#schema: "./src/lib/graphql/schema/schema.graphql"
+#documents: "./src/lib/graphql/operations/**/*.ts"
+schema: "http://localhost:8000/graphql"
+documents: "./src/lib/graphql/operations/**/*.ts"
+generates:
+  # The main TypeScript types from your queries:
+  src/lib/graphql/generated/types.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+      - "typescript-react-apollo"
+    config:
+      withHooks: true
+      withComponent: false
+      withHOC: false
+      skipTypename: false
+      dedupeFragments: true
+      preResolveTypes: true
+      onlyOperationTypes: false
+      enumsAsTypes: true
+      scalars:
+        DateTime: string
+        JSON: any
+      strictScalars: true
+      useTypeImports: true
+
+  # Generate an introspection result (not always needed):
+  ./graphql.schema.json:
+    plugins:
+      - "introspection"
+
+  # Generate an SDL file from the introspection so you have
+  # a `schema.graphql` in plain text (i.e. AST form):
+  ./src/lib/graphql/schema/schema.graphql:
+    plugins:
+      - "schema-ast"
