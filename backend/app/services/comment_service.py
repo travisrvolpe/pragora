@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from fastapi import HTTPException
 from app.datamodels.comment_datamodels import Comment
-from app.schemas.comment_schemas import CommentCreate, CommentResponse, CommentMetrics
+from app.schemas.comment_schemas import (
+    CommentCreate,
+    CommentResponse,
+    CommentMetrics,
+    UserResponse
+)
 from app.datamodels.interaction_datamodels import CommentInteraction, InteractionType
 from app.datamodels.datamodels import User, UserProfile
 from app.datamodels.post_datamodels import Post
@@ -190,8 +195,11 @@ class CommentService:
             self.db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
 
-
-    async def get_comment(self, comment_id: int, user_id: Optional[int] = None) -> CommentResponse:
+    async def get_comment(
+            self,
+            comment_id: int,
+            user_id: Optional[int] = None,
+    ) -> CommentResponse:
         """Get a single comment with all related data"""
         try:
             # Get comment with user data using a single join query
@@ -206,26 +214,11 @@ class CommentService:
             if not comment:
                 raise HTTPException(status_code=404, detail="Comment not found")
 
-            # Get interaction state if user_id provided
-            interaction_state = {
-                "like": False,
-                "dislike": False,
-                "report": False
-            }
+            # Build interaction state
+            interaction_state = await self._get_interaction_state(comment_id, user_id)
 
-            if user_id:
-                interactions = (
-                    self.db.query(CommentInteraction)
-                    .join(InteractionType)
-                    .filter(
-                        CommentInteraction.comment_id == comment_id,
-                        CommentInteraction.user_id == user_id
-                    )
-                    .all()
-                )
-
-                for interaction in interactions:
-                    interaction_state[interaction.interaction_type.interaction_type_name] = True
+            # Get user data
+            user_data = self._build_user_data(comment)
 
             # Get real-time active viewers count from WebSocket manager
             active_viewers = manager.get_active_users(comment.post_id)
@@ -240,22 +233,23 @@ class CommentService:
                 path=comment.path,
                 depth=comment.depth,
                 root_comment_id=comment.root_comment_id,
+                user=user_data,
+                username=user_data.username,
+                avatar_img=user_data.avatar_img,
+                reputation_score=user_data.reputation_score,
                 metrics=CommentMetrics(
                     like_count=comment.like_count,
                     dislike_count=comment.dislike_count,
                     reply_count=comment.reply_count,
                     report_count=comment.report_count
                 ),
-                username=comment.user.profile.username if comment.user.profile else f"user_{comment.user_id}",
-                avatar_img=comment.user.profile.avatar_img if comment.user.profile else None,
-                reputation_score=comment.user.profile.reputation_score if comment.user.profile else 0,
                 interaction_state=interaction_state,
                 is_edited=comment.is_edited,
                 is_deleted=comment.is_deleted,
                 created_at=comment.created_at,
                 updated_at=comment.updated_at,
                 last_activity=comment.last_activity,
-                active_viewers=active_viewers  # Add real-time viewer count
+                active_viewers=active_viewers
             )
 
         except HTTPException:
@@ -263,6 +257,56 @@ class CommentService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
+    async def _get_interaction_state(
+            self,
+            comment_id: int,
+            user_id: Optional[int]
+    ) -> Dict[str, bool]:
+        """Get interaction state for a comment"""
+        interaction_state = {
+            "like": False,
+            "dislike": False,
+            "report": False
+        }
+
+        if user_id:
+            interactions = (
+                self.db.query(CommentInteraction)
+                .join(InteractionType)
+                .filter(
+                    CommentInteraction.comment_id == comment_id,
+                    CommentInteraction.user_id == user_id
+                )
+                .all()
+            )
+
+            for interaction in interactions:
+                interaction_state[interaction.interaction_type.interaction_type_name] = True
+
+        return interaction_state
+
+    def _build_user_data(self, comment: Comment) -> UserResponse:
+        """Build user data response"""
+        if comment.user and hasattr(comment.user, 'profile') and comment.user.profile:
+            return UserResponse(
+                user_id=comment.user.user_id,
+                username=comment.user.profile.username,
+                email=comment.user.email,
+                avatar_img=comment.user.profile.avatar_img,
+                reputation_score=comment.user.profile.reputation_score,
+                expertise_area=comment.user.profile.expertise_area,
+                credentials=comment.user.profile.credentials,
+                created_at=comment.user.created_at,
+                updated_at=comment.user.profile.updated_at if hasattr(comment.user.profile, 'updated_at') else None
+            )
+
+        # Create minimal user data if profile doesn't exist
+        return UserResponse(
+            user_id=comment.user_id,
+            username=f"user_{comment.user_id}",
+            email="",
+            created_at=comment.created_at
+        )
 
     async def get_comment_thread(
             self,
@@ -302,41 +346,13 @@ class CommentService:
             total = query.count()
             comments = query.offset((page - 1) * page_size).limit(page_size).all()
 
-            # Get all comment IDs for bulk interaction query
-            comment_ids = [c.comment_id for c in comments]
-
-            # Bulk fetch interactions if user is authenticated
-            interaction_states = {}
-            if user_id:
-                interactions = (
-                    self.db.query(CommentInteraction)
-                    .join(InteractionType)
-                    .filter(
-                        CommentInteraction.comment_id.in_(comment_ids),
-                        CommentInteraction.user_id == user_id
-                    )
-                    .all()
-                )
-
-                for comment_id in comment_ids:
-                    interaction_states[comment_id] = {
-                        "like": False,
-                        "dislike": False,
-                        "report": False
-                    }
-
-                for interaction in interactions:
-                    interaction_states[interaction.comment_id][
-                        interaction.interaction_type.interaction_type_name
-                    ] = True
-
             # Convert to response models with real-time data
             responses = []
             for comment in comments:
+                # We now just pass user_id to get_comment which will handle interaction state internally
                 response = await self.get_comment(
-                    comment.comment_id,
-                    user_id,
-                    interaction_state=interaction_states.get(comment.comment_id)
+                    comment_id=comment.comment_id,
+                    user_id=user_id
                 )
                 responses.append(response)
 

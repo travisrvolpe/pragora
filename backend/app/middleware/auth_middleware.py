@@ -8,20 +8,20 @@ from app.auth.utils import get_current_user
 from app.datamodels.datamodels import User
 from database.database import SessionLocal
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
 
 class AuthMiddleware:
     def __init__(self):
-        # Define public paths that don't need authentication
         self.public_paths: List[str] = [
             "/auth/login",
             "/auth/register",
             "/docs",
             "/redoc",
             "/openapi.json",
-            "/",  # Root path
+            "/",
         ]
         self.graphql_path = "/graphql"
 
@@ -29,101 +29,92 @@ class AuthMiddleware:
         return any(path.startswith(public_path) for public_path in self.public_paths)
 
     async def get_token_from_request(self, request: Request) -> Optional[str]:
-        """Extract token from various sources in the request"""
-        # Try Authorization header first
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            return auth_header.split(" ")[1]
+        """Extract auth token from various sources"""
+        # Try Authorization header
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            return auth_header[7:]
 
-        # For WebSocket requests, check query parameters
-        if "ws" in request.url.scheme and "token" in request.query_params:
-            return request.query_params["token"]
+        # Handle WebSocket upgrade requests
+        if request.headers.get("upgrade", "").lower() == "websocket":
+            # Try query parameters for WebSocket
+            token = request.query_params.get("token")
+            if token:
+                return token
 
-        # For GraphQL WebSocket connections, check connection params
-        if request.url.path == self.graphql_path and hasattr(request, 'json'):
+        # Handle GraphQL specific cases
+        if request.url.path == self.graphql_path:
             try:
-                body = await request.json()
-                if 'payload' in body and 'Authorization' in body['payload']:
-                    return body['payload']['Authorization'].replace('Bearer ', '')
-            except:
+                # Try parsing the body for GraphQL requests
+                body = await request.body()
+                if body:
+                    data = json.loads(body)
+
+                    # Check for token in payload (subscription)
+                    if 'payload' in data and 'Authorization' in data['payload']:
+                        auth = data['payload']['Authorization']
+                        if auth.startswith('Bearer '):
+                            return auth[7:]
+                        return auth
+
+                    # Check for token in extensions (query/mutation)
+                    if 'extensions' in data and 'authorization' in data['extensions']:
+                        auth = data['extensions']['authorization']
+                        if auth.startswith('Bearer '):
+                            return auth[7:]
+                        return auth
+
+            except Exception as e:
+                logger.debug(f"Error parsing request body: {str(e)}")
                 pass
 
         return None
 
     async def authenticate_request(self, request: Request) -> Optional[User]:
-        """Authenticate a request and return the user if valid"""
+        """Authenticate the request and return user if valid"""
         db = SessionLocal()
         try:
             token = await self.get_token_from_request(request)
             if not token:
                 return None
 
-            # Use existing get_current_user function
             user = await get_current_user(request, token, db)
+            if user:
+                logger.info(f"Successfully authenticated user {user.user_id}")
             return user
 
-        except JWTError as e:
-            logger.error(f"JWT validation error: {str(e)}")
-            return None
         except Exception as e:
             logger.error(f"Authentication error: {str(e)}")
             return None
         finally:
             db.close()
 
-    async def handle_graphql(self, request: Request) -> Optional[User]:
-        """Special handling for GraphQL requests"""
-        try:
-            user = await self.authenticate_request(request)
-            if user:
-                request.state.user = user
-            return user
-        except Exception as e:
-            logger.error(f"GraphQL authentication error: {str(e)}")
-            return None
-
     async def __call__(self, request: Request, call_next):
-        """Main middleware function"""
-        # Skip auth for public paths
-        if self.is_public_path(request.url.path):
-            return await call_next(request)
-
-        # Handle OPTIONS requests for CORS
-        if request.method == "OPTIONS":
+        """Process the request"""
+        # Skip auth for public paths and OPTIONS
+        if self.is_public_path(request.url.path) or request.method == "OPTIONS":
             return await call_next(request)
 
         # Special handling for GraphQL
         if request.url.path == self.graphql_path:
-            await self.handle_graphql(request)
-            return await call_next(request)
-
-        # Handle WebSocket upgrade requests
-        if request.headers.get("upgrade", "").lower() == "websocket":
             user = await self.authenticate_request(request)
-            if not user:
-                return JSONResponse(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    content={"detail": "Could not validate WebSocket credentials"}
-                )
-            request.state.user = user
+            if user:
+                request.state.user = user
             return await call_next(request)
 
-        # Regular HTTP request authentication
+        # Regular request authentication
         user = await self.authenticate_request(request)
         if not user:
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Could not validate credentials"}
+                content={"detail": "Authentication required"}
             )
 
-        # Store authenticated user in request state
         request.state.user = user
-
-        # Log successful authentication
-        logger.info(f"Authenticated user {user.user_id} for path {request.url.path}")
+        logger.info(f"Authenticated user {user.user_id} for {request.url.path}")
 
         return await call_next(request)
 
 
-# Create middleware instance
+# Create instance
 auth_middleware = AuthMiddleware()
