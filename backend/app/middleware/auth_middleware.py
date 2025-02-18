@@ -24,49 +24,55 @@ class AuthMiddleware:
             "/",
         ]
         self.graphql_path = "/graphql"
+        self.db = SessionLocal()  # Add this for WebSocket handling
+
+    async def __call__(self, request: Request, call_next):
+        """Process the request"""
+        # Handle WebSocket upgrade requests first
+        if request.headers.get("upgrade", "").lower() == "websocket":
+            token = await self.get_token_from_request(request)
+            if token:
+                try:
+                    user = await get_current_user(request, token, self.db)
+                    request.state.user = user
+                    return await call_next(request)
+                except Exception as e:
+                    logger.error(f"WebSocket auth error: {e}")
+                    return JSONResponse(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        content={"detail": "WebSocket authentication failed"}
+                    )
 
     def is_public_path(self, path: str) -> bool:
         return any(path.startswith(public_path) for public_path in self.public_paths)
 
     async def get_token_from_request(self, request: Request) -> Optional[str]:
-        """Extract auth token from various sources"""
-        # Try Authorization header
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            return auth_header[7:]
-
-        # Handle WebSocket upgrade requests
-        if request.headers.get("upgrade", "").lower() == "websocket":
-            # Try query parameters for WebSocket
-            token = request.query_params.get("token")
-            if token:
-                return token
-
-        # Handle GraphQL specific cases
         if request.url.path == self.graphql_path:
             try:
-                # Try parsing the body for GraphQL requests
                 body = await request.body()
                 if body:
                     data = json.loads(body)
 
-                    # Check for token in payload (subscription)
-                    if 'payload' in data and 'Authorization' in data['payload']:
-                        auth = data['payload']['Authorization']
-                        if auth.startswith('Bearer '):
-                            return auth[7:]
-                        return auth
+                    # Add more detailed logging
+                    print("GraphQL request body:", data)
 
-                    # Check for token in extensions (query/mutation)
+                    # Check extensions first (used by Apollo Client)
                     if 'extensions' in data and 'authorization' in data['extensions']:
                         auth = data['extensions']['authorization']
-                        if auth.startswith('Bearer '):
-                            return auth[7:]
-                        return auth
+                        return auth.replace('Bearer ', '')
 
+                    # Then check payload (used by subscriptions)
+                    if 'payload' in data and 'Authorization' in data['payload']:
+                        auth = data['payload']['Authorization']
+                        print("Found auth in payload:", auth)
+                        return auth.replace('Bearer ', '')
             except Exception as e:
-                logger.debug(f"Error parsing request body: {str(e)}")
-                pass
+                print("Error parsing GraphQL request:", str(e))
+
+        # Existing header check
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            return auth_header[7:]
 
         return None
 

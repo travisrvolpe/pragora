@@ -48,6 +48,8 @@ class CommentService:
     ) -> CommentResponse:
         """Create a new comment with real-time updates"""
         try:
+            print(f"Creating comment for user {user_id}")
+            print(f"Comment data: {comment_data}")
             # Calculate comment hierarchy data
             path = self._calculate_path(comment_data.parent_comment_id)
             depth = self._calculate_depth(path)
@@ -85,6 +87,7 @@ class CommentService:
             comment_response = await self.get_comment(db_comment.comment_id)
 
             # Broadcast new comment to all connected clients
+            print(f"Broadcasting new comment: {comment_response.dict()}")
             await manager.broadcast_to_post(
                 comment_data.post_id,
                 {
@@ -97,6 +100,7 @@ class CommentService:
 
         except Exception as e:
             self.db.rollback()
+            print(f"Error creating comment: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
     async def update_comment(

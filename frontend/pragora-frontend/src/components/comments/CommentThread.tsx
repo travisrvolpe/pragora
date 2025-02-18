@@ -41,6 +41,27 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
       });
     }
   });
+
+  // test subscription
+  /*
+  useEffect(() => {
+  console.log('Setting up comment subscription');
+  const subscription = useSubscription(COMMENT_ADDED_SUBSCRIPTION, {
+    variables: { postId },
+    onData: ({ data }) => {
+      console.log('Received comment data:', data);
+    },
+    onError: (error) => {
+      console.error('Subscription error:', error);
+    }
+  });
+
+  return () => {
+    console.log('Cleaning up subscription');
+    subscription.unsubscribe();
+  };
+}, [postId]); */
+
   // Subscribe to comment events
   useSubscription(COMMENT_ADDED_SUBSCRIPTION, {
     variables: { postId },
