@@ -8,7 +8,8 @@ from app.schemas.comment_schemas import (
     CommentCreate,
     CommentResponse,
     CommentMetrics,
-    UserResponse
+    UserResponse,
+    CommentInteractionState
 )
 from app.datamodels.interaction_datamodels import CommentInteraction, InteractionType
 from app.datamodels.datamodels import User, UserProfile
@@ -203,31 +204,76 @@ class CommentService:
             self,
             comment_id: int,
             user_id: Optional[int] = None,
-    ) -> CommentResponse:
-        """Get a single comment with all related data"""
+            include_replies: bool = False
+    ) -> Optional[CommentResponse]:
+        """Get a single comment with optional replies"""
         try:
             # Get comment with user data using a single join query
             comment = (
                 self.db.query(Comment)
                 .join(User)
-                .outerjoin(UserProfile)  # Use outerjoin for optional profile
+                .outerjoin(UserProfile)
                 .filter(Comment.comment_id == comment_id)
                 .first()
             )
 
             if not comment:
-                raise HTTPException(status_code=404, detail="Comment not found")
+                return None
 
-            # Build interaction state
-            interaction_state = await self._get_interaction_state(comment_id, user_id)
+            # Get interaction state if user_id provided
+            interaction_state = {
+                "like": False,
+                "dislike": False,
+                "report": False
+            }
 
-            # Get user data
-            user_data = self._build_user_data(comment)
+            if user_id:
+                interactions = (
+                    self.db.query(CommentInteraction)
+                    .join(InteractionType)
+                    .filter(
+                        CommentInteraction.comment_id == comment_id,
+                        CommentInteraction.user_id == user_id
+                    )
+                    .all()
+                )
 
-            # Get real-time active viewers count from WebSocket manager
-            active_viewers = manager.get_active_users(comment.post_id)
+                for interaction in interactions:
+                    interaction_state[
+                        interaction.interaction_type.interaction_type_name
+                    ] = True
 
-            # Convert to response model
+            # Get replies if requested
+            replies = None
+            if include_replies:
+                replies_query = (
+                    self.db.query(Comment)
+                    .filter(Comment.parent_comment_id == comment_id)
+                    .order_by(Comment.created_at.asc())
+                )
+                replies = []
+                for reply in replies_query.all():
+                    reply_response = await self.get_comment(
+                        reply.comment_id,
+                        user_id,
+                        include_replies=True
+                    )
+                    if reply_response:
+                        replies.append(reply_response)
+
+            # Create UserResponse
+            user_response = UserResponse(
+                user_id=comment.user.user_id,
+                username=comment.user.profile.username if comment.user.profile else f"user_{comment.user.user_id}",
+                email=comment.user.email,
+                avatar_img=comment.user.profile.avatar_img if comment.user.profile else None,
+                reputation_score=comment.user.profile.reputation_score if comment.user.profile else None,
+                expertise_area=comment.user.profile.expertise_area if comment.user.profile else None,
+                credentials=comment.user.profile.credentials if comment.user.profile else None,
+                created_at=comment.user.created_at,
+                updated_at=comment.user.updated_at
+            )
+
             return CommentResponse(
                 comment_id=comment.comment_id,
                 user_id=comment.user_id,
@@ -237,28 +283,28 @@ class CommentService:
                 path=comment.path,
                 depth=comment.depth,
                 root_comment_id=comment.root_comment_id,
-                user=user_data,
-                username=user_data.username,
-                avatar_img=user_data.avatar_img,
-                reputation_score=user_data.reputation_score,
+                user=user_response,
+                username=user_response.username,
+                avatar_img=user_response.avatar_img,
+                reputation_score=user_response.reputation_score,
                 metrics=CommentMetrics(
                     like_count=comment.like_count,
                     dislike_count=comment.dislike_count,
                     reply_count=comment.reply_count,
                     report_count=comment.report_count
                 ),
-                interaction_state=interaction_state,
+                interaction_state=interaction_state,  # Pass the dictionary directly
                 is_edited=comment.is_edited,
                 is_deleted=comment.is_deleted,
                 created_at=comment.created_at,
                 updated_at=comment.updated_at,
                 last_activity=comment.last_activity,
-                active_viewers=active_viewers
+                active_viewers=comment.active_viewers,
+                replies=replies
             )
 
-        except HTTPException:
-            raise
         except Exception as e:
+            print(f"Error in get_comment: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
     async def _get_interaction_state(
@@ -320,11 +366,11 @@ class CommentService:
             page_size: int = 20,
             user_id: Optional[int] = None
     ) -> List[CommentResponse]:
-        """Get a thread of comments with real-time data"""
+        """Get a thread of comments with their replies"""
         try:
             query = self.db.query(Comment)
 
-            if parent_id:
+            if parent_id is not None:
                 # Get replies to a specific comment
                 parent = self.db.query(Comment).get(parent_id)
                 if not parent:
@@ -334,7 +380,7 @@ class CommentService:
                 # Get root level comments
                 query = query.filter(
                     Comment.post_id == post_id,
-                    Comment.depth == 0
+                    Comment.parent_comment_id.is_(None)  # Root comments have no parent
                 )
 
             # Optimize query with joins
@@ -350,23 +396,36 @@ class CommentService:
             total = query.count()
             comments = query.offset((page - 1) * page_size).limit(page_size).all()
 
-            # Convert to response models with real-time data
+            # Get all comment IDs for bulk interaction query
+            comment_ids = [c.comment_id for c in comments]
+
+            # For each root comment, fetch its immediate replies
             responses = []
             for comment in comments:
-                # We now just pass user_id to get_comment which will handle interaction state internally
-                response = await self.get_comment(
-                    comment_id=comment.comment_id,
-                    user_id=user_id
+                # Get immediate replies for this comment
+                replies_query = self.db.query(Comment).filter(
+                    Comment.parent_comment_id == comment.comment_id
+                ).order_by(Comment.created_at.asc())
+
+                replies = replies_query.all()
+
+                # Convert comment to response with replies
+                comment_response = await self.get_comment(
+                    comment.comment_id,
+                    user_id,
+                    include_replies=True
                 )
-                responses.append(response)
+
+                if comment_response:
+                    responses.append(comment_response)
 
             return responses
 
         except HTTPException:
             raise
         except Exception as e:
+            print(f"Error in get_comment_thread: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
-
 
     async def update_activity(
             self,

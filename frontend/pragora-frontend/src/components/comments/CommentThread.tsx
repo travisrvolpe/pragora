@@ -18,7 +18,7 @@ import type { CommentWithEngagement } from '@/types/comments';
 
 interface CommentThreadProps {
   postId: number;
-  initialComments?: any[]; // CommentWithEngagement[];
+  initialComments?: CommentWithEngagement[];// any[]; // CommentWithEngagement[];
 }
 
 export const CommentThread: React.FC<CommentThreadProps> = ({
@@ -26,11 +26,16 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   initialComments = []
 }) => {
   const commentListRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
+  //const { user } = useAuth(); -- does this need to be used anymore?
 
   // Query for fetching comments
   const { data, loading, error } = useQuery(GET_COMMENTS, {
-    variables: { postId },
+    variables: {
+      postId,
+      parentCommentId: null, // Fetch root comments
+      page: 1,
+      pageSize: 50
+    },
     fetchPolicy: 'cache-and-network',
     onError: (error) => {
       console.error('Query error:', error);
@@ -41,26 +46,6 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
       });
     }
   });
-
-  // test subscription
-  /*
-  useEffect(() => {
-  console.log('Setting up comment subscription');
-  const subscription = useSubscription(COMMENT_ADDED_SUBSCRIPTION, {
-    variables: { postId },
-    onData: ({ data }) => {
-      console.log('Received comment data:', data);
-    },
-    onError: (error) => {
-      console.error('Subscription error:', error);
-    }
-  });
-
-  return () => {
-    console.log('Cleaning up subscription');
-    subscription.unsubscribe();
-  };
-}, [postId]); */
 
   // Subscribe to comment events
   useSubscription(COMMENT_ADDED_SUBSCRIPTION, {
@@ -128,18 +113,42 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
   }
 
   const comments = data?.comments || initialComments;
+  const rootComments = comments.filter((comment: CommentWithEngagement) => {
+    return !comment.parent_comment_id && !comment.parent_comment_id;
+  });
+
+  const processedComments = rootComments.map((comment: CommentWithEngagement) => ({
+    ...comment,
+    replies: comment.replies?.map(reply => ({
+      ...reply,
+      depth: (comment.depth || 0) + 1,
+      commentId: reply.comment_id || reply.comment_id,
+      parentCommentId: reply.parent_comment_id || reply.parent_comment_id
+    })) || []
+  }));
+  console.log('Root comments:', rootComments); // Debug log
+  console.log('All comments:', comments); // Debug log
 
   return (
     <div className="space-y-4">
       <CommentForm postId={postId} />
+
       <div
         ref={commentListRef}
-        className="space-y-4 max-h-[600px] overflow-y-auto scroll-smooth"
+        className="space-y-4 max-h-[600px] overflow-y-auto scroll-smooth pr-4"
       >
-        {comments.map((comment: CommentWithEngagement) => (
+        {processedComments.map((comment: CommentWithEngagement) => (
           <CommentCard
-            key={comment.comment_id} // Changed from commentId
-            comment={comment}
+            key={comment.comment_id || comment.comment_id}
+            comment={{
+              ...comment,
+              commentId: comment.comment_id || comment.comment_id,
+              parentCommentId: comment.parent_comment_id || comment.parent_comment_id,
+              // Additionally pass the postId to ensure it's available for replies
+              postId: comment.post_id || comment.post_id,
+              replies: comment.replies
+            }}
+            depth={comment.depth || 0}
           />
         ))}
 
@@ -152,3 +161,5 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
     </div>
   );
 };
+
+export default CommentThread;

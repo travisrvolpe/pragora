@@ -11,6 +11,29 @@ def get_default_interaction_state() -> Dict[str, bool]:
         "report": False
     }
 
+class UserResponse(BaseModel):
+    user_id: int
+    username: str
+    email: str
+    avatar_img: Optional[str] = None
+    reputation_score: Optional[int] = None
+    expertise_area: Optional[str] = None
+    credentials: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CommentInteractionState(BaseModel):
+    like: bool = False
+    dislike: bool = False
+    report: bool = False
+
+    class Config:
+        from_attributes = True
+
 class CommentBase(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000)
     post_id: int
@@ -23,16 +46,6 @@ class CommentInteractionCreate(InteractionBase):
     comment_id: int
     target_type: Literal["comment"] = "comment"
 
-class UserResponse(BaseModel):
-    user_id: int
-    username: str
-    email: str
-    avatar_img: Optional[str] = None
-    reputation_score: Optional[int] = None
-    expertise_area: Optional[str] = None
-    credentials: Optional[str] = None
-    created_at: datetime
-    updated_at: Optional[datetime] = None
 
 class CommentMetrics(BaseModel):
     like_count: int = 0
@@ -84,3 +97,5 @@ class CommentResponse(BaseModel):
         if 'interaction_state' not in data:
             data['interaction_state'] = get_default_interaction_state()
         super().__init__(**data)
+
+CommentResponse.model_rebuild()  # Rebuild model to handle self-referential type

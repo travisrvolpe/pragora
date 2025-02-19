@@ -26,9 +26,10 @@ import { toast } from '@/lib/hooks/use-toast/use-toast';
 
 interface CommentCardProps {
   comment: any; // Use generated type here
+  depth?: number;
 }
 
-export const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
+export const CommentCard: React.FC<CommentCardProps> = ({ comment, depth = 0 }) => {
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -127,19 +128,23 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
   const isOwnComment = user?.user_id === comment.userId;
   const isAdmin = user?.is_admin ?? false;
   const showActionButtons = !comment.isDeleted && (isOwnComment || isAdmin);
+  const marginLeft = depth > 0 ? `${depth * 2}rem` : '0';
 
   return (
-    <div className={`p-4 rounded-lg ${comment.depth ? 'ml-8 bg-gray-50' : 'bg-white'}`}>
-      <div className="flex space-x-3">
+    <div
+      className={`p-4 rounded-lg mb-2 ${depth > 0 ? 'bg-gray-50 border-l-2 border-gray-200' : 'bg-white'}`}
+      style={{ marginLeft }}
+    >
+      <div className="flex gap-3">
         <img
-          src={comment.avatarImg || '/api/placeholder/40/40'}
+          src={comment.avatarImg || '/api/placeholder/32/32'}
           alt={comment.username}
-          className="w-10 h-10 rounded-full"
+          className="w-8 h-8 rounded-full"
         />
-        <div className="flex-1">
-          <div className="flex items-center space-x-2">
-            <span className="font-semibold">{comment.username}</span>
-            <span className="text-sm text-gray-500">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-medium text-sm text-gray-900">{comment.username}</span>
+            <span className="text-xs text-gray-500">
               {formatRelativeTime(comment.createdAt)}
             </span>
             {comment.isEdited && (
@@ -148,7 +153,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
           </div>
 
           {comment.isDeleted ? (
-            <p className="text-gray-500 italic">[deleted]</p>
+            <p className="text-gray-500 italic text-sm">[deleted]</p>
           ) : isEditing ? (
             <CommentForm
               postId={comment.postId}
@@ -158,36 +163,36 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
               onSuccess={() => setIsEditing(false)}
             />
           ) : (
-            <p className="mt-1">{comment.content}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{comment.content}</p>
           )}
 
-          <div className="flex items-center space-x-4 mt-2">
+          <div className="flex items-center gap-4 mt-2">
             <button
               onClick={handleLike}
-              className={`flex items-center space-x-1 text-sm ${
-                comment.interactionState.like ? 'text-blue-500' : 'text-gray-500'
-              }`}
+              className={`flex items-center gap-1 text-xs ${
+                comment.interactionState.like ? 'text-blue-600' : 'text-gray-500'
+              } hover:text-blue-600 transition-colors`}
             >
-              <ThumbsUp className="w-4 h-4" />
+              <ThumbsUp className="w-3 h-3" />
               <span>{comment.metrics.likeCount}</span>
             </button>
 
             <button
               onClick={handleDislike}
-              className={`flex items-center space-x-1 text-sm ${
-                comment.interactionState.dislike ? 'text-red-500' : 'text-gray-500'
-              }`}
+              className={`flex items-center gap-1 text-xs ${
+                comment.interactionState.dislike ? 'text-red-600' : 'text-gray-500'
+              } hover:text-red-600 transition-colors`}
             >
-              <ThumbsDown className="w-4 h-4" />
+              <ThumbsDown className="w-3 h-3" />
               <span>{comment.metrics.dislikeCount}</span>
             </button>
 
             {!comment.isDeleted && (
               <button
                 onClick={() => setIsReplying(!isReplying)}
-                className="flex items-center space-x-1 text-sm text-gray-500"
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
               >
-                <Reply className="w-4 h-4" />
+                <Reply className="w-3 h-3" />
                 <span>Reply</span>
               </button>
             )}
@@ -197,36 +202,36 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="p-1"
+                  className="p-1 h-6"
                   onClick={() => setShowActions(!showActions)}
                 >
-                  <MoreVertical className="w-4 h-4" />
+                  <MoreVertical className="w-3 h-3" />
                 </Button>
                 {showActions && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                  <div className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg py-1 z-10 text-sm">
                     <button
                       onClick={() => {
                         setIsEditing(true);
                         setShowActions(false);
                       }}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center w-full px-3 py-1 text-gray-700 hover:bg-gray-100"
                     >
-                      <Edit className="w-4 h-4 mr-2" />
+                      <Edit className="w-3 h-3 mr-2" />
                       Edit
                     </button>
                     <button
                       onClick={handleDelete}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                      className="flex items-center w-full px-3 py-1 text-red-600 hover:bg-gray-100"
                     >
-                      <Trash className="w-4 h-4 mr-2" />
+                      <Trash className="w-3 h-3 mr-2" />
                       Delete
                     </button>
                     {!isOwnComment && (
                       <button
                         onClick={handleReport}
-                        className="flex items-center w-full px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100"
+                        className="flex items-center w-full px-3 py-1 text-yellow-600 hover:bg-gray-100"
                       >
-                        <Flag className="w-4 h-4 mr-2" />
+                        <Flag className="w-3 h-3 mr-2" />
                         Report
                       </button>
                     )}
@@ -237,7 +242,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
           </div>
 
           {isReplying && (
-            <div className="mt-4">
+            <div className="mt-3">
               <CommentForm
                 postId={comment.postId}
                 parentId={comment.commentId}
@@ -248,11 +253,12 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment }) => {
           )}
 
           {comment.replies && comment.replies.length > 0 && (
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-2">
               {comment.replies.map((reply: any) => (
                 <CommentCard
                   key={reply.commentId}
                   comment={reply}
+                  depth={depth + 1}
                 />
               ))}
             </div>

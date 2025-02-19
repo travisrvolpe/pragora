@@ -6,7 +6,8 @@ import { toast } from '@/lib/hooks/use-toast/use-toast';
 import { ApolloError, useMutation } from '@apollo/client';
 import {
   CREATE_COMMENT,
-  UPDATE_COMMENT
+  UPDATE_COMMENT,
+  GET_COMMENTS
 } from '@/lib/graphql/operations/comments';
 import type {
   CreateCommentInput,
@@ -14,8 +15,10 @@ import type {
   CreateCommentMutation,
   UpdateCommentMutation,
   CreateCommentMutationVariables,
-  UpdateCommentMutationVariables
+  UpdateCommentMutationVariables,
+  GetCommentsQuery
 } from '@/lib/graphql/generated/types';
+import { convertToSnakeCase, convertToCamelCase } from '@/components/helpers/commentConverters';
 
 interface CommentFormProps {
   postId: number;
@@ -24,7 +27,6 @@ interface CommentFormProps {
   onCancel?: () => void;
   onSuccess?: () => void;
 }
-
 export const CommentForm: React.FC<CommentFormProps> = ({
   postId,
   parentId,
@@ -53,6 +55,63 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         description: error.message,
         variant: 'destructive'
       });
+    },
+
+        update: (cache, { data }) => {
+      if (!data?.createComment) return;
+
+      try {
+        const existingData = cache.readQuery<GetCommentsQuery>({
+          query: GET_COMMENTS,
+          variables: { postId, parentCommentId: null, page: 1, pageSize: 50 }
+        });
+
+        if (!existingData) return;
+
+        if (parentId) {
+          // Add reply to parent comment
+          const updatedComments = existingData.comments.map((comment) => {
+            if (comment.commentId === parentId) {
+              const camelCaseComment = {
+                ...comment,
+                metrics: {
+                  ...comment.metrics,
+                  replyCount: comment.metrics.replyCount + 1
+                },
+                replies: [
+                  ...(comment.replies || []),
+                  convertToCamelCase(convertToSnakeCase(data.createComment))
+                ]
+              };
+              return camelCaseComment;
+            }
+            return comment;
+          });
+
+          cache.writeQuery<GetCommentsQuery>({
+            query: GET_COMMENTS,
+            variables: { postId, parentCommentId: null, page: 1, pageSize: 50 },
+            data: {
+              __typename: "Query",
+              comments: updatedComments
+            }
+          });
+        } else {
+          // Add new root comment
+          const camelCaseComment = convertToCamelCase(convertToSnakeCase(data.createComment));
+
+          cache.writeQuery<GetCommentsQuery>({
+            query: GET_COMMENTS,
+            variables: { postId, parentCommentId: null, page: 1, pageSize: 50 },
+            data: {
+              __typename: "Query",
+              comments: [camelCaseComment, ...existingData.comments]
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Cache update error:', error);
+      }
     }
   });
 
