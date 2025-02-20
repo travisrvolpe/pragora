@@ -8,14 +8,19 @@ from app.auth.utils import get_current_user
 
 router = APIRouter(prefix="/posts", tags=["comments"])
 
+
 @router.post("/{post_id}/comments", response_model=CommentResponse)
 async def create_comment(
-    post_id: int,
-    comment_data: CommentCreate,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        post_id: int,
+        comment_data: CommentCreate,
+        current_user=Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     try:
+        print(f"Received comment data: {comment_data}")  # Debug line
+        print(f"Post ID: {post_id}")  # Debug line
+        print(f"Parent comment ID: {comment_data.parent_comment_id}")  # Debug line
+
         comment_service = CommentService(db)
         comment_data.post_id = post_id
         comment = await comment_service.create_comment(
@@ -24,6 +29,7 @@ async def create_comment(
         )
         return comment
     except Exception as e:
+        print(f"Error creating comment: {str(e)}")  # Debug line
         raise HTTPException(
             status_code=500,
             detail=str(e)

@@ -1,21 +1,13 @@
 // components/comments/CommentCard.tsx
 'use client';
 
-import React, { useState } from 'react';
-import {
-  MessageCircle,
-  ThumbsUp,
-  ThumbsDown,
-  Flag,
-  MoreVertical,
-  Reply,
-  Edit,
-  Trash
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageCircle, ThumbsUp, ThumbsDown, Flag, MoreVertical, Reply, Edit, Trash } from 'lucide-react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { CommentForm } from './CommentForm';
 import { formatRelativeTime } from '@/lib/utils/date-utils';
+import type { Comment, CommentInteractionState, CommentMetrics, User } from '@/lib/graphql/generated/types';
 import {
   useLikeCommentMutation,
   useDislikeCommentMutation,
@@ -25,11 +17,16 @@ import {
 import { toast } from '@/lib/hooks/use-toast/use-toast';
 
 interface CommentCardProps {
-  comment: any; // Use generated type here
+  comment: Comment;
   depth?: number;
 }
 
 export const CommentCard: React.FC<CommentCardProps> = ({ comment, depth = 0 }) => {
+  useEffect(() => {
+    console.log('Comment data:', comment);
+    console.log('User data:', comment.user);
+    console.log('Avatar path:', comment.user?.avatarImg);
+  }, [comment]);
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -128,22 +125,37 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment, depth = 0 }) 
   const isOwnComment = user?.user_id === comment.userId;
   const isAdmin = user?.is_admin ?? false;
   const showActionButtons = !comment.isDeleted && (isOwnComment || isAdmin);
-  const marginLeft = depth > 0 ? `${depth * 2}rem` : '0';
 
   return (
     <div
-      className={`p-4 rounded-lg mb-2 ${depth > 0 ? 'bg-gray-50 border-l-2 border-gray-200' : 'bg-white'}`}
-      style={{ marginLeft }}
+      className={`p-4 rounded-lg mb-2 ${
+        depth > 0 ? 'bg-gray-50 border-l-2 border-gray-200' : 'bg-white'
+      }`}
+      style={{ marginLeft: `${depth * 2}rem` }}
     >
       <div className="flex gap-3">
-        <img
-          src={comment.avatarImg || '/api/placeholder/32/32'}
-          alt={comment.username}
-          className="w-8 h-8 rounded-full"
-        />
+        <div className="flex-shrink-0">
+          {(comment.avatarImg || comment.user?.avatarImg) ? (
+            <img
+              src={String(comment.avatarImg || comment.user?.avatarImg)}
+              alt={String(comment.username || comment.user?.username || 'User')}
+              className="w-8 h-8 rounded-full object-cover bg-gray-100"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = `/api/placeholder/32/32`;
+              }}
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+              <span className="text-xs text-gray-600 font-medium">
+                {(comment.username || comment.user?.username || '?').charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-sm text-gray-900">{comment.username}</span>
+            <span className="font-medium text-sm text-gray-900">{comment.user?.username || 'Anonymous'}</span>
             <span className="text-xs text-gray-500">
               {formatRelativeTime(comment.createdAt)}
             </span>
@@ -163,7 +175,9 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment, depth = 0 }) 
               onSuccess={() => setIsEditing(false)}
             />
           ) : (
-            <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{comment.content}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+              {comment.content}
+            </p>
           )}
 
           <div className="flex items-center gap-4 mt-2">
@@ -246,7 +260,10 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment, depth = 0 }) 
               <CommentForm
                 postId={comment.postId}
                 parentId={comment.commentId}
-                onSuccess={() => setIsReplying(false)}
+                onSuccess={() => {
+                  console.log('Reply submitted with postId:', comment.postId);
+                  setIsReplying(false);
+                }}
                 onCancel={() => setIsReplying(false)}
               />
             </div>
@@ -254,7 +271,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment, depth = 0 }) 
 
           {comment.replies && comment.replies.length > 0 && (
             <div className="mt-4 space-y-2">
-              {comment.replies.map((reply: any) => (
+              {comment.replies.map((reply) => (
                 <CommentCard
                   key={reply.commentId}
                   comment={reply}

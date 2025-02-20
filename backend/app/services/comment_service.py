@@ -1,6 +1,6 @@
 # services/comment_service.py
 from typing import Optional, List, Dict, Any
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from fastapi import HTTPException
 from app.datamodels.comment_datamodels import Comment
@@ -368,25 +368,29 @@ class CommentService:
     ) -> List[CommentResponse]:
         """Get a thread of comments with their replies"""
         try:
-            query = self.db.query(Comment)
+            query = (
+                self.db.query(Comment)
+                .join(User)
+                .outerjoin(UserProfile)  # Ensure we're joining UserProfile
+                .options(
+                    joinedload(Comment.user).joinedload(User.profile),  # Eager load nested user data
+                    joinedload(Comment.replies).joinedload(Comment.user).joinedload(User.profile)
+                    # Load reply user data
+                )
+            )
 
             if parent_id is not None:
-                # Get replies to a specific comment
                 parent = self.db.query(Comment).get(parent_id)
                 if not parent:
                     raise HTTPException(status_code=404, detail="Parent comment not found")
                 query = query.filter(Comment.path.like(f"{parent.path}.{parent_id}%"))
             else:
-                # Get root level comments
                 query = query.filter(
                     Comment.post_id == post_id,
-                    Comment.parent_comment_id.is_(None)  # Root comments have no parent
+                    Comment.parent_comment_id.is_(None)
                 )
 
-            # Optimize query with joins
-            query = query.join(User).outerjoin(UserProfile)
-
-            # Add ordering - newest first for root comments, oldest first for replies
+            # Add ordering
             if parent_id:
                 query = query.order_by(Comment.created_at.asc())
             else:
@@ -396,33 +400,19 @@ class CommentService:
             total = query.count()
             comments = query.offset((page - 1) * page_size).limit(page_size).all()
 
-            # Get all comment IDs for bulk interaction query
-            comment_ids = [c.comment_id for c in comments]
-
-            # For each root comment, fetch its immediate replies
+            # Process comments and ensure all nested data is loaded
             responses = []
             for comment in comments:
-                # Get immediate replies for this comment
-                replies_query = self.db.query(Comment).filter(
-                    Comment.parent_comment_id == comment.comment_id
-                ).order_by(Comment.created_at.asc())
-
-                replies = replies_query.all()
-
-                # Convert comment to response with replies
                 comment_response = await self.get_comment(
                     comment.comment_id,
                     user_id,
-                    include_replies=True
+                    include_replies=True  # Always include replies for thread view
                 )
-
                 if comment_response:
                     responses.append(comment_response)
 
             return responses
 
-        except HTTPException:
-            raise
         except Exception as e:
             print(f"Error in get_comment_thread: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
