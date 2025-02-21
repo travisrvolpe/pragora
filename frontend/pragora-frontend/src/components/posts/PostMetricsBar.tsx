@@ -26,7 +26,7 @@ export const PostMetricsBar: React.FC<PostMetricsBarProps> = ({
   const metrics: MetricsData = {
     like_count: post.metrics?.like_count ?? 0,
     dislike_count: post.metrics?.dislike_count ?? 0,
-    //comment_count: post.metrics?.comment_count ?? 0, // Added required comment_count
+    comment_count: post.metrics?.comment_count ?? 0, // Added required comment_count
     share_count: post.metrics?.share_count ?? 0,
     save_count: post.metrics?.save_count ?? 0,
     report_count: post.metrics?.report_count ?? 0,
@@ -36,6 +36,7 @@ export const PostMetricsBar: React.FC<PostMetricsBarProps> = ({
   const states: MetricStates = {
     like: false,
     dislike: false,
+    share: false,
     save: false,
     report: false
   };

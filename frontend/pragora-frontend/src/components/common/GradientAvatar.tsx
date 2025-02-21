@@ -6,7 +6,7 @@ const POST_TYPE_GRADIENTS: Record<PostTypeId, string> = {
   1: 'from-purple-300 to-purple-800', // Thought
   2: 'from-red-300 to-red-800',      // Image
   3: 'from-emerald-300 to-emerald-800', // Article
-  //4: 'from-blue-300 to-blue-800'     // Video
+  4: 'from-blue-300 to-blue-800'     // Video
 } as const;
 
 interface GradientAvatarProps {

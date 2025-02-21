@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { Profile, ProfileUpdateDto } from '@/types/profile';
+import { Profile, ProfileUpdateDto } from '@/types/user/profile';
 import { profileService } from '@/lib/services/user/profileService';
 import { useAuth } from '@/contexts/auth/AuthContext';
 
@@ -11,8 +11,10 @@ interface ProfileContextType {
   error: string | null;
   fetchProfile: () => Promise<void>;
   updateProfileData: (updatedProfile: ProfileUpdateDto) => Promise<void>;
-  updateAvatar: (file: File) => Promise<void>;
+  updateAvatar: (file: File) => Promise<{ data: any; avatar_url: string; }>;  // Updated return type
 }
+
+
 
 const ProfileContext = createContext<ProfileContextType>({
   profile: null,
@@ -20,7 +22,12 @@ const ProfileContext = createContext<ProfileContextType>({
   error: null,
   fetchProfile: async () => {},
   updateProfileData: async () => {},
-  updateAvatar: async () => {},
+  updateAvatar: async () => {
+  return {
+    data: null,
+    avatar_url: ''
+  };
+},
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
@@ -61,10 +68,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const updateAvatar = async (file: File) => {
     setIsLoading(true);
     try {
-      const { avatar_url } = await profileService.updateAvatar(file);
-      if (profile) {
-        setProfile({ ...profile, avatar_img: avatar_url });
+      const response = await profileService.updateAvatar(file);
+      console.log("Avatar update response:", response);
+
+      if (response?.data?.avatar_url) {
+        // Update profile immediately with new avatar URL
+        setProfile(prevProfile => prevProfile ? {
+          ...prevProfile,
+          avatar_img: response.data.avatar_url
+        } : null);
       }
+      return response;
     } catch (err) {
       console.error('Error updating avatar:', err);
       setError(err instanceof Error ? err.message : 'Failed to update avatar');
@@ -74,19 +88,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProfile();
-    }
-  }, [isAuthenticated]);
-
   const value = {
     profile,
     isLoading,
     error,
     fetchProfile,
     updateProfileData,
-    updateAvatar,
+    updateAvatar,  // Make sure this is included in the value object
   };
 
   return (

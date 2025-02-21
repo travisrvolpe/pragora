@@ -17,19 +17,25 @@ class Settings(BaseSettings):
     DATABASE_URL: str
 
     # Media settings
-    MEDIA_ROOT: str = os.path.join(PROJECT_ROOT, "media")
+    MEDIA_ROOT: str = "/home/notsure/pragora/backend/media"
+    STATIC_ROOT: str = "/home/notsure/pragora/backend/static"
+    DEFAULT_AVATAR_URL: str = "/home/notsure/pragora/frontend/pragora-frontend/public/images/avatars/default_avatar.png"
     POSTS_MEDIA_DIR: str = os.path.join(MEDIA_ROOT, "media", "posts")
     AVATAR_DIR: str = os.path.join(MEDIA_ROOT, "avatars")
-    DEFAULT_AVATAR_URL: str = "/home/notsure/pragora/frontend/pragora-frontend/src/assets/ZERO.PNG"
+    #DEFAULT_AVATAR_URL: str = "/home/notsure/pragora/frontend/pragora-frontend/src/assets/ZERO.PNG"
+
+    # Make sure there's a frontend URL configured
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # Metric settings
     METRICS_ENABLED: bool = True
-    METRICS_RETENTION_DAYS: int = 30
+    METRICS_RETENTION_DAYS: int = 30 # Should this be forever?
     METRICS_AGGREGATION_WINDOW: int = 300  # 5 minutes in seconds
     CACHE_EXPIRY_SECONDS: int = 300  # 5 minutes
 
     class Config:
         env_file = ".env"
+
 
     def create_media_directories(self):
         """Ensure media directories exist"""
@@ -40,3 +46,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 settings.create_media_directories()
+
+# Create necessary directories if they don't exist - is this needed?
+os.makedirs(os.path.join(settings.MEDIA_ROOT, "avatars"), exist_ok=True)
+os.makedirs(settings.STATIC_ROOT, exist_ok=True)

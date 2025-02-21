@@ -22,7 +22,9 @@ MEDIA_PATH = Path("./media")
 if not MEDIA_PATH.exists():
     MEDIA_PATH.mkdir(parents=True)
 
+from app.core.logger import get_logger
 
+logger = get_logger(__name__)
 router = APIRouter(prefix="/posts", tags=["posts"])
 
 # Create a post
@@ -120,14 +122,22 @@ async def create_post(
         print(f"❌ Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{post_id}", response_model=dict)
+@router.get("/{post_id}", response_model=PostResponse)
 async def get_post(
     post_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)  # Fetch user details
+    current_user: Optional[User] = Depends(get_current_user)
 ):
-    user_id = current_user.user_id if current_user else None
-    return await post_service.get_post(db, post_id, user_id=user_id)
+    """Get a single post with engagement data"""
+    try:
+        user_id = current_user.user_id if current_user else None
+        response = await post_service.get_post(db, post_id, user_id=user_id)
+        if isinstance(response, dict) and 'data' in response and 'post' in response['data']:
+            return response['data']['post']
+        return response
+    except Exception as e:
+        logger.error(f"Error in get_post route: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
     # Track view only if user is authenticated
     #try:

@@ -1,7 +1,7 @@
 # datamodels/post_datamodels.py
 from sqlalchemy import Table, Column, Integer, String, DateTime, ForeignKey, Text, JSON, Boolean, Float, Index
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy import func
+from sqlalchemy.orm import relationship, backref, validates
 from database.database import Base
 
 # Association Table for Many-to-Many Relationship (Post Tags)
@@ -52,12 +52,12 @@ class Post(Base):
     custom_subcategory = Column(String, nullable=True)
 
     # Interaction Metrics
-    like_count = Column(Integer, default=0, nullable=False)
-    dislike_count = Column(Integer, default=0, nullable=False)
-    save_count = Column(Integer, default=0, nullable=False)
-    share_count = Column(Integer, default=0, nullable=False)
-    comment_count = Column(Integer, default=0, nullable=False)
-    report_count = Column(Integer, default=0, nullable=False)
+    like_count = Column(Integer, default=0, nullable=False, server_default='0')
+    dislike_count = Column(Integer, default=0, nullable=False, server_default='0')
+    save_count = Column(Integer, default=0, nullable=False, server_default='0')
+    share_count = Column(Integer, default=0, nullable=False, server_default='0')
+    comment_count = Column(Integer, default=0, nullable=False, server_default='0')
+    report_count = Column(Integer, default=0, nullable=False, server_default='0')
 
     # Timestamps and Status
     status = Column(String, default='active')
@@ -86,6 +86,22 @@ class Post(Base):
     engagement = relationship("PostEngagement", back_populates="post", uselist=False)
     #if adding threaded posts parent_post_id = Column(Integer, ForeignKey("posts.post_id"), nullable=True)
     # subcategory = relationship("Subcategory", back_populates="posts") # Removed as it was causing issues in the previous version
+
+
+
+    @validates('like_count', 'dislike_count', 'save_count', 'share_count', 'comment_count', 'report_count')
+    def validate_count(self, key, count):
+        """Ensure counts never go below 0"""
+        if count is None:
+            return 0
+        return max(0, count)
+
+    # Add index for performance
+    __table_args__ = (
+        Index('idx_post_metrics',
+              'like_count', 'dislike_count', 'save_count',
+              'share_count', 'comment_count', 'report_count'),
+    )
 
 
 class Tag(Base):

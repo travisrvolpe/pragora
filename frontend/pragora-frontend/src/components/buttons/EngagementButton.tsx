@@ -32,7 +32,7 @@ export const EngagementButton = React.forwardRef<HTMLButtonElement, EngagementBu
   size = 'sm'
 }, ref) => {
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation() // Prevent event bubbling
+    e.stopPropagation()
     if (!disabled && onClick) {
       onClick()
     }
@@ -47,11 +47,11 @@ export const EngagementButton = React.forwardRef<HTMLButtonElement, EngagementBu
       disabled={disabled}
       title={tooltip}
       className={cn(
-        'flex items-center gap-1 px-2 py-1 rounded-lg transition-all duration-200',
-        'hover:bg-gray-100',
-        'focus:outline-none focus:ring-2 focus:ring-gray-200',
+        'flex items-center gap-1 rounded-lg transition-all duration-200',
+        'hover:bg-opacity-10',
+        'focus:outline-none focus:ring-2 focus:ring-offset-2',
         'disabled:opacity-50 disabled:cursor-not-allowed',
-        active && 'bg-gray-100 font-semibold',
+        active && 'bg-opacity-20 font-semibold',
         error && 'text-red-500',
         className
       )}
@@ -59,15 +59,15 @@ export const EngagementButton = React.forwardRef<HTMLButtonElement, EngagementBu
       <div className="flex items-center space-x-1">
         <Icon
           className={cn(
-            'w-4 h-4 transition-transform duration-200',
-            active && 'scale-110',
+            'w-4 h-4 transition-colors duration-200',
+            active && 'fill-current',
             disabled && 'opacity-50'
           )}
         />
         {typeof count === 'number' && (
           <span className={cn(
-            'text-sm',
-            active && 'font-semibold',
+            'text-sm transition-colors duration-200',
+            active && 'font-semibold'
           )}>
             {count.toLocaleString()}
           </span>

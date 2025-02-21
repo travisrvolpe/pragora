@@ -1,5 +1,7 @@
 # app/routes/profile_routes.py
 # should probably update to get user posts, delete posts, and edit posts. Add drafts?
+import os
+from app.core.config import settings
 from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.responses import JSONResponse
@@ -17,7 +19,6 @@ from app.services.profile_service import (
     get_or_create_profile, create_default_profile, profile_to_dict
 )
 from datetime import datetime, timedelta
-
 router = APIRouter(
     prefix="/profiles",
     tags=["profiles"]
@@ -26,8 +27,15 @@ router = APIRouter(
 
 # TODO CAN THIS CREATE ISSUES WITH OVERWRITTING PROFILES?
 
+@router.get("/static/{path:path}")
+async def get_static_file(path: str):
+    """Serve static files"""
+    file_path = os.path.join(settings.STATIC_ROOT, path)
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(file_path)
 
-@router.get("/me")
+#@router.get("/me")
 @router.get("/me")
 async def get_my_profile(
         request: Request,
@@ -173,15 +181,49 @@ async def get_saved_posts_endpoint(
 
 @router.get("/avatar/{user_id}")
 def get_user_avatar(user_id: int, db: Session = Depends(get_db)):
-    user_profile = db.query(UserProfile).filter_by(user_id=user_id).first()
-    if not user_profile:
-        # Return a placeholder image (or 404)
-        return FileResponse("static/default_avatar.png", media_type="image/png")
+    """Get a user's avatar by user ID"""
+    try:
+        # Find the user profile
+        user_profile = db.query(UserProfile).filter_by(user_id=user_id).first()
+        print(f"Avatar request for user_id: {user_id}, found profile: {user_profile is not None}")
 
-    if not user_profile.avatar_url:
-        # No avatar has been uploaded, return placeholder
-        return FileResponse("static/default_avatar.png", media_type="image/png")
+        if not user_profile:
+            print(f"No profile found for user {user_id}, returning default")
+            return FileResponse(os.path.join(settings.STATIC_ROOT, "default_avatar.png"),
+                                media_type="image/png")
 
+        # Check if user has an avatar set
+        print(f"User {user_id} avatar_img: {user_profile.avatar_img}")
+        if not user_profile.avatar_img or user_profile.avatar_img == 'default_url':
+            print(f"No avatar set for user {user_id}, returning default")
+            return FileResponse(os.path.join(settings.STATIC_ROOT, "default_avatar.png"),
+                                media_type="image/png")
+
+        # Extract filename
+        if user_profile.avatar_img.startswith('/avatars/'):
+            filename = user_profile.avatar_img.split('/')[-1]
+        else:
+            filename = user_profile.avatar_img
+        print(f"Extracted filename: {filename}")
+
+        # Build path and check existence
+        file_path = os.path.join(settings.AVATAR_DIR, filename)
+        print(f"Looking for avatar at: {file_path}")
+        print(f"File exists: {os.path.isfile(file_path)}")
+
+        if not os.path.isfile(file_path):
+            print(f"Avatar file not found at {file_path}, returning default")
+            return FileResponse(os.path.join(settings.STATIC_ROOT, "default_avatar.png"),
+                                media_type="image/png")
+
+        # Return the avatar file
+        print(f"Serving avatar from {file_path}")
+        return FileResponse(file_path, media_type="image/png")
+
+    except Exception as e:
+        print(f"Error retrieving avatar: {str(e)}")
+        return FileResponse(os.path.join(settings.STATIC_ROOT, "default_avatar.png"),
+                            media_type="image/png")
     # If you store images on disk, do something like:
     # return FileResponse(f"uploads/avatars/{user_profile.avatar_url}", media_type="image/png")
 
@@ -209,3 +251,23 @@ async def update_profile_avatar(
     except Exception as e:
         print(f"Error updating avatar: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to update avatar")
+
+
+@router.get("/avatar/by-path{full_path:path}")
+def get_avatar_by_path(full_path: str):
+    """Get avatar by its path"""
+    try:
+        if full_path.startswith('/avatars/'):
+            filename = full_path.split('/')[-1]
+            file_path = os.path.join(settings.AVATAR_DIR, filename)
+
+            if os.path.isfile(file_path):
+                return FileResponse(file_path, media_type="image/png")
+
+        # Default avatar fallback
+        return FileResponse(os.path.join(settings.STATIC_ROOT, "default_avatar.png"),
+                            media_type="image/png")
+    except Exception as e:
+        print(f"Error retrieving avatar by path: {str(e)}")
+        return FileResponse(os.path.join(settings.STATIC_ROOT, "default_avatar.png"),
+                            media_type="image/png")

@@ -8,7 +8,8 @@ import {
   Camera, MapPin, Briefcase, Book, Award, Calendar, Edit3
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Profile, ProfileUpdateDto, StatCardProps, TabButtonProps, InputFieldProps } from '@/types/profile';
+import { Profile, ProfileUpdateDto, StatCardProps, TabButtonProps, InputFieldProps } from '@/types/user/profile';
+import {UserAvatar} from "@/components/user/UserAvatar";
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon }) => (
   <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
@@ -62,7 +63,14 @@ const InputField: React.FC<InputFieldProps> = ({
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const { profile, isLoading, error, fetchProfile, updateProfileData } = useProfile();
+  const {
+    profile,
+    isLoading,
+    error,
+    fetchProfile,
+    updateProfileData,
+    updateAvatar
+  } = useProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [updatedProfile, setUpdatedProfile] = useState<Partial<Profile>>({});
   const [activeTab, setActiveTab] = useState('overview');
@@ -89,42 +97,20 @@ export default function ProfilePage() {
   };
 
   const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+      try {
+        console.log("Starting avatar upload...");
+        const response = await updateAvatar(file);
+        console.log("Avatar upload response:", response);
 
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        throw new Error('No authentication token found');
+        // No need to call fetchProfile again since we're updating the profile state in updateAvatar
+        console.log("Current profile after update:", profile);
+      } catch (err) {
+        console.error('Error uploading avatar:', err);
       }
-
-      const response = await fetch('/api/profiles/me/avatar', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload avatar');
-      }
-
-      const data = await response.json();
-      setUpdatedProfile(prev => ({
-        ...prev,
-        avatar_img: data.avatar_url
-      }));
-
-      await fetchProfile();
-    } catch (err) {
-      console.error('Error uploading avatar:', err);
-    }
-  };
-
+    };
   const saveProfile = async () => {
     try {
       await updateProfileData(updatedProfile as ProfileUpdateDto);
@@ -158,10 +144,11 @@ export default function ProfilePage() {
           <div className="flex items-start gap-6">
               {/* Avatar Section */}
               <div className="relative">
-                  <img
-                      src={profile?.avatar_img || "/api/placeholder/120/120"}
-                      alt={profile?.username}
-                      className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+                  <UserAvatar
+                      username={profile?.username || ''}
+                      avatarUrl={profile?.avatar_img}
+                      size="lg"
+                      className="w-32 h-32 border-4 border-white shadow-lg"
                   />
                   {isEditing && (
                       <label

@@ -1,5 +1,5 @@
 // types/auth.ts
-import type { User } from './user';
+import type { User } from './user/user';
 
 // Form Data types
 export interface LoginFormData {
@@ -48,4 +48,4 @@ export interface AuthContextType extends AuthState {
 }
 
 // Re-export User type
-export type { User } from './user';
+export type { User } from './user/user';

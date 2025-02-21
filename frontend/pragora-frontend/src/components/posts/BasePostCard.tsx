@@ -34,10 +34,13 @@ export const BasePostCard: React.FC<PostCardProps> = ({
 }) => {
   return (
     <div className={cn("w-full", className)}>
-      {/* Just render the content itself */}
       <div className="prose max-w-none">
         {children}
       </div>
+      <PostMetricsBar
+        post={post}
+        variant={variant}
+      />
     </div>
   );
 };

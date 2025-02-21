@@ -1,7 +1,11 @@
 # app/services/profile_service.py
+import os
+import uuid
+import aiofiles
+from PIL import Image
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
-from app.services.file_service import save_avatar_image
+#from app.services.file_service import save_avatar_image
 from app.datamodels.datamodels import UserProfile, User
 from app.schemas.schemas import ProfileUpdate
 from app.core.cache import get_redis
@@ -9,6 +13,15 @@ import json
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from app.core.config import settings
+from app.core.logger import get_logger, log_execution_time
+
+logger = get_logger(__name__)
+
+# Use the configured directory from settings
+UPLOAD_DIR = os.path.join(settings.MEDIA_ROOT, "avatars")
+
+# Ensure upload directory exists
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 async def get_or_create_profile(db: Session, user: User) -> UserProfile:
     """Get existing profile or create a new one."""
@@ -195,3 +208,30 @@ async def create_default_profile(db: Session, user_id: int, email: str) -> UserP
     db.commit()
     db.refresh(profile)
     return profile
+
+async def save_avatar_image(file: UploadFile) -> str:
+    """Save an avatar image and return the file path."""
+    try:
+        # Generate unique filename
+        file_extension = file.filename.split(".")[-1].lower() if file.filename else "jpg"
+        filename = f"{uuid.uuid4()}.{file_extension}"
+        filepath = os.path.join(settings.AVATAR_DIR, filename)
+
+        logger.info(f"Saving avatar to {filepath}")
+
+        # Save the file
+        async with aiofiles.open(filepath, 'wb') as out_file:
+            content = await file.read()
+            await out_file.write(content)
+
+        # Process image (resize if needed)
+        with Image.open(filepath) as img:
+            # Resize image to standard size for avatars
+            img.thumbnail((200, 200))
+            img.save(filepath)
+
+        # Return the URL path (not filesystem path)
+        return f"/avatars/{filename}"
+    except Exception as e:
+        logger.error(f"Error saving avatar: {str(e)}")
+        raise

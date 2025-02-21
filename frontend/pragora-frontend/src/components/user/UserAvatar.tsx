@@ -36,18 +36,23 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   // Function to get the proper image source
   const getImageSource = (url: string | null | undefined): string => {
     if (!url || url === 'default_url') {
-      return DEFAULT_AVATAR_URL;
+      return '/images/avatars/default_avatar.png';
     }
 
-    // If the URL is already absolute, use it
-    if (url.startsWith('http') || url.startsWith('/')) {
+    // If it's an absolute URL
+    if (url.startsWith('http')) {
       return url;
     }
 
-    // Otherwise, prepend the default path
+    // If it's an avatar from the backend
+    if (url.startsWith('/avatars/')) {
+      // Use media path from backend
+      return `${process.env.NEXT_PUBLIC_API_URL}/media${url}`;
+    }
+
+    // Fallback for local images
     return `/images/avatars/${url}`;
   };
-
   return (
     <div
       className={cn(

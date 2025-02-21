@@ -4,7 +4,7 @@
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from app.datamodels.datamodels import User
 from app.datamodels.post_datamodels import Post, PostType, PostAnalysis, PostEngagement
 from app.schemas.post_schemas import PostCreate, PostInteractionCreate
@@ -14,6 +14,11 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional, List
 from werkzeug.utils import secure_filename
+from app.services.post_engagement_service import PostEngagementService
+from app.cache import get_cache
+from app.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Post Services
 async def create_post(db: Session, user_id: int, post: PostCreate, files: Optional[list[UploadFile]] = None) -> dict:
@@ -180,30 +185,49 @@ async def create_post(db: Session, user_id: int, post: PostCreate, files: Option
 
 async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> dict:
     """Get a single post with all required fields."""
-    print(f"Fetching post {post_id} for user {user_id if user_id else 'anonymous'}")
+    logger.info(f"Fetching post {post_id} for user {user_id if user_id else 'anonymous'}")
 
     try:
-        # Get post with all necessary relationships
-        post = db.query(Post).options(
-            joinedload(Post.user).joinedload(User.profile),
-            joinedload(Post.post_type),
-            joinedload(Post.tags)
-        ).filter(Post.post_id == post_id).first()
+        # First get and lock just the post
+        post = (
+            db.query(Post)
+            .filter(Post.post_id == post_id)
+            .with_for_update()
+            .first()
+        )
 
         if not post:
-            print(f"❌ Post not found: {post_id}")
+            logger.error(f"❌ Post not found: {post_id}")
             raise HTTPException(status_code=404, detail="Post not found")
 
-        # Get user interaction if user_id is provided
-        user_interaction = None
-        if user_id:
-            user_interaction = db.query(PostInteraction).filter_by(
-                post_id=post_id,
-                user_id=user_id
-            ).first()
-            print(f"User interaction found: {bool(user_interaction)}")
+        # Log current metrics state
+        logger.info(
+            f"Current post metrics - Post {post_id}: like_count={post.like_count}, dislike_count={post.dislike_count}, save_count={post.save_count}")
 
-        # Get engagement metrics with defensive handling
+        # Then get all related data without locks
+        post_with_relations = (
+            db.query(Post)
+            .options(
+                joinedload(Post.user).joinedload(User.profile),
+                joinedload(Post.post_type),
+                joinedload(Post.tags)
+            )
+            .filter(Post.post_id == post_id)
+            .first()
+        )
+
+        # Get engagement service and verify counts
+        cache = get_cache()
+        engagement_service = PostEngagementService(db, cache)
+
+        # Get verified counts and interaction state
+        counts = await engagement_service.verify_interaction_counts(post_id)
+        interaction_state = await engagement_service.get_user_interaction_state(post_id, user_id)
+
+        logger.info(f"Verified counts for post {post_id}: {counts}")
+        logger.info(f"Interaction state for user {user_id}: {interaction_state}")
+
+        # Get engagement metrics
         engagement = db.query(PostEngagement).filter_by(post_id=post_id).first()
         engagement_dict = {
             "view_count": 0,
@@ -231,19 +255,19 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
             "worldview_ai": ""
         }
 
-        if post.user:
-            if post.user.profile:
+        if post_with_relations.user:
+            if post_with_relations.user.profile:
                 user_data.update({
-                    "username": post.user.profile.username or f"user_{post.user.user_id}",
-                    "avatar_img": post.user.profile.avatar_img,
-                    "reputation_score": post.user.profile.reputation_score or 0,
-                    "reputation_cat": post.user.profile.reputation_cat or "Newbie",
-                    "expertise_area": post.user.profile.expertise_area or "",
-                    "worldview_ai": post.user.profile.worldview_ai or ""
+                    "username": post_with_relations.user.profile.username or f"user_{post_with_relations.user.user_id}",
+                    "avatar_img": post_with_relations.user.profile.avatar_img,
+                    "reputation_score": post_with_relations.user.profile.reputation_score or 0,
+                    "reputation_cat": post_with_relations.user.profile.reputation_cat or "Newbie",
+                    "expertise_area": post_with_relations.user.profile.expertise_area or "",
+                    "worldview_ai": post_with_relations.user.profile.worldview_ai or ""
                 })
             else:
-                print(f"⚠️ No profile found for user {post.user.user_id}")
-                user_data["username"] = f"user_{post.user.user_id}"
+                logger.warning(f"⚠️ No profile found for user {post_with_relations.user.user_id}")
+                user_data["username"] = f"user_{post_with_relations.user.user_id}"
 
         # Assemble complete post data
         post_data = {
@@ -254,63 +278,62 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
             # User profile fields
             **user_data,
 
-            # Content fields - with defensive handling
-            "title": post.title or "",
-            "subtitle": post.subtitle or "",
-            "content": post.content,
-            "summary": post.summary or "",
+            # Content fields
+            "title": post_with_relations.title or "",
+            "subtitle": post_with_relations.subtitle or "",
+            "content": post_with_relations.content,
+            "summary": post_with_relations.summary or "",
 
-            # Media fields - with defensive handling
-            "image_url": post.image_url or "",
-            "images": post.images or [],
-            "video_url": post.video_url or "",
-            "video_metadata": post.video_metadata or {},
-            "audio_url": post.audio_url or "",
-            "document_url": post.document_url or "",
-            "embedded_content": post.embedded_content or {},
-            "link_preview": post.link_preview or {},
+            # Media fields
+            "image_url": post_with_relations.image_url or "",
+            "images": post_with_relations.images or [],
+            "video_url": post_with_relations.video_url or "",
+            "video_metadata": post_with_relations.video_metadata or {},
+            "audio_url": post_with_relations.audio_url or "",
+            "document_url": post_with_relations.document_url or "",
+            "embedded_content": post_with_relations.embedded_content or {},
+            "link_preview": post_with_relations.link_preview or {},
 
             # Classification fields
-            "post_type_id": post.post_type_id,
-            "post_type": post.post_type.post_type_name if post.post_type else None,
-            "category_id": post.category_id,
-            "subcategory_id": post.subcategory_id,
-            "custom_subcategory": post.custom_subcategory or "",
+            "post_type_id": post_with_relations.post_type_id,
+            "post_type": post_with_relations.post_type.post_type_name if post_with_relations.post_type else None,
+            "category_id": post_with_relations.category_id,
+            "subcategory_id": post_with_relations.subcategory_id,
+            "custom_subcategory": post_with_relations.custom_subcategory or "",
 
             # Status fields
-            "visibility": post.visibility,
-            "is_pinned": post.is_pinned or False,
-            "is_draft": post.is_draft or False,
-            "parent_post_id": post.parent_post_id,
-            "edit_history": post.edit_history or {},
-            "tags": [tag.tag_name for tag in post.tags] if post.tags else [],
-            "status": post.status,
+            "visibility": post_with_relations.visibility,
+            "is_pinned": post_with_relations.is_pinned or False,
+            "is_draft": post_with_relations.is_draft or False,
+            "parent_post_id": post_with_relations.parent_post_id,
+            "edit_history": post_with_relations.edit_history or {},
+            "tags": [tag.tag_name for tag in post_with_relations.tags] if post_with_relations.tags else [],
+            "status": post_with_relations.status,
 
             # Timestamps
-            "created_at": post.created_at,
-            "updated_at": post.updated_at,
+            "created_at": post_with_relations.created_at,
+            "updated_at": post_with_relations.updated_at,
 
-            # Interaction counts - with defensive handling
-            "like_count": post.like_count or 0,
-            "dislike_count": post.dislike_count or 0,
-            "save_count": post.save_count or 0,
-            "share_count": post.share_count or 0,
-            "comment_count": post.comment_count or 0,
-            "report_count": post.report_count or 0,
+            # Verified interaction counts
+            "metrics": {
+                "like_count": counts.get("like_count", 0),
+                "dislike_count": counts.get("dislike_count", 0),
+                "save_count": counts.get("save_count", 0),
+                "share_count": counts.get("share_count", 0),
+                "comment_count": counts.get("comment_count", 0),
+                "report_count": counts.get("report_count", 0)
+            },
+
+            # User's interaction state
+            "interaction_state": interaction_state,
 
             # Engagement metrics
-            **engagement_dict,
-            # TODO Ensure that this is updated based on the most recent schema changes!!
-            # User-specific interaction flags - with defensive handling
-            "like": user_interaction.like if user_interaction else False,
-            "dislike": user_interaction.dislike if user_interaction else False,
-            "share": user_interaction.share if user_interaction else False,
-            "report": user_interaction.report if user_interaction else False,
-            "comment": user_interaction.comment if user_interaction else False,
-            "reply": user_interaction.reply if user_interaction else False,
+            **engagement_dict
         }
 
-        print(f"✅ Successfully retrieved post {post_id}")
+        logger.info(f"✅ Successfully retrieved post {post_id}")
+        logger.debug(f"Post data being returned: {post_data}")
+
         return {
             "status": "success",
             "message": "Post retrieved successfully",
@@ -320,12 +343,11 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
         }
 
     except SQLAlchemyError as e:
-        print(f"❌ Database error in get_post: {str(e)}")
+        logger.error(f"❌ Database error in get_post: {str(e)}")
         raise HTTPException(status_code=500, detail="Database error")
     except Exception as e:
-        print(f"❌ Unexpected error in get_post: {str(e)}")
+        logger.error(f"❌ Unexpected error in get_post: {str(e)}")
         raise HTTPException(status_code=500, detail="Error retrieving post")
-
 
 async def get_user_posts(db: Session, user_id: int, skip: int = 0, limit: int = 20) -> Response:
     posts = db.query(Post) \

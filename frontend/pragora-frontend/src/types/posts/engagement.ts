@@ -24,6 +24,7 @@ export interface PostInteractionState {
   like: boolean;
   dislike: boolean;
   save: boolean;
+  share: boolean;  // Add this
   report: boolean;
 }
 
@@ -31,6 +32,7 @@ export interface MetricStates {
   like: boolean;
   dislike: boolean;
   save: boolean;
+  share: boolean;  // Add this
   report: boolean;
 }
 
@@ -116,17 +118,17 @@ export interface ErrorStates {
 }
 
 export interface EngagementResponse {
-  message: string
-  like_count?: number
-  dislike_count?: number
-  save_count?: number
-  share_count?: number
-  report_count?: number
-  comment_count?: number
-  like?: boolean
-  dislike?: boolean
-  save?: boolean
-  report?: boolean
+  message: string;
+  like_count?: number;
+  dislike_count?: number;
+  save_count?: number;
+  share_count?: number;
+  report_count?: number;
+  like?: boolean;
+  dislike?: boolean;
+  save?: boolean;
+  share?: boolean;
+  report?: boolean;
 }
 
 export interface EngagementMetricsHandlerProps {

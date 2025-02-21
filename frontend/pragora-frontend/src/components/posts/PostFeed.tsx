@@ -91,29 +91,33 @@ export const PostFeed: React.FC<PostFeedProps> = ({
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, allPosts.length]);
 
-  const transformToEngagementPost = (post: Post): PostWithEngagement => {
-    const metrics: PostMetrics = {
-      like_count: post.metrics?.like_count ?? 0,
-      dislike_count: post.metrics?.dislike_count ?? 0,
-      save_count: post.metrics?.save_count ?? 0,
-      share_count: post.metrics?.share_count ?? 0,
-      report_count: post.metrics?.report_count ?? 0,
-      comment_count: post.metrics?.comment_count ?? 0
-    };
+    const transformToEngagementPost = (post: Post): PostWithEngagement => {
+      // Get the existing metrics from post if they exist
+      const metrics: PostMetrics = {
+        like_count: post.metrics?.like_count ?? 0,
+        dislike_count: post.metrics?.dislike_count ?? 0,
+        save_count: post.metrics?.save_count ?? 0,
+        share_count: post.metrics?.share_count ?? 0,
+        report_count: post.metrics?.report_count ?? 0,
+        comment_count: post.metrics?.comment_count ?? 0
+      };
 
-    const interaction_state: PostInteractionState = {
-      like: post.interaction_state?.like ?? false,
-      dislike: post.interaction_state?.dislike ?? false,
-      save: post.interaction_state?.save ?? false,
-      report: post.interaction_state?.report ?? false
-    };
+      // Get existing interaction state
+      const interaction_state: PostInteractionState = {
+        like: post.interaction_state?.like ?? false,
+        dislike: post.interaction_state?.dislike ?? false,
+        share: post.interaction_state?.share ?? false,
+        save: post.interaction_state?.save ?? false,
+        report: post.interaction_state?.report ?? false
+      };
 
-    return {
-      ...post,
-      metrics,
-      interaction_state
+      // Preserve existing post data
+      return {
+        ...post,
+        metrics,
+        interaction_state
+      };
     };
-  };
 
   if (isError) {
     return (

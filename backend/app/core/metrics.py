@@ -1,11 +1,13 @@
 # app/core/metrics.py
-import logging
+#import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from app.cache import RedisCache
 from app.core.exceptions import CacheError
+from app.core.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+#logger = logging.getLogger(__name__)
 
 
 class MetricsCollector:

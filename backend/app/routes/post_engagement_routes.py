@@ -1,8 +1,12 @@
 # app/routes/post_engagement_routes.py
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from sqlalchemy import func, and_
 from sqlalchemy.orm import Session
 from typing import Optional
-import logging
+#import logging
+from app.core.logger import get_logger
+from app.datamodels.interaction_datamodels import PostInteraction, InteractionType
+from app.datamodels.post_datamodels import Post
 from app.utils.database_utils import get_db
 from app.schemas.post_schemas import PostMetricsUpdate
 from app.auth.utils import get_current_user
@@ -16,10 +20,58 @@ from app.core.exceptions import (
     DatabaseError,
     CacheError
 )
+from app.core.logger import get_logger
 
-logger = logging.getLogger(__name__)
+# Then at module level:
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/posts/engagement", tags=["post-engagements"])
+
+@router.get("/{post_id}/counts", response_model=dict)
+async def get_post_counts(
+    post_id: int,
+    db: Session = Depends(get_db)
+):
+    """Debug endpoint to verify post counts"""
+    # Get post counts from Post table
+    post = db.query(Post).filter(Post.post_id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    # Get actual counts from interactions table
+    actual_counts = (
+        db.query(
+            InteractionType.interaction_type_name,
+            func.count(PostInteraction.interaction_id).label('count')
+        )
+        .join(PostInteraction)
+        .filter(PostInteraction.post_id == post_id)
+        .group_by(InteractionType.interaction_type_name)
+        .all()
+    )
+
+    print(f"Debug - Post {post_id} counts:")
+    print(f"Stored in posts table:", {
+        'like_count': post.like_count,
+        'dislike_count': post.dislike_count,
+        'save_count': post.save_count,
+        'share_count': post.share_count,
+        'report_count': post.report_count
+    })
+    print(f"Actual interaction counts:", {name: count for name, count in actual_counts})
+
+    return {
+        "stored_counts": {
+            'like_count': post.like_count,
+            'dislike_count': post.dislike_count,
+            'save_count': post.save_count,
+            'share_count': post.share_count,
+            'report_count': post.report_count
+        },
+        "actual_counts": {
+            name: count for name, count in actual_counts
+        }
+    }
 
 
 def get_engagement_service(
@@ -239,3 +291,46 @@ async def update_metrics(
     except Exception as e:
         logger.error(f"Unexpected error in update_metrics: {str(e)}")
         raise HTTPException(status_code=500, detail="An unexpected error occurred")
+
+
+@router.get("/{post_id}/debug")
+async def debug_post_interactions(
+        post_id: int,
+        db: Session = Depends(get_db)
+):
+    """Debug endpoint to check post interaction state"""
+    try:
+        # Get post
+        post = db.query(Post).filter(Post.post_id == post_id).first()
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        # Get actual interaction counts
+        counts = (
+            db.query(
+                InteractionType.interaction_type_name,
+                func.count(PostInteraction.interaction_id)
+            )
+            .outerjoin(PostInteraction, and_(
+                PostInteraction.interaction_type_id == InteractionType.interaction_type_id,
+                PostInteraction.post_id == post_id
+            ))
+            .group_by(InteractionType.interaction_type_name)
+            .all()
+        )
+
+        return {
+            "stored_counts": {
+                "like_count": post.like_count,
+                "dislike_count": post.dislike_count,
+                "save_count": post.save_count,
+                "share_count": post.share_count,
+                "report_count": post.report_count
+            },
+            "actual_counts": {
+                name: count for name, count in counts
+            }
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

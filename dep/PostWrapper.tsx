@@ -302,7 +302,7 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
                   className="w-full h-full rounded-full object-cover"
                   onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
                     console.log("Avatar load error for user:", displayUsername);
-                    e.currentTarget.src = '../assets/images/avatars/default-avatar.png';
+                    e.currentTarget.src = '../assets/images/avatars/default_avatar.png';
                   }}
                 />
               ) : (

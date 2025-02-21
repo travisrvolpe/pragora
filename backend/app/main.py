@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import strawberry
 from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +9,7 @@ from strawberry.subscriptions import GRAPHQL_WS_PROTOCOL, GRAPHQL_TRANSPORT_WS_P
 
 from app.lib.graphql.context import get_context
 from app.lib.graphql.schema.schema import Query, Mutation, Subscription
+from app.services.post_engagement_service import verify_all_post_counts
 from database.database import database, Base, engine, SessionLocal
 from app.utils.database_utils import (
     init_categories, init_post_types, init_post_interaction_types
@@ -40,25 +43,67 @@ logging.getLogger('app.auth').setLevel(logging.DEBUG)
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup code
+    print("Starting up...")
+    await database.connect()
+    try:
+        # Initialize Redis with longer expiration time
+        await init_redis()
+        await verify_all_post_counts()
+    except Exception as e:
+        print(f"Redis initialization error: {str(e)}")
+
+    db = SessionLocal()
+    try:
+        await init_categories()
+        await init_post_types()
+        await init_post_interaction_types(db)
+
+        # Create service and verify counts
+        from app.services.post_engagement_service import PostEngagementService
+        from app.cache import get_cache
+
+        cache = get_cache()
+        service = PostEngagementService(db, cache)
+        # Change this line:
+        await service.repair_all_post_counts()  # Instead of verify_and_fix_counts()
+        print("✅ Post counts verified and fixed")
+
+    except Exception as e:
+        print(f"❌ Error during startup: {str(e)}")
+    finally:
+        db.close()
+
+    print("Startup complete")
+    yield
+
+    # Shutdown code
+    await database.disconnect()
+    await close_redis()
+
 # Initialize FastAPI
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[settings.FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
+    expose_headers=["Content-Disposition"],
     max_age=600,
 )
 app.middleware("http")(auth_middleware)
 
 # Static files
 settings.create_media_directories()
-app.mount("/media", StaticFiles(directory="media"), name="media")
-app.mount("/avatars", StaticFiles(directory="media/avatars"), name="avatars")
+
+app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
+#app.mount("/media", StaticFiles(directory="media"), name="media")
+#app.mount("/avatars", StaticFiles(directory="media/avatars"), name="avatars")
 
 # Strawberry schema
 schema = strawberry.Schema(
@@ -100,24 +145,6 @@ async def websocket_endpoint(websocket: WebSocket, post_id: int):
         print(f"WebSocket error: {str(e)}")
     finally:
         await manager.disconnect(websocket, post_id)
-
-@app.on_event("startup")
-async def startup():
-    print("Starting up...")
-    await database.connect()
-    try:
-        await init_redis()
-    except Exception as e:
-        print(f"Redis initialization error: {str(e)}")
-    await init_categories()
-    await init_post_types()
-    await init_post_interaction_types(SessionLocal())
-    print("Startup complete")
-
-@app.on_event("shutdown")
-async def shutdown():
-    await database.disconnect()
-    await close_redis()
 
 @app.get("/")
 async def root():

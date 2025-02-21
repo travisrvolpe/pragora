@@ -36,7 +36,8 @@ export const LikeButton = React.forwardRef<HTMLButtonElement, LikeButtonProps>((
       error={error}
       tooltip={active ? 'Unlike' : 'Like'}
       className={cn(
-        'text-blue-600 hover:text-blue-700 hover:bg-blue-50',
+        active ? 'text-blue-600 bg-blue-50' : 'text-gray-500',
+        'hover:text-blue-600 hover:bg-blue-50',
         className
       )}
       {...props}
