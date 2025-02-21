@@ -4,12 +4,15 @@ import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { useProfile } from '@/contexts/profile/ProfileContext';
 import {
-  User, Settings, MessageSquare, FileText, Users, Shield,
-  Camera, MapPin, Briefcase, Book, Award, Calendar, Edit3
+    User, Settings, MessageSquare, FileText, Users, Shield,
+    Camera, MapPin, Briefcase, Book, Award, Calendar, Edit3, Bookmark, MessageCircle
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Profile, ProfileUpdateDto, StatCardProps, TabButtonProps, InputFieldProps } from '@/types/user/profile';
 import {UserAvatar} from "@/components/user/UserAvatar";
+import UserPostsTab from '@/components/user/UserPostsTab';
+import SavedPostsTab from '@/components/user/SavedPostsTab';
+import CommentsTab from '@/components/user/CommentsTab';
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon }) => (
   <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
@@ -232,7 +235,7 @@ export default function ProfilePage() {
               <StatCard
                   title="Comments"
                   value={profile?.comment_cnt || 0}
-                  icon={MessageSquare}
+                  icon={MessageCircle}
               />
               <StatCard
                   title="Reputation"
@@ -251,9 +254,10 @@ export default function ProfilePage() {
           <div className="bg-white rounded-xl shadow-sm">
               <div className="border-b border-gray-200">
                   <div className="flex space-x-4 p-4">
+                      // TODO FIGURE OUT AWARDS / DEMARITS PAGE, MESSAGES TAB, EVENTS TAB, DRAFTS TAB
                       <TabButton
                           icon={User}
-                          label="Overview"
+                          label="Overview" // Change to wall of shame / fame?
                           active={activeTab === 'overview'}
                           onClick={() => setActiveTab('overview')}
                       />
@@ -262,6 +266,18 @@ export default function ProfilePage() {
                           label="Posts"
                           active={activeTab === 'posts'}
                           onClick={() => setActiveTab('posts')}
+                      />
+                      <TabButton
+                          icon={MessageCircle}
+                          label="Comments"
+                          active={activeTab === 'comments'}
+                          onClick={() => setActiveTab('comments')}
+                      />
+                      <TabButton
+                          icon={Bookmark}
+                          label="Saved"
+                          active={activeTab === 'saved'}
+                          onClick={() => setActiveTab('saved')}
                       />
                       <TabButton
                           icon={Users}
@@ -392,10 +408,22 @@ export default function ProfilePage() {
                   )}
 
                   {activeTab === 'posts' && (
-                      <div className="text-center text-gray-500 py-8">
-                          Posts section coming soon...
+                      <div className="p-4">
+                          <UserPostsTab />
                       </div>
                   )}
+
+                  {activeTab === 'comments' && (
+                      <div className="p-4">
+                        <CommentsTab />
+                      </div>
+                    )}
+
+                  {activeTab === 'saved' && (
+                      <div className="p-4">
+                            <SavedPostsTab />
+                        </div>
+                    )}
 
                   {activeTab === 'network' && (
                       <div className="text-center text-gray-500 py-8">
