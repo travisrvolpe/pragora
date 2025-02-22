@@ -1,7 +1,7 @@
 # services/post_service.py
 # are calculate_post_engagement and create_post_interaction and update_metrics correct?
 # doe get_post and get_all_posts have the required columns? do they ahve redudant columns?
-from fastapi import HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import desc, func
@@ -349,28 +349,48 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
         logger.error(f"❌ Unexpected error in get_post: {str(e)}")
         raise HTTPException(status_code=500, detail="Error retrieving post")
 
-async def get_user_posts(db: Session, user_id: int, skip: int = 0, limit: int = 20) -> Response:
-    posts = db.query(Post) \
-        .filter(Post.user_id == user_id) \
-        .filter(Post.status == 'active') \
-        .offset(skip) \
-        .limit(limit) \
-        .all()
 
-    serialized_posts = [{
-        "post_id": post.post_id,
-        "title": post.title,
-        "subtitle": post.subtitle,
-        "content": post.content,
-        "created_at": post.created_at,
-        "tags": [tag.tag_name for tag in post.tags],
-        "user_id": post.user_id,
-        "image_url": post.image_url,
-        "caption": post.caption,
-        "video_url": post.video_url
-    } for post in posts]
+async def get_user_posts(db: Session, user_id: int, skip: int = 0, limit: int = 20) -> dict:
+    """Get all posts for a specific user"""
+    try:
+        posts = db.query(Post) \
+            .filter(Post.user_id == user_id) \
+            .filter(Post.status == 'active') \
+            .order_by(Post.created_at.desc()) \
+            .offset(skip) \
+            .limit(limit) \
+            .all()
 
-    return create_response("Posts retrieved successfully", {"posts": serialized_posts})
+        serialized_posts = []
+        for post in posts:
+            post_data = {
+                "post_id": post.post_id,
+                "title": post.title or "",
+                "content": post.content,
+                "created_at": post.created_at,
+                "updated_at": post.updated_at or post.created_at,
+                "status": post.status,
+                "like_count": post.like_count or 0,
+                "comment_count": post.comment_count or 0,
+                "share_count": post.share_count or 0,
+                "views": 0
+            }
+            serialized_posts.append(post_data)
+
+        return {
+            "status": "success",
+            "message": "Posts retrieved successfully",
+            "data": {
+                "posts": serialized_posts
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting user posts: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 async def get_all_posts(db: Session, skip: int = 0, limit: int = 20, category_id: Optional[int] = None, tab: Optional[str] = None):
     """Get all posts with optional filtering"""

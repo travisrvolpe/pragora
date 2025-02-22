@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ThoughtPostFormData } from '../../../types/posts/create-content-types';
+import { toast } from '@/lib/hooks/use-toast/use-toast';
+import { ThoughtPostFormData } from '@/types/posts/create-content-types';
 import { CategorySelector } from '../common/CategorySelector';
 import { TagInput } from '../common/TagInput';
-import { useToast } from '../../../lib/hooks/use-toast';
 
 interface ThoughtFormProps {
   onSubmit: (data: FormData) => Promise<{ post_id: number }>;
@@ -47,12 +47,16 @@ export const ThoughtForm = React.forwardRef<HTMLFormElement, ThoughtFormProps>((
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Inside ThoughtForm component
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
     if (!formData.content.trim()) {
-      alert('Please enter some content for your thought');
+      toast({
+        title: "Error",
+        description: "Please enter some content for your thought",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -64,6 +68,9 @@ export const ThoughtForm = React.forwardRef<HTMLFormElement, ThoughtFormProps>((
       // Required fields
       submitData.append('post_type_id', String(formData.post_type_id));
       submitData.append('content', formData.content.trim());
+
+      // Initialize tags array
+      submitData.append('tags', '[]');  // Default empty array as string
 
       // Optional fields
       if (formData.title?.trim()) {
@@ -82,18 +89,32 @@ export const ThoughtForm = React.forwardRef<HTMLFormElement, ThoughtFormProps>((
         submitData.append('custom_subcategory', formData.custom_subcategory.trim());
       }
 
-      // Add tags
-      formData.tags.forEach(tag => {
-        submitData.append('tags', tag);
+      if (formData.tags && formData.tags.length > 0) {
+        formData.tags.forEach(tag => {
+          submitData.append('tags', tag);
+        });
+      }
+
+      console.log('Submitting form data:', {
+        content: formData.content.trim(),
+        post_type_id: String(formData.post_type_id),
+        tags: formData.tags || []
       });
+
       const response = await onSubmit(submitData);
+
       if (!response?.post_id) {
         throw new Error('Invalid response format');
       }
+
+      toast({
+        title: "Success",
+        description: "Thought posted successfully",
+      });
+
       router.push(`/dialectica/${response.post_id}`);
     } catch (error) {
       console.error('Error submitting form:', error);
-      const { toast } = useToast(); // Add this line at the top of the catch block
       toast({
         title: "Error",
         description: "Failed to create post. Please try again.",
@@ -119,6 +140,7 @@ export const ThoughtForm = React.forwardRef<HTMLFormElement, ThoughtFormProps>((
   return (
     <Card className="max-w-2xl mx-auto p-6">
       <form ref={ref} onSubmit={handleSubmit} className="space-y-6">
+        {/* Rest of the form JSX remains the same */}
         <div>
           <input
             type="text"
@@ -193,9 +215,9 @@ export const ThoughtForm = React.forwardRef<HTMLFormElement, ThoughtFormProps>((
           <Button
             type="submit"
             disabled={!formData.content.trim() || isSubmitting}
-            isLoading={isSubmitting}
+            className="bg-blue-500 hover:bg-blue-600"
           >
-            Share
+            {isSubmitting ? 'Sharing...' : 'Share'}
           </Button>
         </div>
       </form>

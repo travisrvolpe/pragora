@@ -2,7 +2,7 @@
 'use client';
 
 import { ErrorBoundary } from 'react-error-boundary';
-import { useDebounceInteraction } from '../../../lib/hooks/useDebounceInteraction';
+import { useDebounceInteraction } from '@/lib/hooks/useDebounceInteraction';
 import {FC, useCallback, useEffect, useMemo} from 'react';
 import { Card } from '@/components/ui/card';
 import { PostHeader } from './PostHeader';
@@ -12,7 +12,7 @@ import { PostWrapperProps } from './types';
 import { usePostEngagement } from '@/lib/hooks/usePostEngagement';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/lib/hooks/use-toast';
+import { toast } from '@/lib/hooks/use-toast/use-toast';
 import { MetricsData } from '@/types/posts/engagement';
 import {useQueryClient} from "@tanstack/react-query";
 

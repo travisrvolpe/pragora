@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArticlePostFormData } from '../../../types/posts/create-content-types';
+import { ArticlePostFormData } from '@/types/posts/create-content-types';
 import { CategorySelector } from '../common/CategorySelector';
 import { TagInput } from '../common/TagInput';
 import { MediaUploader } from '../common/MediaUploader';
@@ -148,7 +148,12 @@ export const ArticleForm = React.forwardRef<HTMLFormElement, ArticleFormProps>((
       submitData.append('isDraft', String(formData.isDraft));
 
       const response = await onSubmit(submitData);
-      router.push(`/post/${response.post_id}`);
+
+      if (!response?.post_id) {
+        throw new Error('Invalid response format');
+      }
+
+      router.push(`/dialectica/${response.post_id}`);
     } catch (error) {
       console.error('Error creating article:', error);
       alert('Failed to create article. Please try again.');

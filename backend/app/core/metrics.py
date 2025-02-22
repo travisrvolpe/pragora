@@ -67,17 +67,22 @@ class MetricsCollector:
             interaction_type: str,
             action: str
     ) -> None:
+        """Update aggregated counts in Redis atomically"""
         try:
             counts_key = f"{self.metrics_prefix}counts:post:{post_id}"
-            # Use Redis MULTI to ensure atomic updates
-            tr = self.cache.redis.multi_exec()
+
             if action == "add":
-                tr.hincrby(counts_key, interaction_type, 1)
+                # Increment count
+                await self.cache.redis.hincrby(counts_key, interaction_type, 1)
             elif action == "remove":
-                tr.hincrby(counts_key, interaction_type, -1)
-            await tr.execute()
+                # Decrement count but don't go below 0
+                current = await self.cache.redis.hget(counts_key, interaction_type)
+                if current and int(current) > 0:
+                    await self.cache.redis.hincrby(counts_key, interaction_type, -1)
+
         except Exception as e:
             logger.error(f"Error updating aggregated counts: {str(e)}")
+            # Don't raise - metrics should not block main functionality
 
     async def _update_user_history(
             self,

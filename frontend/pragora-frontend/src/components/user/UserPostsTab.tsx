@@ -10,30 +10,27 @@ const UserPostsTab: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Convert Post to UserPost format
-  const convertToUserPost = (post: Post): UserPost => {
-    return {
-      post_id: post.post_id,
-      title: post.post_type_id === 3 ? post.title || 'Untitled Post' : post.content.slice(0, 50) + '...',
-      content: post.content,
-      created_at: post.created_at,
-      updated_at: post.updated_at || post.created_at,
-      status: post.status === 'active' ? 'active' : post.status === 'deleted' ? 'deleted' : 'hidden',
-      likes: post.metrics?.like_count || 0,
-      comments: post.metrics?.comment_count || 0,
-      shares: post.metrics?.share_count || 0,
-      views: 0 // Default to 0 as Post type doesn't track views
-    };
-  };
-
   useEffect(() => {
     const fetchUserPosts = async () => {
       setIsLoading(true);
       try {
         const response = await postService.getMyPosts();
-        // Transform the posts to UserPost format
-        const userPosts = response.map(convertToUserPost);
-        setPosts(userPosts);
+        if (response?.data?.posts) {
+          // Transform the posts to UserPost format
+          const userPosts = response.data.posts.map((post: any): UserPost => ({
+            post_id: post.post_id,
+            title: post.title || 'Untitled Post',
+            content: post.content,
+            created_at: post.created_at,
+            updated_at: post.updated_at || post.created_at, // Fallback to created_at if updated_at is not available
+            status: post.status || 'active',
+            likes: post.likes || 0,
+            comments: post.comments || 0,
+            shares: post.shares || 0,
+            views: post.views || 0
+          }));
+          setPosts(userPosts);
+        }
       } catch (err) {
         setError('Failed to fetch posts');
         console.error('Error fetching posts:', err);

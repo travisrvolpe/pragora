@@ -1,7 +1,7 @@
 # routes/post_routes.py
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, status
 from fastapi.responses import FileResponse
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from app.utils.database_utils import get_db
@@ -16,6 +16,27 @@ from pathlib import Path
 from app.datamodels.datamodels import User
 from pydantic import BaseModel, ValidationError
 from app.middleware.profile_middleware import validate_user_profile
+from datetime import datetime
+
+class PostData(BaseModel):
+    post_id: int
+    title: str | None = None
+    content: str
+    created_at: datetime
+    updated_at: datetime | None = None
+    status: str
+    like_count: int = 0
+    comment_count: int = 0
+    share_count: int = 0
+    views: int = 0
+
+class PostListResponse(BaseModel):
+    status: str
+    message: str
+    data: dict
+
+#class SimpleResponse(BaseModel):
+#    data: Dict[str, Any]
 
 # Add this near the top of your file
 MEDIA_PATH = Path("./media")
@@ -41,6 +62,8 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 
 # routes/post_routes.py
 
+# routes/post_routes.py
+
 @router.post("/", response_model=PostResponse)
 async def create_post(
         content: str = Form(...),
@@ -61,21 +84,20 @@ async def create_post(
         document_url: Optional[str] = Form(None),
         embedded_content: Optional[dict] = Form(None),
         link_preview: Optional[dict] = Form(None),
+        tags: Optional[List[str]] = Form([]),  # Default to empty list
         files: Optional[List[UploadFile]] = File(None),
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
     """API route to create a post."""
-
-    # Verify user is authenticated
     if not current_user or not current_user.user_id:
         raise HTTPException(status_code=401, detail="User authentication required")
 
     print(f"✅ Creating post for user: {current_user.user_id}")
+    print(f"Received tags: {tags}")  # Debug print
 
     try:
         await validate_user_profile(current_user.user_id, db)
-
 
         # Convert form data into dictionary for PostCreate schema
         post_data = {
@@ -97,19 +119,19 @@ async def create_post(
             "document_url": document_url,
             "embedded_content": embedded_content,
             "link_preview": link_preview,
+            "tags": tags if tags else []  # Ensure tags is never None
         }
 
         # Create post schema object
         post_create = PostCreate(**post_data)
+        print(f"Created PostCreate object: {post_create}")  # Debug print
 
         # Create post and get response
         post_data = await post_service.create_post(db, current_user.user_id, post_create, files)
 
-        # Extract post data from the service response
         if isinstance(post_data, dict) and 'data' in post_data and 'post' in post_data['data']:
             return post_data['data']['post']
 
-        # If response is already in the correct format, return it directly
         return post_data
 
     except ValidationError as e:
@@ -190,14 +212,53 @@ async def mark_as_read(
 #    engagement_dict["user_id"] = current_user.user_id
 #    return {"message": "Engagement updated successfully"}
 # Get posts for the current user
-@router.get("/me", response_model=dict)
+
+@router.get("/me", response_model=PostListResponse)
 async def get_my_posts(
     skip: int = 0,
     limit: int = 20,
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return await post_service.get_user_posts(db, current_user.user_id, skip, limit)
+    try:
+        posts = db.query(Post) \
+            .filter(Post.user_id == current_user.user_id) \
+            .filter(Post.status == 'active') \
+            .order_by(Post.created_at.desc()) \
+            .offset(skip) \
+            .limit(limit) \
+            .all()
+
+        serialized_posts = []
+        for post in posts:
+            post_data = {
+                "post_id": post.post_id,
+                "title": post.title or "",
+                "content": post.content,
+                "created_at": post.created_at,
+                "updated_at": post.updated_at or post.created_at,
+                "status": post.status,
+                "like_count": post.like_count or 0,
+                "comment_count": post.comment_count or 0,
+                "share_count": post.share_count or 0,
+                "views": 0
+            }
+            serialized_posts.append(post_data)
+
+        return {
+            "status": "success",
+            "message": "Posts retrieved successfully",
+            "data": {
+                "posts": serialized_posts
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Error in get_my_posts: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 # List all posts
 # Public routes (no auth required)

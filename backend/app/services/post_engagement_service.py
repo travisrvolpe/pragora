@@ -1,4 +1,6 @@
 # app/services/post_engagement_service.py
+import asyncio
+
 from fastapi import BackgroundTasks, HTTPException
 from sqlalchemy import and_, update, select, func
 from sqlalchemy.orm import Session
@@ -142,8 +144,18 @@ class PostEngagementService:
 
     async def verify_interaction_counts(self, post_id: int) -> Dict[str, int]:
         """Verify and fix interaction counts for a post"""
+        logger.info(f"Verifying counts for post {post_id}")
+
         try:
-            # Get actual counts from interactions table
+            # First get counts from cache
+            cache_key = f"post:{post_id}:counts"
+            cached_counts = await self.cache.get(cache_key)
+
+            if cached_counts:
+                logger.info(f"Found cached counts for post {post_id}: {cached_counts}")
+                return cached_counts
+
+            # If no cache, get actual counts with a read-only query first
             actual_counts = (
                 self.db.query(
                     InteractionType.interaction_type_name,
@@ -155,47 +167,68 @@ class PostEngagementService:
                 .all()
             )
 
-            # Get post
+            # Convert to dictionary and ensure all counts exist
+            count_dict = {
+                f"{name}_count": count for name, count in actual_counts
+            }
+
+            # Ensure all interaction types have counts
+            for interaction_type in self.VALID_INTERACTIONS:
+                count_field = f"{interaction_type}_count"
+                if count_field not in count_dict:
+                    count_dict[count_field] = 0
+
+            # Now get post with explicit locking only if we need to update
             post = (
                 self.db.query(Post)
                 .filter(Post.post_id == post_id)
-                .with_for_update()
+                .with_for_update(skip_locked=True)
                 .first()
             )
 
             if not post:
                 raise PostNotFoundError(post_id)
 
-            # Update counts if they don't match
-            counts_updated = False
-            for interaction_name, actual_count in actual_counts:
-                count_field = f"{interaction_name}_count"
-                stored_count = getattr(post, count_field, 0) or 0
+            # Check if any counts need updating
+            needs_update = any(
+                getattr(post, field, 0) != count
+                for field, count in count_dict.items()
+            )
 
-                if stored_count != actual_count:
-                    logger.warning(
-                        f"Count mismatch for post {post_id} {interaction_name}: "
-                        f"stored={stored_count}, actual={actual_count}"
-                    )
-                    setattr(post, count_field, actual_count)
-                    counts_updated = True
-
-            if counts_updated:
+            if needs_update:
+                logger.info(f"Updating mismatched counts for post {post_id}")
                 try:
+                    # Start transaction
+                    self.db.begin()
+
+                    # Update counts
+                    for field, count in count_dict.items():
+                        setattr(post, field, count)
+
+                    # Commit changes
                     self.db.commit()
-                    logger.info(f"✅ Updated counts for post {post_id}")
+                    logger.info(f"Updated counts in database for post {post_id}")
+
                 except SQLAlchemyError as e:
                     self.db.rollback()
-                    logger.error(f"❌ Error updating counts: {str(e)}")
+                    logger.error(f"Failed to update counts: {str(e)}")
                     raise DatabaseError("Error updating counts")
 
-            return {
-                f"{interaction_name}_count": getattr(post, f"{interaction_name}_count", 0)
-                for interaction_name in [it[0] for it in actual_counts]
-            }
+            # Update cache regardless of whether we updated the database
+            await self.cache.set(
+                cache_key,
+                count_dict,
+                expire=self.cache_expiry
+            )
+            logger.info(f"Updated cache for post {post_id} with counts: {count_dict}")
+
+            return count_dict
 
         except SQLAlchemyError as e:
-            logger.error(f"❌ Database error in verify_counts: {str(e)}")
+            logger.error(f"Database error in verify_counts: {str(e)}")
+            raise DatabaseError("Error verifying counts")
+        except Exception as e:
+            logger.error(f"Unexpected error in verify_counts: {str(e)}")
             raise DatabaseError("Error verifying counts")
 
     async def repair_all_post_counts(self) -> None:
@@ -287,48 +320,30 @@ class PostEngagementService:
             background_tasks: BackgroundTasks,
             metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Toggle a post interaction with explicit count management and debug logging"""
+        """Toggle a post interaction with improved persistence"""
         try:
             logger.info(f"🔍 Starting interaction toggle - Type: {interaction_type}, Post: {post_id}, User: {user_id}")
 
-            # Lock and load post with debug logging
-            post = (
-                self.db.query(Post)
-                .filter(Post.post_id == post_id)
-                .with_for_update()
-                .first()
-            )
+            # Get interaction type record without locking
+            interaction_type_record = await self._get_interaction_type(interaction_type)
+            count_field = f"{interaction_type}_count"
 
-            if not post:
-                logger.error(f"❌ Post {post_id} not found during toggle")
-                raise PostNotFoundError(post_id)
-
-            # Verify user exists before proceeding
-            user = self.db.query(User).filter(User.user_id == user_id).first()
-            if not user:
-                logger.error(f"❌ User {user_id} not found during toggle")
-                raise HTTPException(status_code=401, detail="User not found")
-
-            # Log initial state
-            logger.info(
-                f"📊 Pre-toggle metrics - Post {post_id}:\n"
-                f"Like count: {post.like_count}\n"
-                f"Dislike count: {post.dislike_count}\n"
-                f"Save count: {post.save_count}"
-            )
-
-            # Get interaction type with validation
-            interaction_type_record = (
-                self.db.query(InteractionType)
-                .filter(InteractionType.interaction_type_name == interaction_type)
-                .first()
-            )
-
-            if not interaction_type_record:
-                logger.error(f"❌ Invalid interaction type: {interaction_type}")
-                raise InvalidInteractionTypeError(interaction_type)
+            # Check if there's an active transaction and roll it back if so
+            if self.db.in_transaction():
+                self.db.rollback()
 
             try:
+                # Get post with short-term lock
+                post = (
+                    self.db.query(Post)
+                    .filter(Post.post_id == post_id)
+                    .with_for_update(skip_locked=True)
+                    .first()
+                )
+
+                if not post:
+                    raise PostNotFoundError(post_id)
+
                 # Check for existing interaction
                 existing = (
                     self.db.query(PostInteraction)
@@ -340,16 +355,15 @@ class PostEngagementService:
                     .first()
                 )
 
+                current_count = getattr(post, count_field, 0)
+
                 if existing:
-                    logger.info(f"🔄 Removing existing {interaction_type} interaction")
+                    # Remove interaction
                     self.db.delete(existing)
-                    count_field = f"{interaction_type}_count"
-                    current_count = getattr(post, count_field, 0)
                     new_count = max(0, current_count - 1)
-                    setattr(post, count_field, new_count)
                     action = "removed"
                 else:
-                    logger.info(f"➕ Adding new {interaction_type} interaction")
+                    # Add interaction
                     new_interaction = PostInteraction(
                         post_id=post_id,
                         user_id=user_id,
@@ -358,67 +372,84 @@ class PostEngagementService:
                         interaction_metadata=metadata
                     )
                     self.db.add(new_interaction)
-                    count_field = f"{interaction_type}_count"
-                    current_count = getattr(post, count_field, 0)
                     new_count = current_count + 1
-                    setattr(post, count_field, new_count)
                     action = "added"
 
-                # Log state before commit
-                logger.info(
-                    f"📊 Pre-commit state - Post {post_id}:\n"
-                    f"Action: {action}\n"
-                    f"New {interaction_type} count: {new_count}"
+                # Update post count
+                setattr(post, count_field, new_count)
+
+                # Handle mutual exclusivity
+                if interaction_type == "like" and action == "added":
+                    dislike = (
+                        self.db.query(PostInteraction)
+                        .join(InteractionType)
+                        .filter(
+                            PostInteraction.post_id == post_id,
+                            PostInteraction.user_id == user_id,
+                            InteractionType.interaction_type_name == "dislike"
+                        )
+                        .first()
+                    )
+                    if dislike:
+                        self.db.delete(dislike)
+                        post.dislike_count = max(0, post.dislike_count - 1)
+
+                elif interaction_type == "dislike" and action == "added":
+                    like = (
+                        self.db.query(PostInteraction)
+                        .join(InteractionType)
+                        .filter(
+                            PostInteraction.post_id == post_id,
+                            PostInteraction.user_id == user_id,
+                            InteractionType.interaction_type_name == "like"
+                        )
+                        .first()
+                    )
+                    if like:
+                        self.db.delete(like)
+                        post.like_count = max(0, post.like_count - 1)
+
+                # Commit changes
+                self.db.commit()
+
+                # Invalidate and update cache
+                cache_key = f"post:{post_id}:counts"
+                await self.cache.delete(cache_key)
+
+                # Get fresh counts after commit
+                fresh_counts = await self._get_interaction_counts(post_id)
+
+                # Update cache with verified counts
+                await self.cache.set(
+                    cache_key,
+                    fresh_counts,
+                    expire=self.cache_expiry
                 )
 
-                # Commit with explicit success/failure logging
-                try:
-                    self.db.commit()
-                    logger.info(f"✅ Successfully committed {interaction_type} {action}")
-                except SQLAlchemyError as commit_error:
-                    logger.error(f"❌ Commit failed: {str(commit_error)}")
-                    self.db.rollback()
-                    raise
-
-                # Log final state after commit
-                logger.info(
-                    f"📊 Post-commit metrics - Post {post_id}:\n"
-                    f"Like count: {post.like_count}\n"
-                    f"Dislike count: {post.dislike_count}\n"
-                    f"Save count: {post.save_count}"
-                )
-
-                # Update cache in background
+                # Record metric in background
                 background_tasks.add_task(
-                    self._update_cache,
+                    self.metrics.record_interaction,
                     post_id,
-                    {count_field: new_count}
+                    user_id,
+                    interaction_type,
+                    action,
+                    metadata
                 )
 
                 result = {
                     "message": f"{interaction_type} {action} successfully",
                     f"{interaction_type}_count": new_count,
-                    interaction_type: action == "added"
+                    interaction_type: action == "added",
+                    "metrics": fresh_counts  # Include all updated counts
                 }
-
-                # Verify persistence
-                refreshed_post = (
-                    self.db.query(Post)
-                    .filter(Post.post_id == post_id)
-                    .first()
-                )
-                logger.info(
-                    f"🔍 Verifying persistence - Post {post_id}:\n"
-                    f"Expected {interaction_type}_count: {new_count}\n"
-                    f"Actual {interaction_type}_count: {getattr(refreshed_post, count_field, 0)}"
-                )
 
                 return result
 
-            except Exception as e:
-                logger.error(f"❌ Error in interaction processing: {str(e)}")
-                self.db.rollback()
-                raise
+            except SQLAlchemyError as e:
+                if self.db.in_transaction():
+                    self.db.rollback()
+                logger.error(f"Database error in toggle_interaction: {str(e)}")
+                raise DatabaseError("Error processing interaction")
 
         except Exception as e:
             logger.error(f"❌ Error in toggle_interaction: {str(e)}")

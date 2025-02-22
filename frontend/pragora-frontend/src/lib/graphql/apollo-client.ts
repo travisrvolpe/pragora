@@ -4,7 +4,7 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { onError } from '@apollo/client/link/error';
-import { toast } from '@/lib/hooks/use-toast';
+import { toast } from '@/lib/hooks/use-toast/use-toast';
 import { authService } from '@/lib/services/auth/authService';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 

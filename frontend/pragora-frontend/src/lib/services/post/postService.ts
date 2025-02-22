@@ -30,6 +30,43 @@ interface CreatePostData {
   image_url?: string
 }
 
+interface PostResponse {
+  data: {
+    posts: Array<{
+      post_id: number;
+      title: string;
+      content: string;
+      created_at: string;
+      updated_at: string;
+      status: string;
+      like_count: number;
+      comment_count: number;
+      share_count: number;
+      views: number;
+    }>;
+  };
+}
+
+interface PostData {
+  post_id: number;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  status: string;
+  like_count: number;
+  comment_count: number;
+  share_count: number;
+  views: number;
+}
+
+interface PostListResponse {
+  status: string;
+  message: string;
+  data: {
+    posts: PostData[];
+  };
+}
 // Helper to get auth headers
 const getAuthHeaders = () => {
   const token = authService.getToken();
@@ -169,12 +206,19 @@ const postService = {
     }
   },
 
-  getMyPosts: async (): Promise<Post[]> => {
+  getMyPosts: async (): Promise<PostListResponse> => {
     try {
-      const response = await api.get(API_ENDPOINTS.POST_MY_POSTS);
-      return response.data.data.posts;
-    } catch (error) {
-      console.error('Error fetching user posts:', error);
+      console.log('Making request to:', API_ENDPOINTS.POST_MY_POSTS);
+      const response = await api.get<PostListResponse>(API_ENDPOINTS.POST_MY_POSTS);
+      console.log('Raw response:', response);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error response:', error.response?.data);
+      console.error('Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
       throw error;
     }
   },

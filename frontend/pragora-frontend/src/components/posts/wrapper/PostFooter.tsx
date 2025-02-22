@@ -6,10 +6,9 @@ import dynamic from 'next/dynamic'
 import { ViewPostButton } from '@/components/buttons/ViewPostButton'
 import { BackButton } from '@/components/buttons/BackButton'
 import { Button } from '@/components/ui/button'
-//import { EngagementMetricsHandler } from '@/components/engagement/EngagementMetricsHandler'
 import { PostComponentProps } from './types'
-import { PostVariant } from '@/types/posts/post-types';
-import {MetricsData, MetricStates, LoadingStates, ErrorStates, PostInteractionState} from '@/types/posts/engagement'
+import type { PostVariant } from '@/types/posts/post-types';
+import type { MetricsData, LoadingStates, ErrorStates, PostInteractionState } from '@/types/posts/engagement'
 
 export interface PostFooterProps extends PostComponentProps {
   variant: PostVariant;
@@ -22,13 +21,13 @@ export interface PostFooterProps extends PostComponentProps {
   onDislike: () => Promise<void>;
   onShare: () => Promise<void>;
   onSave: () => Promise<void>;
-  onThreadedReply?: () => void;  // Add this line
+  onThreadedReply?: () => void;
 }
 
-const DynamicEngagementMetricsHandler = dynamic(
-  () => import('@/components/engagement/EngagementMetricsHandler'),
+const DynamicPostMetrics = dynamic(
+  () => import('@/components/posts/metrics/PostMetrics'),
   { ssr: false }
-)
+);
 
 export const PostFooter: FC<PostFooterProps> = ({
   post,
@@ -45,39 +44,40 @@ export const PostFooter: FC<PostFooterProps> = ({
   onThreadedReply
 }) => {
   return (
-      <div className="p-4 border-t">
-        <div className="flex items-center justify-between">
-          <DynamicEngagementMetricsHandler
-              type="post"
-              metrics={metrics}
-              states={interactionState}
-              loading={loading}
-              error={error}
-              onLike={onLike}
-              onDislike={onDislike}
-              onComment={onComment}
-              onShare={onShare}
-              onSave={onSave}
-          />
-          <div className="flex items-center space-x-2">
-            {variant === ('feed' as PostVariant) && <ViewPostButton postId={post.post_id}/>}
-            {variant === ('detail' as PostVariant) && (
-                <>
-                  <BackButton/>
-                  {onThreadedReply && (
-                      <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={onThreadedReply}
-                          className="text-gray-600"
-                      >
-                        Reply
-                      </Button>
-                  )}
-                </>
-            )}
-          </div>
+    <div className="p-4 border-t">
+      <div className="flex items-center justify-between">
+        <DynamicPostMetrics
+          post={post}
+          variant={variant}
+          metrics={metrics}
+          interactionState={interactionState}
+          loading={loading}
+          error={error}
+          onComment={onComment}
+          onLike={onLike}
+          onDislike={onDislike}
+          onShare={onShare}
+          onSave={onSave}
+        />
+        <div className="flex items-center space-x-2">
+          {variant === 'feed' && <ViewPostButton postId={post.post_id}/>}
+          {variant === 'detail' && (
+            <>
+              <BackButton/>
+              {onThreadedReply && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onThreadedReply}
+                  className="text-gray-600"
+                >
+                  Reply
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
-  )
+    </div>
+  );
 };

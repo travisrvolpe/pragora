@@ -2,12 +2,36 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { Post, PostTypeId, PostVariant } from './post-types';
-import type { PostMetrics, PostInteractionState, PostWithEngagement, MetricsData } from './engagement';
+import type {
+  PostMetrics,
+  PostInteractionState,
+  PostWithEngagement,
+  MetricsData,
+  LoadingStates,
+  ErrorStates
+} from './engagement';
 
 // Base component props interface
 export interface BaseComponentProps {
   className?: string;
   children?: ReactNode;
+}
+
+// Post metrics interface
+export interface PostMetricsProps {
+  post: PostWithEngagement;
+  variant: 'feed' | 'detail';
+  metrics: MetricsData;
+  interactionState: PostInteractionState;
+  loading: LoadingStates;
+  error: ErrorStates;
+  onComment?: () => void;
+  onLike: () => Promise<void>;
+  onDislike: () => Promise<void>;
+  onShare: () => Promise<void>;
+  onSave: () => Promise<void>;
+  onThreadedReply?: () => void;
+  className?: string;
 }
 
 // Post card interfaces

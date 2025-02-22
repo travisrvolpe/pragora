@@ -4,12 +4,12 @@
 import React from 'react';
 import { usePostEngagement } from '@/lib/hooks/usePostEngagement';
 import { EngagementMetricsHandler } from '@/components/engagement/EngagementMetricsHandler';
-import type { Post } from '../../types/posts/post-types';
+import type { Post } from '@/types/posts';
 import type {
   PostWithEngagement,
   MetricsData,
   MetricStates
-} from '../../types/posts/engagement';
+} from '@/types/posts';
 
 interface PostMetricsBarProps {
   post: Post;

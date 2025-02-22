@@ -73,7 +73,7 @@ export interface UserPost {
   title: string;
   content: string;
   created_at: string;
-  updated_at: string;
+  updated_at: string
   status: 'active' | 'deleted' | 'hidden';
   likes: number;
   comments: number;

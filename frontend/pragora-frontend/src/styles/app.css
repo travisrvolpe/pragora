@@ -1,0 +1,101 @@
+/* Layout.css */
+
+/* Base Tailwind imports */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Layout Container */
+.App {
+  display: flex; /* Enables flex navigation for the main container */
+  flex-direction: column; /* Stacks content vertically */
+  min-height: 100vh; /* Ensures the app spans the full viewport height */
+  background-color: #f5f5f5; /* Neutral background color */
+  box-sizing: border-box; /* Consistent box model */
+  text-align: left; /* Default text alignment */
+}
+
+/* Layout Header */
+.App-header {
+  background-color: #282c34; /* Dark header background */
+  color: white; /* White text for contrast */
+  min-height: 100vh; /* Full viewport height for the header */
+  display: flex;
+  flex-direction: column; /* Stack header content vertically */
+  align-items: center; /* Center horizontally */
+  justify-content: center; /* Center vertically */
+  text-align: center; /* Center text in the header */
+  font-size: calc(10px + 2vmin); /* Responsive font size */
+  box-sizing: border-box; /* Include padding/borders in width */
+}
+
+/* Layout Logo */
+.App-logo {
+  height: 40vmin; /* Dynamic size for the logo */
+  pointer-events: none; /* Disable pointer events */
+}
+
+/* Animation for Logo Spin */
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear; /* Smooth spinning animation */
+  }
+}
+
+/* Layout Link */
+.App-link {
+  color: #61dafb; /* Highlight link color */
+}
+
+/* Keyframes for Logo Animation */
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Utility Classes for Consistency */
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.full-height {
+  height: 100vh;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .App-header {
+    font-size: calc(8px + 2vmin); /* Scale down font size for smaller screens */
+    padding: 1rem; /* Add padding for better mobile readability */
+  }
+
+  .App-logo {
+    height: 30vmin; /* Reduce logo size on smaller screens */
+  }
+}

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Image } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ImagePostFormData, FormattedImage } from '../../../types/posts/create-content-types';
+import { ImagePostFormData, FormattedImage } from '@/types/posts/create-content-types';
 import { CategorySelector } from '../common/CategorySelector';
 import { TagInput } from '../common/TagInput';
 import { MediaUploader } from '../common/MediaUploader';
@@ -74,60 +74,65 @@ export const ImageForm = React.forwardRef<HTMLFormElement, ImageFormProps>(({
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    // Validation
-    if (images.length === 0) {
-      alert('Please upload at least one image');
-      return;
+  // Validation
+  if (images.length === 0) {
+    alert('Please upload at least one image');
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const submitData = new FormData();
+
+    // Required fields
+    submitData.append('post_type_id', String(formData.post_type_id));
+    submitData.append('content', formData.content || formData.caption || 'Image post');
+
+    // Optional fields
+    if (formData.caption?.trim()) {
+      submitData.append('caption', formData.caption.trim());
     }
 
-    setIsSubmitting(true);
-
-    try {
-      const submitData = new FormData();
-
-      // Required fields
-      submitData.append('post_type_id', String(formData.post_type_id));
-      submitData.append('content', formData.content || formData.caption || 'Image post');
-
-      // Optional fields
-      if (formData.caption?.trim()) {
-        submitData.append('caption', formData.caption.trim());
-      }
-
-      if (formData.category_id) {
-        submitData.append('category_id', formData.category_id);
-      }
-
-      if (formData.subcategory_id) {
-        submitData.append('subcategory_id', formData.subcategory_id);
-      }
-
-      if (formData.custom_subcategory?.trim()) {
-        submitData.append('custom_subcategory', formData.custom_subcategory.trim());
-      }
-
-      // Add images
-      images.forEach((image, index) => {
-        submitData.append('files', image.file);
-      });
-
-      // Add tags
-      formData.tags.forEach(tag => {
-        submitData.append('tags', tag);
-      });
-
-      const response = await onSubmit(submitData);
-      router.push(`/post/${response.post_id}`);
-    } catch (error) {
-      console.error('Error creating image post:', error);
-      alert('Failed to create post. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    if (formData.category_id) {
+      submitData.append('category_id', formData.category_id);
     }
-  };
+
+    if (formData.subcategory_id) {
+      submitData.append('subcategory_id', formData.subcategory_id);
+    }
+
+    if (formData.custom_subcategory?.trim()) {
+      submitData.append('custom_subcategory', formData.custom_subcategory.trim());
+    }
+
+    // Add images
+    images.forEach((image, index) => {
+      submitData.append('files', image.file);
+    });
+
+    // Add tags
+    formData.tags.forEach(tag => {
+      submitData.append('tags', tag);
+    });
+
+    const response = await onSubmit(submitData);
+
+    if (!response?.post_id) {
+      throw new Error('Invalid response format');
+    }
+
+    router.push(`/dialectica/${response.post_id}`);
+  } catch (error) {
+    console.error('Error creating image post:', error);
+    alert('Failed to create post. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleClear = () => {
     // Clean up image previews
