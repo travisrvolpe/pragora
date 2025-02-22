@@ -1,0 +1,86 @@
+type Comment {
+  activeViewers: Int!
+  avatarImg: String
+  commentId: Int!
+  content: String!
+  createdAt: String!
+  depth: Int!
+  interactionState: CommentInteractionState!
+  isDeleted: Boolean!
+  isEdited: Boolean!
+  lastActivity: String!
+  metrics: CommentMetrics!
+  parentCommentId: Int
+  path: String!
+  postId: Int!
+  replies: [Comment!]
+  reputationScore: Int
+  rootCommentId: Int
+  updatedAt: String
+  user: User!
+  userId: Int!
+  username: String!
+}
+
+type CommentActivity {
+  activeViewers: Int!
+  commentId: Int!
+  lastActivity: String!
+}
+
+type CommentInteractionState {
+  dislike: Boolean!
+  like: Boolean!
+  report: Boolean!
+}
+
+type CommentMetrics {
+  dislikeCount: Int!
+  likeCount: Int!
+  replyCount: Int!
+  reportCount: Int!
+}
+
+input CreateCommentInput {
+  content: String!
+  parentCommentId: Int = null
+  postId: Int!
+}
+
+type Mutation {
+  createComment(input: CreateCommentInput!): Comment!
+  deleteComment(commentId: Int!): Boolean!
+  dislikeComment(commentId: Int!): Comment!
+  likeComment(commentId: Int!): Comment!
+  reportComment(commentId: Int!, reason: String!): Comment!
+  updateComment(input: UpdateCommentInput!): Comment!
+}
+
+type Query {
+  comment(commentId: Int!): Comment
+  comments(page: Int! = 1, pageSize: Int! = 20, parentCommentId: Int = null, postId: Int!): [Comment!]!
+}
+
+type Subscription {
+  commentActivity(postId: Int!): CommentActivity!
+  commentAdded(postId: Int!): Comment!
+  commentDeleted(postId: Int!): String!
+  commentUpdated(postId: Int!): Comment!
+}
+
+input UpdateCommentInput {
+  commentId: Int!
+  content: String!
+}
+
+type User {
+  avatarImg: String
+  createdAt: String!
+  credentials: String
+  email: String!
+  expertiseArea: String
+  reputationScore: Int
+  updatedAt: String
+  userId: Int!
+  username: String!
+}

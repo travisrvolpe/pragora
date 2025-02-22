@@ -1,0 +1,151 @@
+# Import scalar definitions
+scalar DateTime
+scalar JSON
+
+# User type definition
+type User {
+  user_id: Int!
+  username: String!
+  email: String!
+  avatar_img: String
+  reputation_score: Int
+  expertise_area: String
+  credentials: String
+  created_at: DateTime!
+  updated_at: DateTime
+}
+
+# Comment related types
+type CommentMetrics {
+  like_count: Int!
+  dislike_count: Int!
+  reply_count: Int!
+  report_count: Int!
+}
+
+type CommentInteractionState {
+  like: Boolean!
+  dislike: Boolean!
+  report: Boolean!
+}
+
+type Comment {
+  comment_id: Int!
+  content: String!
+  user_id: Int!
+  post_id: Int!
+  parent_comment_id: Int
+  root_comment_id: Int
+  path: String!
+  depth: Int!
+  user: User!
+  username: String!
+  avatar_img: String
+  reputation_score: Int
+  metrics: CommentMetrics!
+  interaction_state: CommentInteractionState!
+  is_edited: Boolean!
+  is_deleted: Boolean!
+  created_at: DateTime!
+  updated_at: DateTime
+  last_activity: DateTime!
+  active_viewers: Int!
+  replies: [Comment]
+}
+# Input types
+input CreateCommentInput {
+  content: String!
+  post_id: Int!
+  parent_comment_id: Int
+}
+
+input UpdateCommentInput {
+  comment_id: Int!
+  content: String!
+}
+
+type CommentActivity {
+  comment_id: Int!
+  active_viewers: Int!
+  last_activity: DateTime!
+}
+
+type Query {
+  """
+  Get a single comment by ID
+  """
+  comment(id: Int!): Comment
+
+  """
+  Get a list of comments for a post (or for a specific parent)
+  """
+  comments(
+    post_id: Int!
+    parent_id: Int
+    page: Int = 1
+    page_size: Int = 20
+  ): [Comment!]!
+}
+
+type Mutation {
+  """
+  Create a new comment
+  """
+  create_comment(input: CreateCommentInput!): Comment!
+
+  """
+  Update an existing comment
+  """
+  update_comment(input: UpdateCommentInput!): Comment!
+
+  """
+  Delete (soft delete) a comment
+  """
+  delete_comment(id: Int!): Boolean!
+
+  """
+  Like a comment
+  """
+  like_comment(id: Int!): Comment!
+
+  """
+  Dislike a comment
+  """
+  dislike_comment(id: Int!): Comment!
+
+  """
+  Report a comment with a given reason
+  """
+  report_comment(id: Int!, reason: String!): Comment!
+}
+
+type Subscription {
+  """
+  Fired when a new comment is added to a post
+  """
+  comment_added(post_id: Int!): Comment!
+
+  """
+  Fired when a comment is updated (e.g. edited)
+  """
+  comment_updated(post_id: Int!): Comment!
+
+  """
+  Fired when a comment is deleted
+  """
+  comment_deleted(post_id: Int!): Int!
+
+  """
+  Tracks real-time activity (e.g., active viewers) for a post
+  """
+  comment_activity(post_id: Int!): CommentActivity!
+}
+
+"""
+Set the root schema definition if needed
+"""
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

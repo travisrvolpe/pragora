@@ -1,0 +1,101 @@
+"""Represents a comment in the system."""
+type Comment {
+  active_viewers: Int!
+  avatar_img: String
+  comment_id: Int!
+  content: String!
+  created_at: String!
+  depth: Int!
+  interaction_state: CommentInteractionState!
+  is_deleted: Boolean!
+  is_edited: Boolean!
+  last_activity: String!
+  metrics: CommentMetrics!
+  parent_comment_id: Int
+  path: String!
+  post_id: Int!
+  replies: [Comment!]
+  reputation_score: Int
+  root_comment_id: Int
+  updated_at: String
+  user: User!
+  user_id: Int!
+  username: String!
+}
+
+"""
+Activity state for a comment, e.g. how many viewers are active right now.
+"""
+type CommentActivity {
+  active_viewers: Int!
+  comment_id: Int!
+  last_activity: String!
+}
+
+"""
+Indicates whether the current user has liked, disliked, or reported this comment.
+"""
+type CommentInteractionState {
+  dislike: Boolean!
+  like: Boolean!
+  report: Boolean!
+}
+
+"""
+Contains counts for various interactions (likes, dislikes, reports, etc.).
+"""
+type CommentMetrics {
+  dislike_count: Int!
+  like_count: Int!
+  reply_count: Int!
+  report_count: Int!
+}
+
+"""Input type for creating a new comment."""
+input CreateCommentInput {
+  content: String!
+  parent_comment_id: Int
+  post_id: Int!
+}
+
+type Mutation {
+  create_comment(input: CreateCommentInput!): Comment!
+  delete_comment(comment_id: Int!): Boolean!
+  dislike_comment(comment_id: Int!): Comment!
+  like_comment(comment_id: Int!): Comment!
+  report_comment(comment_id: Int!, reason: String!): Comment!
+  update_comment(input: UpdateCommentInput!): Comment!
+}
+
+type Query {
+  comment(comment_id: Int!): Comment
+  comments(page: Int = 1, page_size: Int = 20, parent_comment_id: Int, post_id: Int!): [Comment!]!
+}
+
+type Subscription {
+  comment_activity(post_id: Int!): CommentActivity
+  comment_added(post_id: Int!): Comment
+  comment_deleted(post_id: Int!): String
+  comment_updated(post_id: Int!): Comment
+}
+
+"""Input type for updating an existing comment."""
+input UpdateCommentInput {
+  comment_id: Int!
+  content: String!
+}
+
+"""
+Represents the user who created the comment or is otherwise authenticated.
+"""
+type User {
+  avatar_img: String
+  created_at: String!
+  credentials: String
+  email: String!
+  expertise_area: String
+  reputation_score: Int
+  updated_at: String
+  user_id: Int!
+  username: String!
+}
