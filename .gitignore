@@ -65,7 +65,16 @@ Thumbs.db
 .vscode/
 .idea/
 
+#Media
+backend/media
+frontend/pragora-frontend/public
 
-!/home/notsure/pragora/frontend/pragora-frontend/src/lib
-!/pragora-frontend/src/lib
-!/home/notsure/pragora/backend/app/lib
+#Alembic
+backend/alembic
+
+#MISC
+backend/EXERCISEDATASCIENTIST_Volpe
+
+#!/home/notsure/pragora/frontend/pragora-frontend/src/lib
+#!/pragora-frontend/src/lib
+#!/home/notsure/pragora/backend/app/lib
