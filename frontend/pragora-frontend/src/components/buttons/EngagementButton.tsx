@@ -5,6 +5,7 @@ import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '../../lib/utils/utils'
 import { LucideIcon } from 'lucide-react'
+import {useState} from 'react'
 
 export interface EngagementButtonProps {
   icon: LucideIcon
@@ -31,12 +32,22 @@ export const EngagementButton = React.forwardRef<HTMLButtonElement, EngagementBu
   variant = 'ghost',
   size = 'sm'
 }, ref) => {
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation()
-    if (!disabled && onClick) {
-      onClick()
+
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (disabled || isProcessing) return;
+
+    try {
+      setIsProcessing(true);
+      await onClick();
+    } catch (err) {
+      console.error('Button action failed:', err);
+    } finally {
+      setIsProcessing(false);
     }
-  }
+  };
 
   return (
     <Button
@@ -44,13 +55,14 @@ export const EngagementButton = React.forwardRef<HTMLButtonElement, EngagementBu
       variant={variant}
       size={size}
       onClick={handleClick}
-      disabled={disabled}
+      disabled={disabled || isProcessing}
       title={tooltip}
       className={cn(
         'flex items-center gap-1 rounded-lg transition-all duration-200',
         'hover:bg-opacity-10',
         'focus:outline-none focus:ring-2 focus:ring-offset-2',
         'disabled:opacity-50 disabled:cursor-not-allowed',
+        isProcessing && 'opacity-50 cursor-not-allowed',
         active && 'bg-opacity-20 font-semibold',
         error && 'text-red-500',
         className

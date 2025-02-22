@@ -4,7 +4,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { cn } from '../../lib/utils/utils';
-import { DEFAULT_AVATAR_URL } from '@/lib/constants';
+import { DEFAULT_AVATAR_URL } from '@/lib/constants/constants';
 
 interface UserAvatarProps {
   username: string;

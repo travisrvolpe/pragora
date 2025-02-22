@@ -1,5 +1,5 @@
 # schemas/post_schemas.py
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List, Dict
 from datetime import datetime
 
@@ -39,15 +39,26 @@ class Post(BaseModel):
     parent_post_id: Optional[int] = None
     edit_history: Optional[Dict] = None
 
-    tags: List[str] = Field(default_factory=list)
+    tags: List[str]
 
-    @validator('subcategory_id')
+    @classmethod
+    @model_validator(mode='before')
+    def set_defaults(cls, values):
+        if not isinstance(values, dict):
+            return values
+        if 'tags' not in values:
+            values['tags'] = []
+        return values
+
+    @classmethod
+    @field_validator('subcategory_id')
     def validate_subcategory(cls, v, values):
         if v and not values.get('category_id'):
             raise ValueError('Cannot have subcategory without category')
         return v
 
-    @validator('post_type_id')
+    @classmethod
+    @field_validator('post_type_id')
     def validate_post_type(cls, value):
         if value not in [1, 2, 3]:  # Replace with dynamic values from DB in production
             raise ValueError('Invalid post type')
@@ -75,15 +86,26 @@ class PostCreate(BaseModel):
     is_pinned: Optional[bool] = False
     is_draft: Optional[bool] = False
     parent_post_id: Optional[int] = None
-    tags: List[str] = Field(default_factory=list)
+    tags: List[str]
 
-    @validator('content')
+    @classmethod
+    @model_validator(mode='before')
+    def set_defaults(cls, values):
+        if not isinstance(values, dict):
+            return values
+        if 'tags' not in values:
+            values['tags'] = []
+        return values
+
+    @classmethod
+    @field_validator('content')
     def validate_content(cls, value):
         if not value or not value.strip():
             raise ValueError('Content cannot be empty')
         return value.strip()
 
-    @validator('post_type_id')
+    @classmethod
+    @field_validator('post_type_id')
     def validate_post_type(cls, value):
         if not isinstance(value, int):
             try:

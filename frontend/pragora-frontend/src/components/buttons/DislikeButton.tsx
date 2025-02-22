@@ -5,6 +5,7 @@ import * as React from 'react'
 import { ThumbsDown } from 'lucide-react'
 import { EngagementButton, EngagementButtonProps } from './EngagementButton'
 import { cn } from '../../lib/utils/utils'
+import { useRouter } from 'next/navigation'
 
 type DislikeButtonProps = Omit<EngagementButtonProps, 'icon'> & {
   onClick: () => Promise<void>
@@ -18,11 +19,18 @@ export const DislikeButton = React.forwardRef<HTMLButtonElement, DislikeButtonPr
   className,
   ...props
 }, ref) => {
+  const router = useRouter()
+
   const handleClick = async () => {
     try {
       await onClick()
     } catch (err) {
       console.error('Error handling dislike:', err)
+      // Use router instead of window.location
+      if (err instanceof Error && err.message === 'Authentication required') {
+        router.push('/auth/login')
+        return
+      }
     }
   }
 

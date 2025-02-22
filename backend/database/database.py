@@ -1,8 +1,8 @@
 # database/database.py
-from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from databases import Database
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
+from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = "postgresql://postgres:ugabuga22@localhost:5432/pragora"
 

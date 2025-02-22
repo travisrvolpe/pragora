@@ -2,10 +2,11 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { CategoriesProvider } from '@/contexts/categories/CategoriesContext';
-import { PostFeed } from '@/components/posts/PostFeed';
 import { TopicsList } from '@/components/posts/TopicsList';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { PostFeedProps } from '@/types/posts/page-types';
 
 const FEED_TABS = [
   { id: 'recent', label: 'Recent' },
@@ -15,6 +16,12 @@ const FEED_TABS = [
 
 type FeedTab = typeof FEED_TABS[number]['id'];
 
+// Properly type the dynamic import with the component's props
+const DynamicPostFeed = dynamic<PostFeedProps>(() =>
+  import('@/components/posts/PostFeed').then(mod => mod.PostFeed),
+  { ssr: false }
+);
+
 export default function DialecticaPage() {
   const [selectedTab, setSelectedTab] = useState<FeedTab>('recent');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -23,7 +30,7 @@ export default function DialecticaPage() {
     <CategoriesProvider>
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Topics Sidebar - Now using TopicsList component */}
+          {/* Topics Sidebar */}
           <TopicsList />
 
           {/* Main Content Area */}
@@ -56,7 +63,7 @@ export default function DialecticaPage() {
             </div>
 
             {/* Post Feed */}
-            <PostFeed
+            <DynamicPostFeed
               selectedTab={selectedTab}
               searchQuery={searchQuery}
             />

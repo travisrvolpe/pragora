@@ -3,7 +3,6 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/componen
 import { MoreHorizontal, Clock, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils/utils';
 import { GradientAvatar } from '../common/GradientAvatar';
-import { PostMetricsBar } from './PostMetricsBar';
 import { ViewPostButton } from '../buttons/ViewPostButton';
 import type { PostCardProps } from '@/types/posts/component-types';
 
@@ -37,10 +36,6 @@ export const BasePostCard: React.FC<PostCardProps> = ({
       <div className="prose max-w-none">
         {children}
       </div>
-      <PostMetricsBar
-        post={post}
-        variant={variant}
-      />
     </div>
   );
 };

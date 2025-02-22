@@ -1,8 +1,8 @@
 // types/posts/component-types.ts
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import type { Post, PostTypeId } from './post-types';
-import type { PostMetrics, PostInteractionState, PostWithEngagement } from './engagement';
+import type { Post, PostTypeId, PostVariant } from './post-types';
+import type { PostMetrics, PostInteractionState, PostWithEngagement, MetricsData } from './engagement';
 
 // Base component props interface
 export interface BaseComponentProps {
@@ -13,7 +13,7 @@ export interface BaseComponentProps {
 // Post card interfaces
 export interface PostCardProps extends BaseComponentProps {
   post: PostWithEngagement;
-  variant?: 'feed' | 'detail';  // Use literal type instead of PostVariant
+  variant?: 'feed' | 'detail';  // Use literal type instead of PostVariant = why was this change made?
   onBack?: () => void;
   className?: string;
   onViewPost?: (id: number) => void;
@@ -27,8 +27,13 @@ export interface PostCardProps extends BaseComponentProps {
 
 // Post wrapper interfaces
 export interface PostWrapperProps extends BaseComponentProps {
-  post: Post;
-  variant?: 'feed' | 'detail';
+  post: Post & {
+    metrics: MetricsData;
+    interaction_state: PostInteractionState;
+    analysis?: any; // Replace with proper analysis type
+  };
+  children: ReactNode;
+  variant?: 'feed' | 'detail'; //variant?: PostVariant;
   onBack?: () => void;
   onComment?: () => void;
   onThreadedReply?: () => void;

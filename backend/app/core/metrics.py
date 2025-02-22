@@ -67,19 +67,15 @@ class MetricsCollector:
             interaction_type: str,
             action: str
     ) -> None:
-        """Update aggregated interaction counts"""
         try:
             counts_key = f"{self.metrics_prefix}counts:post:{post_id}"
-            current_counts = await self.cache.get(counts_key) or {}
-
-            # Update counts based on action
+            # Use Redis MULTI to ensure atomic updates
+            tr = self.cache.redis.multi_exec()
             if action == "add":
-                current_counts[interaction_type] = current_counts.get(interaction_type, 0) + 1
+                tr.hincrby(counts_key, interaction_type, 1)
             elif action == "remove":
-                current_counts[interaction_type] = max(0, current_counts.get(interaction_type, 0) - 1)
-
-            await self.cache.set(counts_key, current_counts)
-
+                tr.hincrby(counts_key, interaction_type, -1)
+            await tr.execute()
         except Exception as e:
             logger.error(f"Error updating aggregated counts: {str(e)}")
 

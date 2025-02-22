@@ -1,6 +1,8 @@
 // components/posts/wrapper/index.tsx
 'use client';
 
+import { ErrorBoundary } from 'react-error-boundary';
+import { useDebounceInteraction } from '../../../lib/hooks/useDebounceInteraction';
 import {FC, useCallback, useEffect, useMemo} from 'react';
 import { Card } from '@/components/ui/card';
 import { PostHeader } from './PostHeader';
@@ -22,14 +24,22 @@ export const PostWrapper: FC<PostWrapperProps> = ({
   onThreadedReply,
   showAnalytics = true
 }) => {
+
+  const debounceInteraction = useDebounceInteraction();
+
+  const handleEngagementAction = useCallback(async (action: () => Promise<void>) => {
+    await debounceInteraction(action);
+  }, [debounceInteraction]);
+
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Refetch post data on mount
+    // Always verify data on mount
     if (post.post_id) {
-      queryClient.invalidateQueries({
+      queryClient.prefetchQuery({
         queryKey: ['post', post.post_id],
-        refetchType: 'active'
+        staleTime: 0,
+        gcTime: 0
       });
     }
   }, [post.post_id, queryClient]);
@@ -138,37 +148,44 @@ export const PostWrapper: FC<PostWrapperProps> = ({
   }, [isAuthenticated, router, onThreadedReply]);
 
   return (
-    <Card className="w-full bg-white">
-      <div className="flex flex-col">
-        <PostHeader
-          post={post}
-          onReport={handleReportClick}
-          isReportLoading={isLoading.report}
-        />
+      <ErrorBoundary
+      fallback={<div>Error loading post</div>}
+      onError={(error) => {
+        console.error('Post error:', error);
+      }}
+      >
+        <Card className="w-full bg-white">
+          <div className="flex flex-col">
+            <PostHeader
+              post={post}
+              onReport={handleReportClick}
+              isReportLoading={isLoading.report}
+            />
 
-        <div className="flex-1">
-          {children}
-        </div>
+            <div className="flex-1">
+              {children}
+            </div>
 
-        <PostFooter
-          post={post}
-          variant={variant}
-          metrics={metrics}
-          interactionState={post.interaction_state}
-          loading={isLoading}
-          error={isError}
-          onComment={handleCommentClick}
-          onLike={handleLikeClick}
-          onDislike={handleDislikeClick}
-          onShare={handleShareClick}
-          onSave={handleSaveClick}
-          onThreadedReply={handleThreadedReplyClick}
-        />
+            <PostFooter
+              post={post}
+              variant={variant}
+              metrics={metrics}
+              interactionState={post.interaction_state}
+              loading={isLoading}
+              error={isError}
+              onComment={handleCommentClick}
+              onLike={handleLikeClick}
+              onDislike={handleDislikeClick}
+              onShare={handleShareClick}
+              onSave={handleSaveClick}
+              onThreadedReply={handleThreadedReplyClick}
+            />
 
-        {showAnalytics && post.analysis && (
-          <PostAnalytics analysis={post.analysis} />
-        )}
-      </div>
-    </Card>
+            {showAnalytics && post.analysis && (
+              <PostAnalytics analysis={post.analysis} />
+            )}
+          </div>
+        </Card>
+      </ErrorBoundary>
   );
 };

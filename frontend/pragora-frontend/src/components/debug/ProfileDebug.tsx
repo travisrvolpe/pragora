@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Alert, AlertDescription } from '../ui/alert';
+import { TOKEN_KEY } from '@/lib/constants/constants';
 
 const ProfileDebug = () => {
   useEffect(() => {
@@ -7,7 +8,7 @@ const ProfileDebug = () => {
       try {
         const response = await fetch('http://localhost:8000/profiles/me', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
           }
         });
         const data = await response.json();

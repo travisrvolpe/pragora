@@ -25,38 +25,45 @@ async def get_current_user(
 ) -> User:
     print(f"📢 Received token in FastAPI: {token}")
 
-    """Decode and validate JWT token, and retrieve user from database."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    # Get token from OAuth2 scheme or Authorization header
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        print(f"🔑 Auth header from request: {auth_header}")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-        else:
-            print("❌ No valid token found")
-            raise credentials_exception
-
     try:
+        # Get token from OAuth2 scheme or Authorization header
+        if not token:
+            auth_header = request.headers.get("Authorization")
+            print(f"🔑 Auth header from request: {auth_header}")
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+            else:
+                print("❌ No valid token found")
+                raise credentials_exception
+
         print(f"🔄 Decoding token: {token}")
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"✅ Token payload: {payload}")
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            print(f"✅ Token payload: {payload}")
+
+            # Add expiration check
+            exp = payload.get('exp')
+            if exp and datetime.utcnow() > datetime.fromtimestamp(exp):
+                raise credentials_exception
+
+        except JWTError as jwt_error:
+            print(f"❌ JWT decode error: {str(jwt_error)}")
+            raise credentials_exception
 
         user_id: int = payload.get("sub")
         if not user_id:
             print("❌ No user_id in token payload")
             raise credentials_exception
 
-        # Convert user_id to int if it's a string
         if isinstance(user_id, str):
             user_id = int(user_id)
 
-        # Get user from database
         user = db.query(User).filter(User.user_id == user_id).first()
         if not user:
             print(f"❌ No user found for id: {user_id}")
@@ -65,11 +72,8 @@ async def get_current_user(
         print(f"✅ Found user: {user.user_id}")
         return user
 
-    except JWTError as e:
-        print(f"❌ JWT decode error: {str(e)}")
-        raise credentials_exception
     except Exception as e:
-        print(f"❌ Unexpected error: {str(e)}")
+        print(f"❌ Unexpected error in get_current_user: {str(e)}")
         raise credentials_exception
 
 def create_access_token(data: dict) -> str:

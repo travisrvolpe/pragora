@@ -1,7 +1,8 @@
 // components/engagement/EngagementMetricsHandler.tsx
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils/utils'
 import { LikeButton } from '@/components/buttons/LikeButton'
@@ -9,7 +10,9 @@ import { DislikeButton } from '@/components/buttons/DislikeButton'
 import { SaveButton } from '@/components/buttons/SaveButton'
 import { ShareButton } from '@/components/buttons/ShareButton'
 import { EngagementButton } from '@/components/buttons/EngagementButton'
-import type { MetricsData, MetricStates, LoadingStates, ErrorStates } from '@/types/posts/engagement'
+import { MetricsData, MetricStates, LoadingStates, ErrorStates } from '@/types/posts/engagement';
+import { authService } from '@/lib/services/auth/authService';
+import {router} from "next/client";
 
 interface EngagementMetricsHandlerProps {
   type: 'post' | 'comment';
@@ -38,63 +41,71 @@ export const EngagementMetricsHandler: React.FC<EngagementMetricsHandlerProps> =
   onSave,
   className
 }) => {
-  // Local state for optimistic updates
-  const [metrics, setMetrics] = useState<MetricsData>(initialMetrics)
-  const [states, setStates] = useState<MetricStates>(initialStates)
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [metrics, setMetrics] = useState<MetricsData>(initialMetrics);
+  const [states, setStates] = useState<MetricStates>(initialStates);
+  const pendingInteraction = useRef<string | null>(null);
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
-  // Update local state when props change
   useEffect(() => {
-    setMetrics(initialMetrics)
-    setStates(initialStates)
-  }, [initialMetrics, initialStates])
+    setMetrics(initialMetrics);
+    setStates(initialStates);
+  }, [initialMetrics, initialStates]);
 
-  // Generic handler for interactions
   const handleInteraction = useCallback(async (
     handler: () => Promise<void>,
     type: keyof MetricStates,
     countKey: keyof MetricsData
   ) => {
+    if (isAuthenticating || pendingInteraction.current === type) {
+      return;
+    }
+
     try {
-      // Optimistic update
+      setIsAuthenticating(true);
+      pendingInteraction.current = type;
+
+      // Verify auth before any state updates
+      const token = authService.getToken();
+      if (!token) {
+        router.push('/auth/login');
+        return;
+      }
+
+      // Optimistic update after auth check
       setStates(prev => ({
         ...prev,
         [type]: !prev[type]
-      }))
+      }));
+
       setMetrics(prev => ({
         ...prev,
         [countKey]: prev[countKey] + (states[type] ? -1 : 1)
-      }))
+      }));
 
-      // Handle opposite state for like/dislike
-      if (type === 'like' && states.dislike) {
-        setStates(prev => ({ ...prev, dislike: false }))
-        setMetrics(prev => ({
-          ...prev,
-          dislike_count: Math.max(0, prev.dislike_count - 1)
-        }))
-      } else if (type === 'dislike' && states.like) {
-        setStates(prev => ({ ...prev, like: false }))
-        setMetrics(prev => ({
-          ...prev,
-          like_count: Math.max(0, prev.like_count - 1)
-        }))
-      }
+      await handler();
 
-      // Call the actual handler
-      await handler()
     } catch (err) {
-      // Revert optimistic updates on error
-      console.error(`Error handling ${type}:`, err)
+      // Revert updates on error
       setStates(prev => ({
         ...prev,
-        [type]: !prev[type]
-      }))
+        [type]: prev[type]
+      }));
+
       setMetrics(prev => ({
         ...prev,
-        [countKey]: prev[countKey] + (states[type] ? 1 : -1)
-      }))
+        [countKey]: prev[countKey]
+      }));
+
+      if (err instanceof Error && err.message === 'Authentication required') {
+        router.push('/auth/login');
+      }
+    } finally {
+      setIsAuthenticating(false);
+      pendingInteraction.current = null;
     }
-  }, [states])
+  }, [states, router]);
 
   const handleLike = useCallback(async () => {
     await handleInteraction(onLike, 'like', 'like_count')
@@ -126,6 +137,15 @@ export const EngagementMetricsHandler: React.FC<EngagementMetricsHandlerProps> =
         console.error('Error handling share:', err);
       }
     }, [onShare]);
+
+  useEffect(() => {
+    // Cleanup timeouts
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
+    };
+  }, []);
 
   return (
     <div className={cn("flex items-center space-x-4", className)}>

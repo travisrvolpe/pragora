@@ -22,7 +22,10 @@ export interface AuthSuccess {
   status: 'success';
   access_token: string;
   token_type: string;
-  user: User;
+  user: {
+    user_id: number;
+    email: string;
+  };
 }
 
 export interface AuthError {
@@ -47,5 +50,9 @@ export interface AuthContextType extends AuthState {
   logoutUser: () => void;
 }
 
+// Add type guard
+export function isAuthSuccess(response: AuthResponse): response is AuthSuccess {
+  return response.status === 'success' && 'access_token' in response;
+}
 // Re-export User type
 export type { User } from './user/user';

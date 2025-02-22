@@ -1,13 +1,17 @@
 # auth_service.py
+from datetime import datetime, timedelta
+
 from app.auth.auth import hash_password, verify_password
 from app.auth.utils import create_access_token
 from app.schemas.schemas import UserCreate, UserLogin, UserResponse, TokenResponse
-from app.datamodels.datamodels import User, UserProfile
+from app.datamodels.datamodels import User, UserProfile, Session as UserSession
 from database.database import database
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status
 from typing import Dict, Any
 from app.utils.response_utils import create_response
+from app.auth.utils import ACCESS_TOKEN_EXPIRE_MINUTES
+
 
 async def register_user(user: UserCreate) -> Dict[str, Any]:
     """
@@ -87,33 +91,42 @@ async def register_user(user: UserCreate) -> Dict[str, Any]:
         #print(f"Registration error: {str(e)}")
         #raise
 
+
 async def login_user(user: UserLogin) -> Dict[str, Any]:
-    """
-    Authenticate a user and return a response with a token.
-    """
     try:
-        # Find the user by email
-        user_query = "SELECT user_id, email, password_hash FROM users WHERE email = :email"
+        user_query = """
+        SELECT u.user_id, u.email, u.password_hash, up.username 
+        FROM users u 
+        LEFT JOIN user_profile up ON u.user_id = up.user_id 
+        WHERE u.email = :email
+        """
         db_user = await database.fetch_one(query=user_query, values={"email": user.email})
 
         if not db_user:
             raise Exception("User not found")
 
-        # Verify the password
         if not verify_password(user.password, db_user["password_hash"]):
             raise Exception("Invalid credentials")
 
-        # Retrieve the username from the user_profile table
-        profile_query = "SELECT username FROM user_profile WHERE user_id = :user_id"
-        db_profile = await database.fetch_one(query=profile_query, values={"user_id": db_user["user_id"]})
-
-        if not db_profile:
-            raise Exception("User profile not found")
-
-        # Generate token for the authenticated user
+        # Generate token
         access_token = create_access_token(data={"sub": str(db_user["user_id"])})
 
-        # Return a response with relevant data
+        # Create new session with expiry
+        session_query = """
+        INSERT INTO sessions (user_id, token, expires_at)
+        VALUES (:user_id, :token, :expires_at)
+        """
+
+        expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        await database.execute(
+            query=session_query,
+            values={
+                "user_id": db_user["user_id"],
+                "token": access_token,
+                "expires_at": expires_at
+            }
+        )
+
         return {
             "success": True,
             "access_token": access_token,
@@ -125,10 +138,8 @@ async def login_user(user: UserLogin) -> Dict[str, Any]:
         }
     except Exception as e:
         print(f"Login error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise
+
 '''async def login_user(user: UserLogin) -> Dict[str, Any]:
     """
     Authenticate a user and return a response with a token.
