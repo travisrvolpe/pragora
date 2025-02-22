@@ -2,7 +2,7 @@
 #import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
-from app.cache import RedisCache
+from app.RedisCache import RedisCache
 from app.core.exceptions import CacheError
 from app.core.logger import get_logger
 

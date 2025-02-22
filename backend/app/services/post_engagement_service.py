@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from typing import Dict, Any, List, Optional
 #import logging
 from app.core.logger import get_logger, log_execution_time
-from app.cache import RedisCache, get_cache
+from app.RedisCache import RedisCache, get_cache
 from app.core.config import settings
 from app.core.exceptions import (
     PostNotFoundError,

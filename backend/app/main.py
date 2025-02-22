@@ -63,7 +63,7 @@ async def lifespan(app: FastAPI):
 
         # Create service and verify counts
         from app.services.post_engagement_service import PostEngagementService
-        from app.cache import get_cache
+        from app.RedisCache import get_cache
 
         cache = get_cache()
         service = PostEngagementService(db, cache)

@@ -1,25 +1,36 @@
-// src/components/debug/AuthDebug.tsx
-import React from 'react';
-import { useAuth } from '../../contexts/auth/AuthContext';
-import { TOKEN_KEY } from '@/lib/constants/constants';
+// components/debug/AuthDebug.tsx
+'use client';
 
-const AuthDebug: React.FC = () => {
-  const { user, isAuthenticated, loading, error } = useAuth();
-  const token = localStorage.getItem(TOKEN_KEY);
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/auth/AuthContext';
+import { authService } from '@/lib/services/auth/authService';
+
+export default function AuthDebug() {
+  const { user, isAuthenticated, loading } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  const [lastCheck, setLastCheck] = useState<string>('');
+
+  useEffect(() => {
+    // Update debug info every second
+    const interval = setInterval(() => {
+      setToken(authService.getToken());
+      setLastCheck(new Date().toISOString());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  if (process.env.NODE_ENV !== 'development') {
+    return null;
+  }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg opacity-75 hover:opacity-100 transition-opacity">
-      <h3 className="font-bold mb-2">Auth Debug</h3>
-      <div className="text-sm">
-        <p>Authenticated: {String(isAuthenticated)}</p>
-        <p>Loading: {String(loading)}</p>
-        <p>Has Token: {String(!!token)}</p>
-        <p>Has User: {String(!!user)}</p>
-        {user && <p>Username: {user.username}</p>}
-        {error && <p className="text-red-400">Error: {error}</p>}
-      </div>
+    <div className="fixed bottom-4 right-4 bg-black/75 text-white p-4 rounded-lg text-xs font-mono z-50">
+      <div>Auth State: {isAuthenticated ? '✅' : '❌'}</div>
+      <div>Loading: {loading ? '⌛' : '✓'}</div>
+      <div>User ID: {user?.user_id || 'none'}</div>
+      <div>Token: {token ? '✓' : '❌'}</div>
+      <div>Last Check: {lastCheck}</div>
     </div>
   );
-};
-
-export default AuthDebug;
+}

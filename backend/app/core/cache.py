@@ -1,4 +1,4 @@
-# app/core/cache.py
+# app/core/RedisCache.py
 from redis import asyncio as aioredis
 from typing import Optional
 from app.core.config import settings

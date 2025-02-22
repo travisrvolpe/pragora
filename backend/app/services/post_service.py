@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from werkzeug.utils import secure_filename
 from app.services.post_engagement_service import PostEngagementService
-from app.cache import get_cache
+from app.RedisCache import get_cache
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)

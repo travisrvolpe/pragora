@@ -12,6 +12,14 @@ class Settings(BaseSettings):
     REDIS_SSL: bool = False
     REDIS_TIMEOUT: int = 5
     REDIS_ENABLED: bool = True
+    #REDIS_CONNECTION_KWARGS: dict = {
+    #    'encoding': 'utf-8',
+    #    'decode_responses': True,
+    #    'socket_timeout': 5.0,
+    #    'socket_connect_timeout': 5.0,
+    #    'retry_on_timeout': True,
+    #    'health_check_interval': 30
+    #}
 
     JWT_SECRET_KEY: str
     DATABASE_URL: str

@@ -3,32 +3,19 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from 'next/navigation';
 import { authService } from "@/lib/services/auth/authService";
-import {
-  LoginFormData,
-  RegisterFormData,
-  AuthContextType,
-  User,
-  AuthResponse,
-  AuthError,
-  isAuthSuccess
-} from "@/types/auth";
+import { LoginFormData, RegisterFormData, AuthContextType, User, AuthResponse } from "@/types/auth";
 import { apolloClient } from '@/lib/graphql/apollo-client';
 
 const PUBLIC_PATHS = ['/auth/login', '/auth/register', '/'];
 const AUTH_CHECK_INTERVAL = 4 * 60 * 1000; // 4 minutes
-
-const defaultAuthResponse: AuthResponse = {
-  status: 'error',
-  message: 'Not implemented'
-} as AuthError;
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   error: null,
   isAuthenticated: false,
-  loginUser: async () => defaultAuthResponse,
-  registerUser: async () => defaultAuthResponse,
+  loginUser: async () => ({ status: 'error', message: 'Not implemented' }),
+  registerUser: async () => ({ status: 'error', message: 'Not implemented' }),
   logoutUser: () => {},
 });
 
@@ -68,33 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       setLoading(true);
       try {
-        const token = authService.getToken();
-        console.log('Init Auth - Token check:', { exists: !!token });
-
-        if (!token) {
-          setLoading(false);
-          setUser(null);
-          setIsAuthenticated(false);
-
-          // Only redirect if we're on a protected route
-          if (!isPublicPath(pathname)) {
-            router.replace('/auth/login');
-          }
-          return;
-        }
-
-        try {
-          const userData = await authService.getCurrentUser();
-          console.log('Init Auth - User data fetched:', userData);
-          setUser(userData);
-          setIsAuthenticated(true);
-
-          // Redirect based on path
-          if (pathname.startsWith('/auth/')) {
-            router.replace('/dialectica');
-          }
-        } catch (error) {
-          console.error('Auth initialization error:', error);
+        const isValid = await verifyAuth();
+        if (!isValid) {
           authService.removeToken();
           setUser(null);
           setIsAuthenticated(false);
@@ -103,27 +65,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
-        console.error('Initialization error:', error);
+        console.error('Auth initialization error:', error);
       } finally {
         setLoading(false);
       }
     };
 
     initAuth();
-  }, [pathname, router, isPublicPath]);
+  }, [pathname, router, verifyAuth, isPublicPath]);
 
   // Periodic auth check
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const checkInterval = setInterval(async () => {
-      try {
-        const isValid = await verifyAuth();
-        if (!isValid) {
-          await authService.logout();
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
+      const isValid = await verifyAuth();
+      if (!isValid) {
+        clearInterval(checkInterval);
         await authService.logout();
       }
     }, AUTH_CHECK_INTERVAL);
@@ -135,31 +93,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      console.log('Attempting login with credentials:', credentials.email);
 
       const response = await authService.login(credentials);
-      console.log('Login response received:', response);
-
-      if (!isAuthSuccess(response)) {
-        throw new Error(response.message || 'Login failed');
-      }
-
-      // Wait for user data
       const userData = await authService.getCurrentUser();
-      console.log('User data fetched:', userData);
 
       setUser(userData);
       setIsAuthenticated(true);
 
-      // Reset Apollo store and redirect
+      // Reset Apollo store
       await apolloClient.resetStore();
-      router.replace('/dialectica');
 
       return response;
     } catch (error: any) {
-      console.error('Login error:', error);
       setError(error.message || 'Login failed');
-      setIsAuthenticated(false);
       throw error;
     } finally {
       setLoading(false);
@@ -170,31 +116,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      console.log('Attempting registration...');
 
       const response = await authService.register(formData);
-
-      // Add delay before fetching user data
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       const userData = await authService.getCurrentUser();
+
       setUser(userData);
       setIsAuthenticated(true);
 
       await apolloClient.resetStore();
 
-      // Redirect to profile page for new users
-      router.replace('/profile');
       return response;
     } catch (error: any) {
-      console.error('Registration error details:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      setError(errorMessage);
-      const errorResponse: AuthError = {
-        status: 'error',
-        message: errorMessage
-      };
-      throw errorResponse;
+      setError(error.message || 'Registration failed');
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -203,35 +137,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logoutUser = async () => {
     setLoading(true);
     try {
-      // Clear local state first
+      await authService.clearCache();
+      authService.removeToken();
       setUser(null);
       setIsAuthenticated(false);
       setError(null);
 
-      // Clear caches
-      await authService.clearCache();
+      // Reset Apollo client
       await apolloClient.resetStore();
 
-      // Remove auth token
-      authService.removeToken();
-
-      // Always redirect to login page
       router.replace('/auth/login');
     } catch (error) {
       console.error('Logout error:', error);
-      // Ensure redirect happens even on error
+      // Ensure user is logged out even on error
+      setUser(null);
+      setIsAuthenticated(false);
       router.replace('/auth/login');
     } finally {
       setLoading(false);
     }
   };
-
-  // Prevent access to auth pages when already authenticated
-  useEffect(() => {
-    if (!loading && isAuthenticated && pathname.startsWith('/auth/')) {
-      router.replace('/dialectica');
-    }
-  }, [isAuthenticated, loading, pathname, router]);
 
   const value = React.useMemo(
     () => ({
@@ -252,13 +177,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
-
-export type { AuthContextType, User };

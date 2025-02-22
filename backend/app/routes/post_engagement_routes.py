@@ -12,7 +12,7 @@ from app.schemas.post_schemas import PostMetricsUpdate
 from app.auth.utils import get_current_user
 from app.schemas.schemas import UserResponse
 from app.services.post_engagement_service import PostEngagementService
-from app.cache import get_cache
+from app.RedisCache import get_cache
 from app.core.exceptions import (
     PostEngagementError,
     PostNotFoundError,

@@ -1,11 +1,14 @@
 import json
 from typing import Any, Optional
 import redis.asyncio as redis
-from fastapi import Depends
+from app.core.config import settings
 
 class RedisCache:
-    def __init__(self, redis_url: str = "redis://localhost:6379"):
-        self.redis = redis.from_url(redis_url, decode_responses=True)
+    def __init__(self):
+        # Use the configuration's Redis URL
+        self.redis = redis.from_url(settings.REDIS_URL, decode_responses=True)
+    #def __init__(self, redis_url: str = "redis://localhost:6379"):
+    #    self.redis = redis.from_url(redis_url, decode_responses=True)
 
     async def get(self, key: str) -> Optional[Any]:
         """Get value from cache"""
