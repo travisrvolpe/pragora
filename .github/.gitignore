@@ -24,11 +24,13 @@ env/
 .venv*/
 bin/
 include/
-lib/
+#lib/
 local/
 share/
 pyvenv.cfg
 backend/env
+/home/notsure/pragora/backend/env/lib
+/env/lib
 
 # Packaging
 .Python
@@ -47,3 +49,8 @@ eggs/
 
 # Jupyter Notebooks
 .ipynb_checkpoints
+
+
+!/home/notsure/pragora/frontend/pragora-frontend/src/lib
+!/pragora-frontend/src/lib
+!/home/notsure/pragora/backend/app/lib
