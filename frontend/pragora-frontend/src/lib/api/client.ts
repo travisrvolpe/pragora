@@ -122,6 +122,37 @@ api.interceptors.response.use(
   }
 );
 
+// Debug interceptor for requests
+api.interceptors.request.use(request => {
+  console.log('API Request:', {
+    url: request.url,
+    method: request.method,
+    headers: request.headers,
+    data: request.data,
+  });
+  return request;
+});
+
+// Debug interceptor for responses
+api.interceptors.response.use(
+  response => {
+    console.log('API Response:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data,
+    });
+    return response;
+  },
+  error => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+    return Promise.reject(error);
+  }
+);
+
 export const updateApiAuthHeader = (token: string | null) => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;

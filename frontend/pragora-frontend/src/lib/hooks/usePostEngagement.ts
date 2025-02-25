@@ -1,7 +1,7 @@
 // hooks/usePostEngagement.ts
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { toast} from './use-toast/use-toast';
+import { toast } from './use-toast/use-toast';
 import {
   PostWithEngagement,
   EngagementResponse,
@@ -9,7 +9,8 @@ import {
   LoadingStates,
   ErrorStates,
   MetricsData,
-  PostInteractionState
+  PostInteractionState,
+  PostMetrics
 } from '@/types/posts/engagement';
 import { engagementService } from '@/lib/services/engagement/engageService';
 import { updatePostCache } from '@/lib/utils/postCache';
@@ -79,18 +80,43 @@ export function usePostEngagement(post: PostWithEngagement) {
   // Helper to update cache with new metrics
   const updateMetricsCache = useCallback(async (
     actionType: EngagementType,
-    newMetrics: Partial<MetricsData>,
+    newMetrics: Partial<PostMetrics>,
     newState: Partial<PostInteractionState>
   ) => {
     try {
+      console.log('Updating cache with new metrics:', {
+        postId: post.post_id,
+        actionType,
+        metrics: newMetrics,
+        state: newState
+      });
+
+      // Ensure newMetrics contains all required fields
+      const safeMetrics: Partial<PostMetrics> = {
+        ...newMetrics
+      };
+
+      // Ensure newState contains all required fields
+      const safeState: Partial<PostInteractionState> = {
+        ...newState
+      };
+
+      // Update the cache with new values
       await updatePostCache({
         queryClient,
         postId: post.post_id,
         updates: {
-          metrics: newMetrics,
-          interaction_state: newState
+          metrics: safeMetrics,
+          interaction_state: safeState
         }
       });
+
+      // Force refresh to ensure UI updates
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['post', post.post_id]
+        });
+      }, 100);
     } catch (error) {
       console.error('Cache update error:', error);
       // Force a refetch rather than showing an error
@@ -110,9 +136,11 @@ export function usePostEngagement(post: PostWithEngagement) {
         // Prevent duplicate mutations
         const mutationKey = `${actionType}-${post.post_id}`;
         if (pendingMutations.current.has(mutationKey)) {
+          console.log(`Mutation ${mutationKey} already in progress, skipping`);
           throw new Error('Action already in progress');
         }
 
+        console.log(`Starting ${actionType} operation for post ${post.post_id}`);
         setIsLoading(prev => ({ ...prev, [actionType]: true }));
         pendingMutations.current.add(mutationKey);
 
@@ -137,14 +165,18 @@ export function usePostEngagement(post: PostWithEngagement) {
             default:
               throw new Error(`Unsupported action type: ${actionType}`);
           }
+          console.log(`${actionType} operation successful:`, response);
           return response;
         } finally {
           setIsLoading(prev => ({ ...prev, [actionType]: false }));
           pendingMutations.current.delete(mutationKey);
+          console.log(`Completed ${actionType} operation for post ${post.post_id}`);
         }
       },
 
       onMutate: async (variables) => {
+        console.log(`Optimistic update for ${actionType} on post ${post.post_id}`);
+
         // Cancel any outgoing refetches
         await queryClient.cancelQueries({ queryKey: ['posts'] });
         await queryClient.cancelQueries({ queryKey: ['post', post.post_id] });
@@ -160,26 +192,39 @@ export function usePostEngagement(post: PostWithEngagement) {
 
         // Calculate new metrics optimistically
         const newMetrics = {
-          ...previousPost.metrics,
-          [`${actionType}_count`]: previousPost.metrics[`${actionType}_count`] +
-            (previousPost.interaction_state[actionType] ? -1 : 1)
+          ...previousPost.metrics
         };
 
+        const isActive = !previousPost.interaction_state[actionType];
+        newMetrics[`${actionType}_count`] = previousPost.metrics[`${actionType}_count`] + (isActive ? 1 : -1);
+
         // Handle mutual exclusivity (like/dislike)
-        if (actionType === 'like' && previousPost.interaction_state.dislike) {
+        if (actionType === 'like' && isActive && previousPost.interaction_state.dislike) {
           newMetrics.dislike_count = Math.max(0, previousPost.metrics.dislike_count - 1);
-        } else if (actionType === 'dislike' && previousPost.interaction_state.like) {
+        } else if (actionType === 'dislike' && isActive && previousPost.interaction_state.like) {
           newMetrics.like_count = Math.max(0, previousPost.metrics.like_count - 1);
         }
 
         const newState = {
           ...previousPost.interaction_state,
-          [actionType]: !previousPost.interaction_state[actionType],
-          ...(actionType === 'like' ? { dislike: false } : {}),
-          ...(actionType === 'dislike' ? { like: false } : {})
+          [actionType]: isActive
         };
 
+        // Handle mutual exclusivity in state
+        if (actionType === 'like' && isActive) {
+          newState.dislike = false;
+        } else if (actionType === 'dislike' && isActive) {
+          newState.like = false;
+        }
+
         // Perform optimistic update
+        console.log('Applying optimistic update:', {
+          oldMetrics: previousPost.metrics,
+          newMetrics,
+          oldState: previousPost.interaction_state,
+          newState
+        });
+
         const optimisticPost = {
           ...previousPost,
           metrics: newMetrics,
@@ -193,18 +238,26 @@ export function usePostEngagement(post: PostWithEngagement) {
       },
 
       onSettled: async (data, error, variables, context) => {
-        // Always refetch to ensure consistency
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['posts'] }),
-          post.post_id && queryClient.invalidateQueries({
-            queryKey: ['post', post.post_id]
-          })
-        ]);
+        console.log(`Mutation settled for ${actionType} on post ${post.post_id}`);
+
+        // Always refetch to ensure consistency, but with a slight delay
+        // to ensure our local updates are applied first
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['posts'] });
+          if (post.post_id) {
+            queryClient.invalidateQueries({
+              queryKey: ['post', post.post_id]
+            });
+          }
+        }, 100);
       },
 
       onError: (error, variables, context) => {
+        console.error(`Error in ${actionType} operation:`, error);
+
         // Revert optimistic update
         if (context?.previousPost) {
+          console.log('Reverting optimistic update');
           queryClient.setQueryData(
             ['post', post.post_id],
             context.previousPost
@@ -214,103 +267,195 @@ export function usePostEngagement(post: PostWithEngagement) {
       },
 
       onSuccess: (data) => {
-        // Update metrics with server values
+        console.log(`${actionType} mutation succeeded:`, data);
+
+        // After successful update, force a refetch of the specific post
+        queryClient.invalidateQueries({
+          queryKey: ['post', post.post_id],
+          refetchActive: true,
+          exact: true
+        });
+
+        // Also invalidate the post list that contains this post
+        queryClient.invalidateQueries({
+          queryKey: ['posts'],
+          refetchActive: true
+        });
+
+        // Create a metrics update object based on available data
+        const metricsUpdate: Partial<PostMetrics> = {};
+
+        // If the backend returns full metrics object, use it
+        if (data.metrics) {
+          console.log('Server provided complete metrics:', data.metrics);
+          updateMetricsCache(actionType, data.metrics, {
+            ...post.interaction_state,
+            [actionType]: typeof data[actionType] === 'boolean' ? data[actionType] : !post.interaction_state[actionType]
+          });
+          return;
+        }
+
+        // Otherwise use individual count fields if available
+        if (typeof data.like_count === 'number') metricsUpdate.like_count = data.like_count;
+        if (typeof data.dislike_count === 'number') metricsUpdate.dislike_count = data.dislike_count;
+        if (typeof data.save_count === 'number') metricsUpdate.save_count = data.save_count;
+        if (typeof data.share_count === 'number') metricsUpdate.share_count = data.share_count;
+        if (typeof data.comment_count === 'number') metricsUpdate.comment_count = data.comment_count;
+        if (typeof data.report_count === 'number') metricsUpdate.report_count = data.report_count;
+
+        // If we have at least one valid count
+        if (Object.keys(metricsUpdate).length > 0) {
+          console.log('Server provided partial metrics:', metricsUpdate);
+          updateMetricsCache(actionType, metricsUpdate, {
+            ...post.interaction_state,
+            [actionType]: typeof data[actionType] === 'boolean' ? data[actionType] : !post.interaction_state[actionType]
+          });
+          return;
+        }
+
+        // Fallback: Calculate new metrics based on current state
+        const isActive = typeof data[actionType] === 'boolean' ? data[actionType] : !post.interaction_state[actionType];
         const newMetrics = {
-          ...post.metrics,
-          [`${actionType}_count`]: data[`${actionType}_count`]
+          ...post.metrics
         };
 
-        // Handle mutual exclusivity in success case
-        if (actionType === 'like' && data.like && post.interaction_state.dislike) {
+        newMetrics[`${actionType}_count`] = Math.max(0,
+          post.metrics[`${actionType}_count`] + (isActive ? 1 : -1)
+        );
+
+        // Handle mutual exclusivity
+        if (actionType === 'like' && isActive && post.interaction_state.dislike) {
           newMetrics.dislike_count = Math.max(0, post.metrics.dislike_count - 1);
-        } else if (actionType === 'dislike' && data.dislike && post.interaction_state.like) {
+        } else if (actionType === 'dislike' && isActive && post.interaction_state.like) {
           newMetrics.like_count = Math.max(0, post.metrics.like_count - 1);
         }
 
+        // Update interaction state
         const newState = {
           ...post.interaction_state,
-          [actionType]: data[actionType],
-          ...(actionType === 'like' && data.like ? { dislike: false } : {}),
-          ...(actionType === 'dislike' && data.dislike ? { like: false } : {})
+          [actionType]: isActive
         };
 
-        updateMetricsCache(actionType, newMetrics, newState);
+        // Handle mutual exclusivity in state
+        if (actionType === 'like' && isActive) {
+          newState.dislike = false;
+        } else if (actionType === 'dislike' && isActive) {
+          newState.like = false;
+        }
 
-        // Show success toast
+        console.log('Calculated metrics update:', newMetrics);
+        updateMetricsCache(actionType, newMetrics, newState);
+      }
+      });
+    };
+
+    // Create mutations
+    const likeMutation = createMutation('like');
+    const dislikeMutation = createMutation('dislike');
+    const saveMutation = createMutation('save');
+    const reportMutation = createMutation('report');
+
+    // Share handler (special case as it's not toggle-based)
+    const handleShare = useCallback(async () => {
+      const mutationKey = `share-${post.post_id}`;
+      if (pendingMutations.current.has(mutationKey)) {
+        console.log('Share operation already in progress, skipping');
+        return;
+      }
+
+      console.log('Starting share operation for post', post.post_id);
+      setIsLoading(prev => ({ ...prev, share: true }));
+      pendingMutations.current.add(mutationKey);
+
+      try {
+        validatePost();
+
+        // Optimistic update
+        const previousCount = post.metrics.share_count;
+        const newCount = previousCount + 1;
+        console.log(`Optimistically updating share count: ${previousCount} -> ${newCount}`);
+
+        // Update local state first
+        queryClient.setQueryData(['post', post.post_id], (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            metrics: {
+              ...oldData.metrics,
+              share_count: newCount
+            }
+          };
+        });
+
+        // Perform share API call
+        console.log('Calling share API');
+        const response = await engagementService.share(post.post_id);
+        console.log('Share API response:', response);
+
+        // Update with server value if available
+        const serverCount = response.share_count ?? newCount;
+        console.log(`Updating share count to server value: ${serverCount}`);
+
+        // Update cache and UI
+        await updateMetricsCache('share', { share_count: serverCount }, {});
+
+        // Show success message
         toast({
           title: "Success",
-          description: data.message
+          description: "Post shared successfully"
         });
+
+        // Invalidate after short delay to ensure consistent state
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: ['post', post.post_id],
+            exact: true
+          });
+        }, 100);
+
+      } catch (error) {
+        console.error('Share operation failed:', error);
+        // Revert on error
+        queryClient.setQueryData(['post', post.post_id], post);
+        handleError(error, 'share');
+      } finally {
+        setIsLoading(prev => ({ ...prev, share: false }));
+        pendingMutations.current.delete(mutationKey);
+        console.log('Share operation completed');
       }
-    });
-  };
-
-  // Create mutations
-  const likeMutation = createMutation('like');
-  const dislikeMutation = createMutation('dislike');
-  const saveMutation = createMutation('save');
-  const reportMutation = createMutation('report');
-
-  // Share handler (special case as it's not toggle-based)
-  const handleShare = useCallback(async () => {
-    const mutationKey = `share-${post.post_id}`;
-    if (pendingMutations.current.has(mutationKey)) {
-      return;
-    }
-
-    setIsLoading(prev => ({ ...prev, share: true }));
-    pendingMutations.current.add(mutationKey);
-
-    try {
-      validatePost();
-
-      // Optimistic update
-      const previousCount = post.metrics.share_count;
-      const newCount = previousCount + 1;
-
-      queryClient.setQueryData(['post', post.post_id], {
-        ...post,
-        metrics: {
-          ...post.metrics,
-          share_count: newCount
-        }
-      });
-
-      // Perform share
-      const response = await engagementService.share(post.post_id);
-
-      // Update with server value
-      const serverCount = response.share_count ?? newCount;
-      await updateMetricsCache('share', { share_count: serverCount }, {});
-
-      toast({
-        title: "Success",
-        description: "Post shared successfully"
-      });
-    } catch (error) {
-      // Revert on error
-      queryClient.setQueryData(['post', post.post_id], post);
-      handleError(error, 'share');
-    } finally {
-      setIsLoading(prev => ({ ...prev, share: false }));
-      pendingMutations.current.delete(mutationKey);
-    }
-  }, [post, queryClient, validatePost, handleError, updateMetricsCache]);
+    }, [post, queryClient, validatePost, handleError, updateMetricsCache]);
 
   // Cleanup pending mutations on unmount
   useEffect(() => {
     return () => {
+      console.log('Cleaning up pending mutations');
       pendingMutations.current.clear();
     };
   }, []);
 
+  // Debug: Log current interaction state when it changes
+  useEffect(() => {
+    console.log(`Post ${post.post_id} interaction state:`, post.interaction_state);
+  }, [post.post_id, post.interaction_state]);
+
   return {
-    handleLike: useCallback(() => likeMutation.mutate({}), [likeMutation]),
-    handleDislike: useCallback(() => dislikeMutation.mutate({}), [dislikeMutation]),
-    handleSave: useCallback(() => saveMutation.mutate({}), [saveMutation]),
+    handleLike: useCallback(() => {
+      console.log('Like handler called');
+      return likeMutation.mutate({});
+    }, [likeMutation]),
+    handleDislike: useCallback(() => {
+      console.log('Dislike handler called');
+      return dislikeMutation.mutate({});
+    }, [dislikeMutation]),
+    handleSave: useCallback(() => {
+      console.log('Save handler called');
+      return saveMutation.mutate({});
+    }, [saveMutation]),
     handleShare,
-    handleReport: useCallback((reason: string) =>
-      reportMutation.mutate({ reason }), [reportMutation]),
+    handleReport: useCallback((reason: string) => {
+      console.log('Report handler called with reason:', reason);
+      return reportMutation.mutate({ reason });
+    }, [reportMutation]),
     isLoading,
     isError: {
       like: likeMutation.isError,
@@ -321,4 +466,3 @@ export function usePostEngagement(post: PostWithEngagement) {
     }
   };
 }
-

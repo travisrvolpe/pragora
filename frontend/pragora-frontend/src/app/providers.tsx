@@ -2,6 +2,7 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthProvider } from '@/contexts/auth/AuthContext';
 import { ProfileProvider } from '@/contexts/profile/ProfileContext';
 import { LayoutProvider } from '@/components/layout/LayoutProvider';
@@ -22,24 +23,29 @@ const DebugPanel = dynamic(
   { ssr: false }
 );
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
+// Create a new QueryClient for each session
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
+
+  // Initialize QueryClient with enhanced settings
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000, // 1 minute
+        gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
+        retry: 1,
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        refetchOnReconnect: true,
+      },
+    },
+  }));
 
   useEffect(() => {
     setMounted(true);
     // Set the queryClient for auth service
     setQueryClient(queryClient);
-  }, []);
+  }, [queryClient]);
 
   if (!mounted) {
     return null;
@@ -56,6 +62,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                   <LayoutProvider>
                     {children}
                     {process.env.NODE_ENV === 'development' && <DebugPanel />}
+                    {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
                   </LayoutProvider>
                 </CommentProvider>
               </PostProvider>

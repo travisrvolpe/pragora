@@ -4,8 +4,9 @@
 import * as React from 'react'
 import { ThumbsDown } from 'lucide-react'
 import { EngagementButton, EngagementButtonProps } from './EngagementButton'
-import { cn } from '../../lib/utils/utils'
+import { cn } from '@/lib/utils/utils'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 type DislikeButtonProps = Omit<EngagementButtonProps, 'icon'> & {
   onClick: () => Promise<void>
@@ -17,22 +18,28 @@ export const DislikeButton = React.forwardRef<HTMLButtonElement, DislikeButtonPr
   disabled,
   error,
   className,
+  count,
   ...props
 }, ref) => {
-  const router = useRouter()
+  // Debug props
+  useEffect(() => {
+    console.log(`DislikeButton props - active: ${active}, count: ${count}, disabled: ${disabled}`);
+  }, [active, count, disabled]);
 
   const handleClick = async () => {
+    console.log("Dislike button clicked - active state:", active);
     try {
       await onClick()
+      console.log("Dislike action completed");
     } catch (err) {
       console.error('Error handling dislike:', err)
-      // Use router instead of window.location
-      if (err instanceof Error && err.message === 'Authentication required') {
-        router.push('/auth/login')
-        return
-      }
     }
   }
+
+  // Use style props directly based on active state
+  const buttonStyle = active
+    ? 'text-red-700 bg-red-50'
+    : 'text-gray-500';
 
   return (
     <EngagementButton
@@ -42,9 +49,11 @@ export const DislikeButton = React.forwardRef<HTMLButtonElement, DislikeButtonPr
       active={active}
       disabled={disabled}
       error={error}
+      count={count}
       tooltip={active ? 'Remove Dislike' : 'Dislike'}
       className={cn(
-        'text-red-600 hover:text-red-700 hover:bg-red-50',
+        buttonStyle,
+        'hover:text-red-700 hover:bg-red-50',
         className
       )}
       {...props}

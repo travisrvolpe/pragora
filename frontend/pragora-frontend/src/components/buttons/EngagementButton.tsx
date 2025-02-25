@@ -3,9 +3,9 @@
 
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { cn } from '../../lib/utils/utils'
+import { cn } from '@/lib/utils/utils'
 import { LucideIcon } from 'lucide-react'
-import {useState} from 'react'
+import { useState, useEffect } from 'react'
 
 export interface EngagementButtonProps {
   icon: LucideIcon
@@ -35,13 +35,21 @@ export const EngagementButton = React.forwardRef<HTMLButtonElement, EngagementBu
 
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Log when props change
+  useEffect(() => {
+    console.log(`EngagementButton state - active: ${active}, disabled: ${disabled}, count: ${count}`);
+  }, [active, disabled, count]);
+
   const handleClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     if (disabled || isProcessing) return;
 
+    console.log(`EngagementButton clicked - active before: ${active}`);
+
     try {
       setIsProcessing(true);
       await onClick();
+      console.log(`EngagementButton action completed`);
     } catch (err) {
       console.error('Button action failed:', err);
     } finally {
@@ -63,17 +71,14 @@ export const EngagementButton = React.forwardRef<HTMLButtonElement, EngagementBu
         'focus:outline-none focus:ring-2 focus:ring-offset-2',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         isProcessing && 'opacity-50 cursor-not-allowed',
-        active && 'bg-opacity-20 font-semibold',
-        error && 'text-red-500',
-        className
+        className  // Move className up to take priority over default styles
       )}
     >
       <div className="flex items-center space-x-1">
         <Icon
           className={cn(
             'w-4 h-4 transition-colors duration-200',
-            active && 'fill-current',
-            disabled && 'opacity-50'
+            active && 'fill-current'
           )}
         />
         {typeof count === 'number' && (
@@ -88,7 +93,6 @@ export const EngagementButton = React.forwardRef<HTMLButtonElement, EngagementBu
     </Button>
   )
 })
-
 EngagementButton.displayName = 'EngagementButton'
 
 export default EngagementButton

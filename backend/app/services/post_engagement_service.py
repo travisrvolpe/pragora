@@ -362,6 +362,7 @@ class PostEngagementService:
                     self.db.delete(existing)
                     new_count = max(0, current_count - 1)
                     action = "removed"
+                    is_active = False
                 else:
                     # Add interaction
                     new_interaction = PostInteraction(
@@ -374,6 +375,7 @@ class PostEngagementService:
                     self.db.add(new_interaction)
                     new_count = current_count + 1
                     action = "added"
+                    is_active = True
 
                 # Update post count
                 setattr(post, count_field, new_count)
@@ -439,8 +441,15 @@ class PostEngagementService:
                 result = {
                     "message": f"{interaction_type} {action} successfully",
                     f"{interaction_type}_count": new_count,
-                    interaction_type: action == "added",
-                    "metrics": fresh_counts  # Include all updated counts
+                    interaction_type: is_active,  # Return boolean value for frontend
+                    "metrics": {  # Always include complete metrics
+                        "like_count": post.like_count,
+                        "dislike_count": post.dislike_count,
+                        "save_count": post.save_count,
+                        "share_count": post.share_count,
+                        "comment_count": post.comment_count,
+                        "report_count": post.report_count
+                    }
                 }
 
                 return result
@@ -454,7 +463,6 @@ class PostEngagementService:
         except Exception as e:
             logger.error(f"❌ Error in toggle_interaction: {str(e)}")
             raise DatabaseError("Error processing interaction")
-
     # Specific interaction methods
     async def like_post(
             self,
@@ -559,15 +567,15 @@ class PostEngagementService:
                 "like": False,
                 "dislike": False,
                 "save": False,
+                "share": False,
                 "report": False
             }
 
         try:
+            # Fetch actual interaction records instead of just names
             interactions = (
-                self.db.query(
-                    InteractionType.interaction_type_name
-                )
-                .join(PostInteraction)
+                self.db.query(PostInteraction)
+                .join(InteractionType)
                 .filter(
                     PostInteraction.post_id == post_id,
                     PostInteraction.user_id == user_id
@@ -575,11 +583,14 @@ class PostEngagementService:
                 .all()
             )
 
-            interaction_types = [i[0] for i in interactions]
+            # Create dictionary mapping interaction types to existence
+            interaction_types = [i.interaction_type.interaction_type_name for i in interactions]
+
             return {
                 "like": "like" in interaction_types,
                 "dislike": "dislike" in interaction_types,
                 "save": "save" in interaction_types,
+                "share": "share" in interaction_types,
                 "report": "report" in interaction_types
             }
         except SQLAlchemyError as e:

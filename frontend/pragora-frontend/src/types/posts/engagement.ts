@@ -11,30 +11,20 @@ export interface PostMetrics {
   comment_count: number;
 }
 
-export interface MetricsData {
-  like_count: number;
-  dislike_count: number;
-  comment_count: number;
-  share_count: number;
-  save_count: number;
-  report_count: number;
-}
+// Remove MetricsData and just use PostMetrics everywhere
+// You can add this alias for backward compatibility
+export type MetricsData = PostMetrics;
 
 export interface PostInteractionState {
   like: boolean;
   dislike: boolean;
   save: boolean;
-  share: boolean;  // Add this
+  share: boolean;
   report: boolean;
 }
 
-export interface MetricStates {
-  like: boolean;
-  dislike: boolean;
-  save: boolean;
-  share: boolean;  // Add this
-  report: boolean;
-}
+// Use this as an alias for backward compatibility
+export type MetricStates = PostInteractionState;
 
 // Create a base interface for posts with engagement
 export interface BasePostWithEngagement extends BasePost {
@@ -124,11 +114,13 @@ export interface EngagementResponse {
   save_count?: number;
   share_count?: number;
   report_count?: number;
+  comment_count?: number;
   like?: boolean;
   dislike?: boolean;
   save?: boolean;
   share?: boolean;
   report?: boolean;
+  metrics?: PostMetrics;
 }
 
 export interface EngagementMetricsHandlerProps {

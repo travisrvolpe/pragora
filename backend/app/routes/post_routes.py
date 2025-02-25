@@ -18,25 +18,31 @@ from pydantic import BaseModel, ValidationError
 from app.middleware.profile_middleware import validate_user_profile
 from datetime import datetime
 
-class PostData(BaseModel):
+
+class UserPostResponse(BaseModel):
     post_id: int
-    title: str | None = None
+    title: Optional[str] = None
     content: str
-    created_at: datetime
-    updated_at: datetime | None = None
-    status: str
-    like_count: int = 0
-    comment_count: int = 0
-    share_count: int = 0
+    created_at: str
+    updated_at: Optional[str] = None
+    status: str = "active"
+    likes: int = 0
+    comments: int = 0
+    shares: int = 0
     views: int = 0
+    image_url: Optional[str] = None
 
-class PostListResponse(BaseModel):
-    status: str
-    message: str
-    data: dict
+    class Config:
+        from_attributes = True
 
-#class SimpleResponse(BaseModel):
-#    data: Dict[str, Any]
+
+class UserPostsListResponse(BaseModel):
+    status: str = "success"
+    message: str = "Posts retrieved successfully"
+    posts: List[UserPostResponse]
+
+    class Config:
+        from_attributes = True
 
 # Add this near the top of your file
 MEDIA_PATH = Path("./media")
@@ -213,52 +219,120 @@ async def mark_as_read(
 #    return {"message": "Engagement updated successfully"}
 # Get posts for the current user
 
-@router.get("/me", response_model=PostListResponse)
-async def get_my_posts(
-    skip: int = 0,
-    limit: int = 20,
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
+@router.get("/me/debug")  # No response_model
+async def get_my_posts_debug(
+        current_user=Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
+    """Get posts for the currently logged-in user without response validation"""
     try:
+        # Query for posts
         posts = db.query(Post) \
             .filter(Post.user_id == current_user.user_id) \
             .filter(Post.status == 'active') \
             .order_by(Post.created_at.desc()) \
-            .offset(skip) \
-            .limit(limit) \
             .all()
 
+        # Manually construct the response without relying on Pydantic models
         serialized_posts = []
         for post in posts:
-            post_data = {
+            # Build a dictionary with only the fields we need
+            post_dict = {
                 "post_id": post.post_id,
-                "title": post.title or "",
+                "title": post.title,
                 "content": post.content,
-                "created_at": post.created_at,
-                "updated_at": post.updated_at or post.created_at,
-                "status": post.status,
-                "like_count": post.like_count or 0,
-                "comment_count": post.comment_count or 0,
-                "share_count": post.share_count or 0,
+                "created_at": post.created_at.isoformat() if post.created_at else None,
+                "updated_at": post.updated_at.isoformat() if post.updated_at else None,
+                "status": post.status or "active",  # Ensure status is included
+                "likes": post.like_count or 0,
+                "comments": post.comment_count or 0,
+                "shares": post.share_count or 0,
                 "views": 0
             }
-            serialized_posts.append(post_data)
 
+            # Optionally add image_url if it exists
+            if hasattr(post, 'image_url') and post.image_url:
+                post_dict["image_url"] = post.image_url
+
+            serialized_posts.append(post_dict)
+
+        # Return a simple dictionary that will be automatically converted to JSON
         return {
-            "status": "success",
-            "message": "Posts retrieved successfully",
-            "data": {
-                "posts": serialized_posts
-            }
+            "success": True,
+            "count": len(serialized_posts),
+            "posts": serialized_posts
         }
 
     except Exception as e:
-        logger.error(f"Error in get_my_posts: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        # Log detailed error
+        print(f"Error in get_my_posts_debug: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+        # Return error response
+        return {
+            "success": False,
+            "error": str(e),
+            "posts": []
+        }
+
+# Also temporarily modify the original endpoint to return a minimal response
+@router.get("/me")
+async def get_my_posts(
+        current_user=Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    """Get posts for the currently logged-in user"""
+    try:
+        # Query for posts
+        posts = db.query(Post) \
+            .filter(Post.user_id == current_user.user_id) \
+            .filter(Post.status == 'active') \
+            .order_by(Post.created_at.desc()) \
+            .all()
+
+        # Manually construct the response without relying on Pydantic models
+        serialized_posts = []
+        for post in posts:
+            # Build a dictionary with only the fields we need
+            post_dict = {
+                "post_id": post.post_id,
+                "title": post.title,
+                "content": post.content,
+                "created_at": post.created_at.isoformat() if post.created_at else None,
+                "updated_at": post.updated_at.isoformat() if post.updated_at else None,
+                "status": post.status or "active",
+                "likes": post.like_count or 0,
+                "comments": post.comment_count or 0,
+                "shares": post.share_count or 0,
+                "views": 0
+            }
+
+            # Optionally add image_url if it exists
+            if hasattr(post, 'image_url') and post.image_url:
+                post_dict["image_url"] = post.image_url
+
+            serialized_posts.append(post_dict)
+
+        # Return a simple dictionary that will be automatically converted to JSON
+        return {
+            "success": True,
+            "count": len(serialized_posts),
+            "posts": serialized_posts
+        }
+
+    except Exception as e:
+        # Log detailed error
+        print(f"Error in get_my_posts: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+        # Return error response
+        return {
+            "success": False,
+            "error": str(e),
+            "posts": []
+        }
 
 # List all posts
 # Public routes (no auth required)

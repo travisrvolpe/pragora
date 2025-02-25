@@ -21,7 +21,7 @@ export interface BaseComponentProps {
 export interface PostMetricsProps {
   post: PostWithEngagement;
   variant: 'feed' | 'detail';
-  metrics: MetricsData;
+  metrics: PostMetrics;
   interactionState: PostInteractionState;
   loading: LoadingStates;
   error: ErrorStates;

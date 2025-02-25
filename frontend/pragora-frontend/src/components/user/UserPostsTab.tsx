@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, ThumbsUp, MessageSquare, Share2, Calendar, Eye } from 'lucide-react';
-import postService from '@/lib/services/post/postService';
-import type { UserPost } from '@/types/user/user';
-import type { PostWithEngagement } from '@/types/posts/engagement';
-import type { Post } from '@/types/posts/post-types';
+import { FileText, ThumbsUp, MessageSquare, Share2, Calendar, Eye, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { authService } from '@/lib/services/auth/authService';
+
+// Updated interface with status field
+interface UserPost {
+  post_id: number;
+  title: string | null;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  status?: string;  // Added status field
+  likes: number;
+  comments: number;
+  shares: number;
+  image_url?: string;
+}
 
 const UserPostsTab: React.FC = () => {
   const [posts, setPosts] = useState<UserPost[]>([]);
@@ -13,27 +25,36 @@ const UserPostsTab: React.FC = () => {
   useEffect(() => {
     const fetchUserPosts = async () => {
       setIsLoading(true);
+      setError(null);
+
       try {
-        const response = await postService.getMyPosts();
-        if (response?.data?.posts) {
-          // Transform the posts to UserPost format
-          const userPosts = response.data.posts.map((post: any): UserPost => ({
-            post_id: post.post_id,
-            title: post.title || 'Untitled Post',
-            content: post.content,
-            created_at: post.created_at,
-            updated_at: post.updated_at || post.created_at, // Fallback to created_at if updated_at is not available
-            status: post.status || 'active',
-            likes: post.likes || 0,
-            comments: post.comments || 0,
-            shares: post.shares || 0,
-            views: post.views || 0
-          }));
-          setPosts(userPosts);
+        // Using direct fetch to the debug endpoint that we know works
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const token = authService.getToken();
+
+        const response = await fetch(`${apiUrl}/posts/me/debug`, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch posts: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('Posts debug response:', data);
+
+        if (data && Array.isArray(data.posts)) {
+          setPosts(data.posts);
+        } else {
+          console.warn('Unexpected response format:', data);
+          setPosts([]);
         }
       } catch (err) {
-        setError('Failed to fetch posts');
         console.error('Error fetching posts:', err);
+        setError('Failed to load posts. Please try again later.');
       } finally {
         setIsLoading(false);
       }
@@ -84,6 +105,16 @@ const UserPostsTab: React.FC = () => {
             </span>
           </div>
 
+          {post.image_url && (
+            <div className="relative h-40 mb-4 rounded-md overflow-hidden">
+              <img
+                src={post.image_url.startsWith('http') ? post.image_url : `${process.env.NEXT_PUBLIC_API_URL}${post.image_url}`}
+                alt="Post image"
+                className="object-cover w-full h-full"
+              />
+            </div>
+          )}
+
           <p className="text-gray-600 mb-4 line-clamp-3">
             {post.content}
           </p>
@@ -102,20 +133,29 @@ const UserPostsTab: React.FC = () => {
                 <Share2 className="w-4 h-4 mr-1" />
                 <span>{post.shares}</span>
               </div>
-              <div className="flex items-center">
-                <Eye className="w-4 h-4 mr-1" />
-                <span>{post.views}</span>
-              </div>
             </div>
 
-            <div className="text-sm text-gray-500">
-              {post.status === 'active' ? (
-                <span className="text-green-600">Active</span>
-              ) : post.status === 'hidden' ? (
-                <span className="text-yellow-600">Hidden</span>
-              ) : (
-                <span className="text-red-600">Deleted</span>
-              )}
+            <div className="flex items-center space-x-3">
+              {/* Post status indicator */}
+              <div className="text-sm text-gray-500">
+                {post.status === 'active' ? (
+                  <span className="text-green-600">Active</span>
+                ) : post.status === 'hidden' ? (
+                  <span className="text-yellow-600">Hidden</span>
+                ) : post.status === 'deleted' ? (
+                  <span className="text-red-600">Deleted</span>
+                ) : (
+                  <span className="text-green-600">Active</span> /* Default to active if status is missing */
+                )}
+              </div>
+
+              <Link
+                href={`/dialectica/${post.post_id}`}
+                className="inline-flex items-center px-2 py-1 text-sm text-blue-600 hover:text-blue-800"
+              >
+                <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                View
+              </Link>
             </div>
           </div>
         </div>

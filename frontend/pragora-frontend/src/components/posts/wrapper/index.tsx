@@ -1,9 +1,9 @@
 // components/posts/wrapper/index.tsx
 'use client';
-
+import postService from '@/lib/services/post/postService';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useDebounceInteraction } from '@/lib/hooks/useDebounceInteraction';
-import {FC, useCallback, useEffect, useMemo} from 'react';
+import { FC, useCallback, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { PostHeader } from './PostHeader';
 import { PostFooter } from './PostFooter';
@@ -14,7 +14,8 @@ import { useAuth } from '@/contexts/auth/AuthContext';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/lib/hooks/use-toast/use-toast';
 import { MetricsData } from '@/types/posts/engagement';
-import {useQueryClient} from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { EngagementStateDebugger } from '@/components/debug/EngagementStateDebugger';
 
 export const PostWrapper: FC<PostWrapperProps> = ({
   post,
@@ -24,25 +25,31 @@ export const PostWrapper: FC<PostWrapperProps> = ({
   onThreadedReply,
   showAnalytics = true
 }) => {
-
   const debounceInteraction = useDebounceInteraction();
+  const queryClient = useQueryClient();
 
   const handleEngagementAction = useCallback(async (action: () => Promise<void>) => {
     await debounceInteraction(action);
   }, [debounceInteraction]);
 
-  const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Always verify data on mount
+    // When the post prop changes (including its metrics or interaction_state),
+    // ensure we update the component's internal state
+    console.log("Post data changed:", {
+      postId: post.post_id,
+      metrics: post.metrics,
+      interactionState: post.interaction_state
+    });
+
+    // Force invalidation of the query to refresh data
     if (post.post_id) {
-      queryClient.prefetchQuery({
+      queryClient.invalidateQueries({
         queryKey: ['post', post.post_id],
-        staleTime: 0,
-        gcTime: 0
+        exact: true
       });
     }
-  }, [post.post_id, queryClient]);
+  }, [post.post_id, post.metrics, post.interaction_state, queryClient]);
 
   const { isAuthenticated } = useAuth();
   const router = useRouter();
@@ -87,32 +94,28 @@ export const PostWrapper: FC<PostWrapperProps> = ({
 
   const handleLikeClick = useCallback(async () => {
     return handleEngagementClick(async () => {
-      const result = await handleLike();
-      if (post.interaction_state?.dislike) {
-        // Update dislike state if needed
-        post.metrics.dislike_count = Math.max(0, (post.metrics.dislike_count ?? 0) - 1);
-      }
-      return result;
+      console.log("Like button clicked");
+      await handleLike();
     });
-  }, [handleEngagementClick, handleLike, post]);
+  }, [handleEngagementClick, handleLike]);
 
   const handleDislikeClick = useCallback(async () => {
     return handleEngagementClick(async () => {
-      const result = await handleDislike();
-      if (post.interaction_state?.like) {
-        // Update like state if needed
-        post.metrics.like_count = Math.max(0, (post.metrics.like_count ?? 0) - 1);
-      }
-      return result;
+      console.log("Dislike button clicked");
+      await handleDislike();
     });
-  }, [handleEngagementClick, handleDislike, post]);
+  }, [handleEngagementClick, handleDislike]);
 
   const handleSaveClick = useCallback(async () => {
-    return handleEngagementClick(async () => await handleSave());
+    return handleEngagementClick(async () => {
+      console.log("Save button clicked");
+      await handleSave();
+    });
   }, [handleEngagementClick, handleSave]);
 
   const handleShareClick = useCallback(async () => {
     return handleEngagementClick(async () => {
+      console.log("Share button clicked");
       await handleShare();
       toast({
         title: "Success",
@@ -123,6 +126,7 @@ export const PostWrapper: FC<PostWrapperProps> = ({
 
   const handleReportClick = useCallback(async () => {
     return handleEngagementClick(async () => {
+      console.log("Report button clicked");
       await handleReport('Report reason');
       toast({
         title: "Success",
@@ -147,45 +151,60 @@ export const PostWrapper: FC<PostWrapperProps> = ({
     onThreadedReply?.();
   }, [isAuthenticated, router, onThreadedReply]);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log("PostWrapper - Post metrics:", {
+        postId: post.post_id,
+        fromProps: post.metrics,
+        memorized: metrics,
+        interactionState: post.interaction_state
+      });
+    }
+  }, [post.metrics, metrics, post.post_id, post.interaction_state]);
+
   return (
-      <ErrorBoundary
+    <ErrorBoundary
       fallback={<div>Error loading post</div>}
       onError={(error) => {
         console.error('Post error:', error);
       }}
-      >
-        <Card className="w-full bg-white">
-          <div className="flex flex-col">
-            <PostHeader
-              post={post}
-              onReport={handleReportClick}
-              isReportLoading={isLoading.report}
-            />
+    >
+      <Card className="w-full bg-white">
+        <div className="flex flex-col">
+          <PostHeader
+            post={post}
+            onReport={handleReportClick}
+            isReportLoading={isLoading.report}
+          />
 
-            <div className="flex-1">
-              {children}
-            </div>
-
-            <PostFooter
-              post={post}
-              variant={variant}
-              metrics={metrics}
-              interactionState={post.interaction_state}
-              loading={isLoading}
-              error={isError}
-              onComment={handleCommentClick}
-              onLike={handleLikeClick}
-              onDislike={handleDislikeClick}
-              onShare={handleShareClick}
-              onSave={handleSaveClick}
-              onThreadedReply={handleThreadedReplyClick}
-            />
-
-            {showAnalytics && post.analysis && (
-              <PostAnalytics analysis={post.analysis} />
-            )}
+          <div className="flex-1">
+            {children}
           </div>
-        </Card>
-      </ErrorBoundary>
+
+          <PostFooter
+            post={post}
+            variant={variant}
+            metrics={metrics}
+            interactionState={post.interaction_state}
+            loading={isLoading}
+            error={isError}
+            onComment={handleCommentClick}
+            onLike={handleLikeClick}
+            onDislike={handleDislikeClick}
+            onShare={handleShareClick}
+            onSave={handleSaveClick}
+          />
+
+          {showAnalytics && post.analysis && (
+            <PostAnalytics analysis={post.analysis} />
+          )}
+
+          {/* Add the engagement debugger in development mode */}
+          {process.env.NODE_ENV === 'development' && (
+            <EngagementStateDebugger postId={post.post_id} />
+          )}
+        </div>
+      </Card>
+    </ErrorBoundary>
   );
 };

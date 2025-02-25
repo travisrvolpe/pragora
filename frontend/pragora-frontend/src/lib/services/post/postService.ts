@@ -4,12 +4,8 @@ import { Post } from '@/types/posts/post-types';
 import { PostsResponse } from '@/types/posts/page-types';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import { authService } from '@/lib/services/auth/authService';
+import {PostInteractionState, PostMetrics} from "@/types/posts";
 
-interface PostService {
-  createPost(data: CreatePostData): Promise<Post>;
-  createPost(data: FormData): Promise<Post>;
-  getPostById(postId: number): Promise<Post>;
-}
 
 interface FetchPostsParams {
   skip?: number
@@ -67,6 +63,42 @@ interface PostListResponse {
     posts: PostData[];
   };
 }
+
+interface UserPost {
+  post_id: number;
+  title: string | null;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  status: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  views: number;
+  image_url?: string | null;
+}
+
+interface UserPostsResponse {
+  success?: boolean;
+  count?: number;
+  error?: string;
+  posts: UserPost[];
+}
+
+interface PostService {
+  fetchPosts(params?: FetchPostsParams): Promise<PostsResponse>;
+  getPostById(postId: number): Promise<Post>;
+  createPost(data: CreatePostData | FormData): Promise<Post>;
+  updatePost(postId: number, data: Partial<CreatePostData>): Promise<Post>;
+  deletePost(postId: number): Promise<void>;
+  uploadPostImage(postId: number, file: File): Promise<{ image_url: string }>;
+  getMyPosts(): Promise<UserPostsResponse>;
+  getMyPostsDebug(): Promise<UserPostsResponse>;
+  getSavedPosts(): Promise<{ saved_posts: number[] }>;
+  getTrendingPosts(timeframe?: string): Promise<Post[]>;
+  getRecommendedPosts(): Promise<Post[]>;
+}
+
 // Helper to get auth headers
 const getAuthHeaders = () => {
   const token = authService.getToken();
@@ -112,44 +144,74 @@ const postService = {
 
   getPostById: async (postId: number): Promise<Post> => {
     try {
+      console.log(`Fetching post ${postId} details...`);
+
       const response = await api.get(API_ENDPOINTS.POST_BY_ID(postId), {
         headers: {
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          ...getAuthHeaders() // Make sure auth headers are included
         }
       });
 
-      console.log('Raw post response:', response.data);
+      console.log(`Raw API response for post ${postId}:`, response.data);
 
+      // Extract post from response, handling different response formats
       let post = response.data?.data?.post || response.data?.post || response.data;
 
       if (!post) {
-        console.error('Invalid post response:', response.data);
-        throw new Error('Invalid response format');
+        console.error('Invalid post response format:', response.data);
+        throw new Error('Invalid response format - post data not found');
       }
 
-      post = {
-        ...post,
-        metrics: {
-          like_count: post.metrics?.like_count ?? post.like_count ?? 0,
-          dislike_count: post.metrics?.dislike_count ?? post.dislike_count ?? 0,
-          save_count: post.metrics?.save_count ?? post.save_count ?? 0,
-          share_count: post.metrics?.share_count ?? post.share_count ?? 0,
-          comment_count: post.metrics?.comment_count ?? post.comment_count ?? 0,
-          report_count: post.metrics?.report_count ?? post.report_count ?? 0,
-        },
-        interaction_state: {
-          like: post.interaction_state?.like ?? false,
-          dislike: post.interaction_state?.dislike ?? false,
-          save: post.interaction_state?.save ?? false,
-          report: post.interaction_state?.report ?? false
-        }
+      // Ensure metrics are properly normalized with defaults for all fields
+      const metrics: PostMetrics = {
+        like_count: post.metrics?.like_count ?? post.like_count ?? 0,
+        dislike_count: post.metrics?.dislike_count ?? post.dislike_count ?? 0,
+        save_count: post.metrics?.save_count ?? post.save_count ?? 0,
+        share_count: post.metrics?.share_count ?? post.share_count ?? 0,
+        comment_count: post.metrics?.comment_count ?? post.comment_count ?? 0,
+        report_count: post.metrics?.report_count ?? post.report_count ?? 0,
       };
 
-      console.log('Processed post data:', post);
-      return post;
+      // Ensure interaction_state is properly structured with defaults
+      const interaction_state: PostInteractionState = {
+        like: post.interaction_state?.like ?? false,
+        dislike: post.interaction_state?.dislike ?? false,
+        save: post.interaction_state?.save ?? false,
+        share: post.interaction_state?.share ?? false,
+        report: post.interaction_state?.report ?? false
+      };
+
+      // Normalize user data if present
+      let normalizedUser = post.user;
+      if (!normalizedUser && post.user_id) {
+        normalizedUser = {
+          user_id: post.user_id,
+          username: post.username || `user_${post.user_id}`,
+          avatar_url: post.avatar_img || post.avatar_url,
+          reputation_score: post.reputation_score || 0
+        };
+      }
+
+      // Build the normalized post object
+      const normalizedPost = {
+        ...post,
+        metrics, // Replace with normalized metrics
+        interaction_state, // Replace with normalized interaction state
+        user: normalizedUser // Add normalized user data
+      };
+
+      console.log(`Normalized post ${postId} data:`, {
+        metrics: normalizedPost.metrics,
+        interaction_state: normalizedPost.interaction_state
+      });
+
+      return normalizedPost;
     } catch (error) {
-      console.error('Error fetching post:', error);
-      throw error;
+      console.error(`Error fetching post ${postId}:`, error);
+      throw error instanceof Error
+        ? error
+        : new Error(`Failed to fetch post ${postId}`);
     }
   },
 
@@ -205,31 +267,101 @@ const postService = {
       throw error;
     }
   },
-
-  getMyPosts: async (): Promise<PostListResponse> => {
+  getMyPosts: async (): Promise<UserPostsResponse> => {
     try {
       console.log('Making request to:', API_ENDPOINTS.POST_MY_POSTS);
-      const response = await api.get<PostListResponse>(API_ENDPOINTS.POST_MY_POSTS);
-      console.log('Raw response:', response);
-      return response.data;
-    } catch (error: any) {
-      console.error('Error response:', error.response?.data);
-      console.error('Error details:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config
+
+      const response = await api.get(API_ENDPOINTS.POST_MY_POSTS, {
+        headers: {
+          'Accept': 'application/json'
+        }
       });
-      throw error;
+
+      console.log('User posts response:', response.data);
+
+      // Check if response has the expected structure
+      if (response.data && Array.isArray(response.data.posts)) {
+        return {
+          success: response.data.success,
+          count: response.data.count,
+          posts: response.data.posts
+        };
+      }
+
+      // Alternative structure
+      if (response.data && response.data.data && Array.isArray(response.data.data.posts)) {
+        return {
+          success: response.data.status === 'success',
+          count: response.data.data.posts.length,
+          posts: response.data.data.posts
+        };
+      }
+
+      console.warn('Unexpected response format:', response.data);
+      return { success: false, count: 0, posts: [] };
+
+    } catch (error: any) {
+      console.error('Error fetching user posts:', error);
+      // Return empty array on error for graceful UI handling
+      return { success: false, count: 0, posts: [] };
     }
   },
 
-  getSavedPosts: async (): Promise<{ saved_posts: number[] }> => {
+  // Keep the debug method for now
+  getMyPostsDebug: async (): Promise<UserPostsResponse> => {
     try {
-      const response = await api.get(API_ENDPOINTS.PROFILE_SAVED_POSTS);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching saved posts:', error);
-      throw error;
+      console.log('Making request to debug endpoint...');
+
+      const token = authService.getToken();
+      const debugUrl = `${API_ENDPOINTS.POST_MY_POSTS}/debug`;
+
+      const response = await fetch(debugUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
+
+      console.log('Debug response status:', response.status);
+      const responseText = await response.text();
+      console.log('Debug response text:', responseText);
+
+      // Try to parse it as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Parsed debug response:', data);
+      } catch (err) {
+        console.error('Failed to parse debug response as JSON');
+        data = { posts: [] };
+      }
+
+      // If we got a successful response with posts
+      if (data && data.posts && Array.isArray(data.posts)) {
+        // Ensure all posts have the required fields with defaults
+        const normalizedPosts = data.posts.map((post: any) => ({
+          post_id: post.post_id,
+          title: post.title,
+          content: post.content,
+          created_at: post.created_at,
+          updated_at: post.updated_at,
+          status: post.status || 'active',
+          likes: post.likes || 0,
+          comments: post.comments || 0,
+          shares: post.shares || 0,
+          views: post.views || 0,
+          image_url: post.image_url || null
+        }));
+
+        return { posts: normalizedPosts };
+      }
+
+      // Fall back to empty array
+      return { posts: [] };
+
+    } catch (error: any) {
+      console.error('Debug request failed:', error);
+      return { posts: [] };
     }
   },
 

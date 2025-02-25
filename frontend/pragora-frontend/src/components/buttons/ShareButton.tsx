@@ -4,7 +4,9 @@
 import * as React from 'react'
 import { Share2 } from 'lucide-react'
 import { EngagementButton, EngagementButtonProps } from './EngagementButton'
-import { cn } from '../../lib/utils/utils'
+import { cn } from '@/lib/utils/utils'
+import { useEffect } from 'react'
+
 type ShareButtonProps = Omit<EngagementButtonProps, 'icon'> & {
   onClick: () => Promise<void>
 }
@@ -15,11 +17,20 @@ export const ShareButton = React.forwardRef<HTMLButtonElement, ShareButtonProps>
   disabled,
   error,
   className,
+  count,
   ...props
 }, ref) => {
+
+  // Debug props
+  useEffect(() => {
+    console.log(`ShareButton props - active: ${active}, count: ${count}, disabled: ${disabled}`);
+  }, [active, count, disabled]);
+
   const handleClick = async () => {
+    console.log("Share button clicked - active state:", active);
     try {
       await onClick()
+      console.log("Share action completed");
     } catch (err) {
       console.error('Error handling share:', err)
     }
@@ -33,9 +44,11 @@ export const ShareButton = React.forwardRef<HTMLButtonElement, ShareButtonProps>
       active={active}
       disabled={disabled}
       error={error}
+      count={count}
       tooltip="Share"
       className={cn(
-        'text-green-600 hover:text-green-700 hover:bg-green-50',
+        active ? 'text-green-700 bg-green-50' : 'text-gray-500',
+        'hover:text-green-700 hover:bg-green-50',
         className
       )}
       {...props}
