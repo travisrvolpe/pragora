@@ -2,6 +2,7 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { authService } from '@/lib/services/auth/authService';
 import { API_ENDPOINTS } from './endpoints';
+import { QueryClient } from '@tanstack/react-query';
 
 export const TOKEN_KEY = 'access_token';
 
@@ -19,6 +20,7 @@ let failedQueue: Array<{
   resolve: (value?: unknown) => void;
   reject: (reason?: any) => void;
 }> = [];
+
 
 export const api: AxiosInstance & {
   get<T = any>(url: string, config?: ExtendedAxiosRequestConfig): Promise<T>;

@@ -18,8 +18,8 @@ import type { PostMetricsProps } from '@/types/posts/component-types';
 const PostMetrics: React.FC<PostMetricsProps> = ({
   post,
   variant,
-  metrics,  // Use directly without local state
-  interactionState,  // Use directly without local state
+  metrics,
+  interactionState,
   loading,
   error,
   onComment,
@@ -34,13 +34,9 @@ const PostMetrics: React.FC<PostMetricsProps> = ({
   const router = useRouter();
 
   // Log rendering info for debugging
-  console.log('Rendering PostMetrics for post', post.post_id, 'with state:', {
-    metrics,
-    interactionState,
-    loading
-  });
+  console.log('Rendering PostMetrics for post', post.post_id, 'with state:', interactionState);
 
-  // Handle authentication check
+  // Handle authentication check and wrap action in Promise for type compatibility
   const handleAuthCheck = useCallback(
     async (action: () => Promise<void>): Promise<void> => {
       if (!isAuthenticated) {
@@ -51,36 +47,36 @@ const PostMetrics: React.FC<PostMetricsProps> = ({
       try {
         // Execute the action and return its promise
         return await action();
-      } catch (err) {
-        console.error('Action failed:', err);
+      } catch (error) {
+        console.error('Action failed:', error);
         toast({
           title: "Error",
-          description: err instanceof Error ? err.message : "Failed to process interaction",
+          description: error instanceof Error ? error.message : "Failed to process interaction",
           variant: "destructive"
         });
-        throw err;
+        throw error;
       }
     },
     [isAuthenticated, router]
   );
 
-  // Action handlers
-  const handleLikeClick = useCallback(() => {
+  // Handle interactions with proper error handling
+  const handleLikeClick = useCallback(async (): Promise<void> => {
     console.log("Like button clicked in PostMetrics");
     return handleAuthCheck(onLike);
   }, [handleAuthCheck, onLike]);
 
-  const handleDislikeClick = useCallback(() => {
+  const handleDislikeClick = useCallback(async (): Promise<void> => {
     console.log("Dislike button clicked in PostMetrics");
     return handleAuthCheck(onDislike);
   }, [handleAuthCheck, onDislike]);
 
-  const handleSaveClick = useCallback(() => {
+  const handleSaveClick = useCallback(async (): Promise<void> => {
     console.log("Save button clicked in PostMetrics");
     return handleAuthCheck(onSave);
   }, [handleAuthCheck, onSave]);
 
-  const handleShareClick = useCallback(() => {
+  const handleShareClick = useCallback(async (): Promise<void> => {
     console.log("Share button clicked in PostMetrics");
     return handleAuthCheck(async () => {
       await onShare();
@@ -92,7 +88,6 @@ const PostMetrics: React.FC<PostMetricsProps> = ({
   }, [handleAuthCheck, onShare]);
 
   const handleCommentClick = useCallback(() => {
-    console.log("Comment button clicked in PostMetrics");
     if (!isAuthenticated) {
       router.push('/auth/login');
       return;
@@ -104,7 +99,6 @@ const PostMetrics: React.FC<PostMetricsProps> = ({
   }, [isAuthenticated, router, onComment]);
 
   const handleThreadedReplyClick = useCallback(() => {
-    console.log("Threaded reply button clicked in PostMetrics");
     if (!isAuthenticated) {
       router.push('/auth/login');
       return;

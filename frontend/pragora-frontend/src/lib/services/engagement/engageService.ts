@@ -1,6 +1,6 @@
 // lib/services/engagement/engageService.ts
-import api from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
+import { authService } from '@/lib/services/auth/authService';
 import {
   EngagementResponse,
   MetricsData,
@@ -22,66 +22,65 @@ interface EngagementService {
 }
 
 /**
+ * Helper to get base API URL
+ */
+const getApiUrl = () => {
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+};
+
+/**
+ * Helper to get authentication headers
+ */
+const getAuthHeaders = (): Record<string, string> => {
+  const token = authService.getToken();
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
+// And then in each method, fix the headers merging:
+const headers: Record<string, string> = {
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+  ...getAuthHeaders() // Now this will be type-safe
+};
+
+
+/**
  * Default response handler to ensure consistent response format
  */
-const handleResponse = <T>(response: any): T => {
-  // If the response already has the expected data format, return it
-  if (response.data && (
-    response.data.like !== undefined ||
-    response.data.dislike !== undefined ||
-    response.data.save !== undefined ||
-    response.data.share !== undefined ||
-    response.data.report !== undefined ||
-    response.data.metrics !== undefined
-  )) {
-    return response.data;
+const handleResponse = async <T>(response: Response): Promise<T> => {
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Request failed: ${response.status} - ${errorText}`);
   }
 
-  // If response has a message but no counts, create a structured response
-  if (response.data && response.data.message) {
-    return {
-      message: response.data.message,
-      // Include any metrics from response
-      like_count: response.data.like_count,
-      dislike_count: response.data.dislike_count,
-      save_count: response.data.save_count,
-      share_count: response.data.share_count,
-      comment_count: response.data.comment_count,
-      report_count: response.data.report_count,
-      // Include interaction state if available
-      like: response.data.like,
-      dislike: response.data.dislike,
-      save: response.data.save,
-      share: response.data.share,
-      report: response.data.report
-    } as T;
+  const responseData = await response.json();
+
+  // Process response correctly
+  if (responseData?.data) {
+    return responseData.data as T;
   }
 
-  // Fall back to raw response data
-  return response.data as T;
+  return responseData as T;
 };
 
 /**
  * Error handler that provides consistent error objects with detailed information
  */
-const handleError = (operation: string, postId: number, error: any): Error => {
+const handleError = (operation: string, postId: number, error: unknown): Error => {
   // Create descriptive error message
   const baseMsg = `Error ${operation} post ${postId}`;
 
-  // Extract error details if available
+  // Handle different error types
   let detail = '';
-  if (error.response?.data?.detail) {
-    detail = `: ${error.response.data.detail}`;
-  } else if (error.message) {
+  if (error instanceof Error) {
     detail = `: ${error.message}`;
+  } else if (error instanceof Response) {
+    detail = `: HTTP error ${error.status}`;
+  } else {
+    detail = ': Unknown error';
   }
 
   console.error(`${baseMsg}${detail}`, error);
-
-  // If it's an auth error, rethrow with specific message
-  if (error.response?.status === 401) {
-    return new Error('Authentication required');
-  }
 
   // Return formatted error
   return new Error(`${baseMsg}${detail}`);
@@ -91,9 +90,21 @@ export const engagementService: EngagementService = {
   like: async (postId: number): Promise<EngagementResponse> => {
     try {
       console.log(`Calling like API for post ${postId}`);
-      const response = await api.post(API_ENDPOINTS.POST_LIKE(postId));
-      console.log(`Like API response for post ${postId}:`, response.data);
-      return handleResponse<EngagementResponse>(response);
+      const apiUrl = getApiUrl();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
+
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/like`, {
+        method: 'POST',
+        headers
+      });
+
+      const data = await handleResponse<EngagementResponse>(response);
+      console.log(`Like API response for post ${postId}:`, data);
+      return data;
     } catch (error) {
       throw handleError('liking', postId, error);
     }
@@ -102,9 +113,21 @@ export const engagementService: EngagementService = {
   dislike: async (postId: number): Promise<EngagementResponse> => {
     try {
       console.log(`Calling dislike API for post ${postId}`);
-      const response = await api.post(API_ENDPOINTS.POST_DISLIKE(postId));
-      console.log(`Dislike API response for post ${postId}:`, response.data);
-      return handleResponse<EngagementResponse>(response);
+      const apiUrl = getApiUrl();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
+
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/dislike`, {
+        method: 'POST',
+        headers
+      });
+
+      const data = await handleResponse<EngagementResponse>(response);
+      console.log(`Dislike API response for post ${postId}:`, data);
+      return data;
     } catch (error) {
       throw handleError('disliking', postId, error);
     }
@@ -113,9 +136,21 @@ export const engagementService: EngagementService = {
   save: async (postId: number): Promise<EngagementResponse> => {
     try {
       console.log(`Calling save API for post ${postId}`);
-      const response = await api.post(API_ENDPOINTS.POST_SAVE(postId));
-      console.log(`Save API response for post ${postId}:`, response.data);
-      return handleResponse<EngagementResponse>(response);
+      const apiUrl = getApiUrl();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
+
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/save`, {
+        method: 'POST',
+        headers
+      });
+
+      const data = await handleResponse<EngagementResponse>(response);
+      console.log(`Save API response for post ${postId}:`, data);
+      return data;
     } catch (error) {
       throw handleError('saving', postId, error);
     }
@@ -124,9 +159,21 @@ export const engagementService: EngagementService = {
   share: async (postId: number): Promise<EngagementResponse> => {
     try {
       console.log(`Calling share API for post ${postId}`);
-      const response = await api.post(API_ENDPOINTS.POST_SHARE(postId));
-      console.log(`Share API response for post ${postId}:`, response.data);
-      return handleResponse<EngagementResponse>(response);
+      const apiUrl = getApiUrl();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
+
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/share`, {
+        method: 'POST',
+        headers
+      });
+
+      const data = await handleResponse<EngagementResponse>(response);
+      console.log(`Share API response for post ${postId}:`, data);
+      return data;
     } catch (error) {
       throw handleError('sharing', postId, error);
     }
@@ -135,14 +182,26 @@ export const engagementService: EngagementService = {
   report: async (postId: number, reason: string): Promise<EngagementResponse> => {
     try {
       console.log(`Calling report API for post ${postId} with reason: ${reason}`);
-      // Some backends expect 'reason' as a query param, others as body
-      // This handles both cases by including it in both places
-      const response = await api.post(
-        `${API_ENDPOINTS.POST_REPORT(postId)}?reason=${encodeURIComponent(reason)}`,
-        { reason }
-      );
-      console.log(`Report API response for post ${postId}:`, response.data);
-      return handleResponse<EngagementResponse>(response);
+      const apiUrl = getApiUrl();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
+
+      // Include reason as query parameter
+      const url = new URL(`${apiUrl}/posts/engagement/${postId}/report`);
+      url.searchParams.append('reason', reason);
+
+      const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ reason }) // Also include in body
+      });
+
+      const data = await handleResponse<EngagementResponse>(response);
+      console.log(`Report API response for post ${postId}:`, data);
+      return data;
     } catch (error) {
       throw handleError('reporting', postId, error);
     }
@@ -151,12 +210,22 @@ export const engagementService: EngagementService = {
   updateMetrics: async (postId: number, metrics: Partial<MetricsData>): Promise<EngagementResponse> => {
     try {
       console.log(`Updating metrics for post ${postId}:`, metrics);
-      const response = await api.post(
-        API_ENDPOINTS.POST_UPDATE_METRICS(postId),
-        metrics
-      );
-      console.log(`Update metrics response for post ${postId}:`, response.data);
-      return handleResponse<EngagementResponse>(response);
+      const apiUrl = getApiUrl();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
+
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/metrics`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(metrics)
+      });
+
+      const data = await handleResponse<EngagementResponse>(response);
+      console.log(`Update metrics response for post ${postId}:`, data);
+      return data;
     } catch (error) {
       throw handleError('updating metrics for', postId, error);
     }
@@ -165,9 +234,21 @@ export const engagementService: EngagementService = {
   // Debug endpoint to verify backend state
   getDebugInfo: async (postId: number): Promise<any> => {
     try {
-      const response = await api.get(`${API_ENDPOINTS.POST_LIKE(postId).replace('/like', '')}/debug`);
-      console.log(`Debug info for post ${postId}:`, response.data);
-      return response.data;
+      const apiUrl = getApiUrl();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
+
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/debug`, {
+        method: 'GET',
+        headers
+      });
+
+      const data = await response.json();
+      console.log(`Debug info for post ${postId}:`, data);
+      return data;
     } catch (error) {
       console.error(`Error getting debug info for post ${postId}:`, error);
       throw new Error(`Failed to get debug info: ${error instanceof Error ? error.message : 'Unknown error'}`);

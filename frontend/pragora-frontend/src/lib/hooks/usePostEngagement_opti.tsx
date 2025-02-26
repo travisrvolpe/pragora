@@ -29,27 +29,6 @@ export function usePostEngagement(post: PostWithEngagement) {
     report_count: post.metrics?.report_count ?? 0,
   }), [post.metrics]);
 
-  // ADD THE NEW MEMOIZED VALUE HERE - after initialMetrics but before loading states
-  // Memoize interaction state to prevent unnecessary re-renders
-  const currentInteractionState = useMemo(() => {
-    return {
-      like: post.interaction_state?.like ?? false,
-      dislike: post.interaction_state?.dislike ?? false,
-      save: post.interaction_state?.save ?? false,
-      share: post.interaction_state?.share ?? false,
-      report: post.interaction_state?.report ?? false
-    };
-  }, [post.interaction_state]);
-
-  // Log interaction state on changes
-  useEffect(() => {
-    console.log('usePostEngagement: post interaction state update:', {
-      postId: post.post_id,
-      state: currentInteractionState
-    });
-  }, [post.post_id, currentInteractionState]);
-
-
   // Loading and error states
   const [isLoading, setIsLoading] = useState<LoadingStates>({
     like: false,
@@ -194,16 +173,68 @@ export function usePostEngagement(post: PostWithEngagement) {
           console.log(`Completed ${actionType} operation for post ${post.post_id}`);
         }
       },
-      // Disabled onMutate function in usePostEngagement.ts
-      onMutate: async (variables) => {
-        // Log that optimistic updates are disabled
-        console.log(`Optimistic update for ${actionType} DISABLED - using server-only state`);
 
-        // Cancel any outgoing refetches that might overwrite our update
+      onMutate: async (variables) => {
+        console.log(`Optimistic update for ${actionType} DISABLED - testing server state`);
+
+        // Cancel any outgoing refetches
+        await queryClient.cancelQueries({ queryKey: ['posts'] });
         await queryClient.cancelQueries({ queryKey: ['post', post.post_id] });
 
-        // Return empty context to disable optimistic updates
-        return { previousPost: undefined };
+        // Snapshot the previous value
+        const previousPost = queryClient.getQueryData<PostWithEngagement>(
+          ['post', post.post_id]
+        );
+
+        if (!previousPost) {
+          return { previousPost: undefined };
+        }
+
+        // Calculate new metrics optimistically
+        const newMetrics = {
+          ...previousPost.metrics
+        };
+
+        const isActive = !previousPost.interaction_state[actionType];
+        newMetrics[`${actionType}_count`] = previousPost.metrics[`${actionType}_count`] + (isActive ? 1 : -1);
+
+        // Handle mutual exclusivity (like/dislike)
+        if (actionType === 'like' && isActive && previousPost.interaction_state.dislike) {
+          newMetrics.dislike_count = Math.max(0, previousPost.metrics.dislike_count - 1);
+        } else if (actionType === 'dislike' && isActive && previousPost.interaction_state.like) {
+          newMetrics.like_count = Math.max(0, previousPost.metrics.like_count - 1);
+        }
+
+        const newState = {
+          ...previousPost.interaction_state,
+          [actionType]: isActive
+        };
+
+        // Handle mutual exclusivity in state
+        if (actionType === 'like' && isActive) {
+          newState.dislike = false;
+        } else if (actionType === 'dislike' && isActive) {
+          newState.like = false;
+        }
+
+        // Perform optimistic update
+        console.log('Applying optimistic update:', {
+          oldMetrics: previousPost.metrics,
+          newMetrics,
+          oldState: previousPost.interaction_state,
+          newState
+        });
+
+        const optimisticPost = {
+          ...previousPost,
+          metrics: newMetrics,
+          interaction_state: newState
+        };
+
+        queryClient.setQueryData(['post', post.post_id], optimisticPost);
+
+        // Return context for rollback
+        return { previousPost };
       },
 
       onSettled: async (data, error, variables, context) => {

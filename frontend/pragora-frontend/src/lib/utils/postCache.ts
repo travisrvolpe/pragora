@@ -233,45 +233,41 @@ export const updatePostCache = async ({
       queryClient.setQueryData(['post', postId], updatedPost);
 
       // Update post lists (like feed pages)
-      queryClient.setQueriesData<PostCacheData>(
-        { queryKey: ['posts'] },
-        (oldData): PostCacheData | undefined => {
-          if (!oldData?.pages) {
-            console.log('No post lists found in cache');
-            return oldData;
-          }
-
-          console.log(`Updating post ${postId} in all post lists`);
-
-          const newData = {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
-              ...page,
-              data: {
-                ...page.data,
-                posts: page.data.posts.map((post) => {
-                  if (post.post_id === postId) {
-                    console.log(`Updating post ${postId} in post list`);
-                    return updatedPost;
-                  }
-                  return post;
-                }),
-              },
-            })),
-          };
-
-          return newData;
-        }
-      );
-
-      // Force refresh to ensure UI updates
       setTimeout(() => {
+        // First update any lists containing this post
+        queryClient.setQueriesData<PostCacheData>(
+          { queryKey: ['posts'] },
+          (oldData): PostCacheData | undefined => {
+            if (!oldData?.pages) return oldData;
+
+            const newData = {
+              ...oldData,
+              pages: oldData.pages.map((page) => ({
+                ...page,
+                data: {
+                  ...page.data,
+                  posts: page.data.posts.map((post) => {
+                    if (post.post_id === postId) {
+                      console.log(`Syncing post ${postId} data in lists`);
+                      return updatedPost;
+                    }
+                    return post;
+                  }),
+                },
+              })),
+            };
+
+            return newData;
+          }
+        );
+
+        // Also force a refetch of the individual post
         queryClient.invalidateQueries({
           queryKey: ['post', postId],
           exact: true,
           refetchActive: true
         });
-      }, 50);
+      }, 100);
 
       console.log(`Successfully updated cache for post ${postId}`, updatedPost);
 

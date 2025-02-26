@@ -4,7 +4,7 @@ import { Post } from '@/types/posts/post-types';
 import { PostsResponse } from '@/types/posts/page-types';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import { authService } from '@/lib/services/auth/authService';
-import {PostInteractionState, PostMetrics} from "@/types/posts";
+import {PostInteractionState, PostMetrics, PostWithEngagement} from "@/types/posts";
 
 
 interface FetchPostsParams {
@@ -141,77 +141,87 @@ const postService = {
       throw error;
     }
   },
-
-  getPostById: async (postId: number): Promise<Post> => {
+  // Update your postService.ts
+  async getPostById(postId: number, timestamp?: number): Promise<PostWithEngagement> {
     try {
-      console.log(`Fetching post ${postId} details...`);
+      const token = authService.getToken();
+      if (!token) {
+        console.warn('No auth token available for post fetch');
+      } else {
+        console.log('Using token for post fetch:', token.substring(0, 15) + '...');
+      }
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const cacheParam = timestamp ? `?_t=${timestamp}` : '';
 
-      const response = await api.get(API_ENDPOINTS.POST_BY_ID(postId), {
+      console.log(`Fetching post ${postId} from server`);
+
+      const response = await fetch(`${apiUrl}/posts/${postId}${cacheParam}`, {
+        method: 'GET',
         headers: {
-          'Cache-Control': 'no-cache',
-          ...getAuthHeaders() // Make sure auth headers are included
+          'Accept': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include'
+      });
+
+      console.log(`Post fetch response status: ${response.status}`);
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Authentication error fetching post. Token might be invalid.');
+          // Optionally refresh token or redirect to login
         }
-      });
-
-      console.log(`Raw API response for post ${postId}:`, response.data);
-
-      // Extract post from response, handling different response formats
-      let post = response.data?.data?.post || response.data?.post || response.data;
-
-      if (!post) {
-        console.error('Invalid post response format:', response.data);
-        throw new Error('Invalid response format - post data not found');
+        throw new Error(`Failed to fetch post: ${response.status}`);
       }
 
-      // Ensure metrics are properly normalized with defaults for all fields
-      const metrics: PostMetrics = {
-        like_count: post.metrics?.like_count ?? post.like_count ?? 0,
-        dislike_count: post.metrics?.dislike_count ?? post.dislike_count ?? 0,
-        save_count: post.metrics?.save_count ?? post.save_count ?? 0,
-        share_count: post.metrics?.share_count ?? post.share_count ?? 0,
-        comment_count: post.metrics?.comment_count ?? post.comment_count ?? 0,
-        report_count: post.metrics?.report_count ?? post.report_count ?? 0,
+      const data = await response.json();
+
+      // Get the post data from any response structure
+      const postData = data?.data?.post || data?.post || data;
+
+      // Ensure metrics have a consistent structure
+      const metrics = {
+        like_count: postData.metrics?.like_count ?? postData.like_count ?? 0,
+        dislike_count: postData.metrics?.dislike_count ?? postData.dislike_count ?? 0,
+        save_count: postData.metrics?.save_count ?? postData.save_count ?? 0,
+        share_count: postData.metrics?.share_count ?? postData.share_count ?? 0,
+        comment_count: postData.metrics?.comment_count ?? postData.comment_count ?? 0,
+        report_count: postData.metrics?.report_count ?? postData.report_count ?? 0,
       };
 
-      // Ensure interaction_state is properly structured with defaults
-      const interaction_state: PostInteractionState = {
-        like: post.interaction_state?.like ?? false,
-        dislike: post.interaction_state?.dislike ?? false,
-        save: post.interaction_state?.save ?? false,
-        share: post.interaction_state?.share ?? false,
-        report: post.interaction_state?.report ?? false
+      // Ensure interaction state has a consistent structure with strict boolean values
+      const interaction_state = {
+        like: Boolean(postData.interaction_state?.like === true),
+        dislike: Boolean(postData.interaction_state?.dislike === true),
+        save: Boolean(postData.interaction_state?.save === true),
+        share: Boolean(postData.interaction_state?.share === true),
+        report: Boolean(postData.interaction_state?.report === true),
       };
 
-      // Normalize user data if present
-      let normalizedUser = post.user;
-      if (!normalizedUser && post.user_id) {
-        normalizedUser = {
-          user_id: post.user_id,
-          username: post.username || `user_${post.user_id}`,
-          avatar_url: post.avatar_img || post.avatar_url,
-          reputation_score: post.reputation_score || 0
-        };
-      }
-
-      // Build the normalized post object
-      const normalizedPost = {
-        ...post,
-        metrics, // Replace with normalized metrics
-        interaction_state, // Replace with normalized interaction state
-        user: normalizedUser // Add normalized user data
-      };
-
-      console.log(`Normalized post ${postId} data:`, {
-        metrics: normalizedPost.metrics,
-        interaction_state: normalizedPost.interaction_state
+      console.log(`Post ${postId} data from server:`, {
+        metrics,
+        interaction_state
       });
 
-      return normalizedPost;
+      // Construct a properly typed return value with all required fields
+      const result: PostWithEngagement = {
+        ...postData,
+        // Ensure all required fields exist even if the API doesn't provide them
+        post_id: postData.post_id,
+        user_id: postData.user_id,
+        content: postData.content || '',
+        post_type_id: postData.post_type_id || 1,
+        metrics,
+        interaction_state,
+        status: postData.status || 'active',
+        created_at: postData.created_at || new Date().toISOString(),
+      };
+
+      return result;
     } catch (error) {
       console.error(`Error fetching post ${postId}:`, error);
-      throw error instanceof Error
-        ? error
-        : new Error(`Failed to fetch post ${postId}`);
+      throw error;
     }
   },
 

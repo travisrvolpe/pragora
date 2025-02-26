@@ -3,7 +3,7 @@
 import postService from '@/lib/services/post/postService';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useDebounceInteraction } from '@/lib/hooks/useDebounceInteraction';
-import { FC, useCallback, useEffect, useMemo } from 'react';
+import {FC, useCallback, useEffect, useMemo, useRef} from 'react';
 import { Card } from '@/components/ui/card';
 import { PostHeader } from './PostHeader';
 import { PostFooter } from './PostFooter';
@@ -13,7 +13,7 @@ import { usePostEngagement } from '@/lib/hooks/usePostEngagement';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/lib/hooks/use-toast/use-toast';
-import { MetricsData } from '@/types/posts/engagement';
+import {MetricsData, PostInteractionState} from '@/types/posts/engagement';
 import { useQueryClient } from "@tanstack/react-query";
 import { EngagementStateDebugger } from '@/components/debug/EngagementStateDebugger';
 
@@ -28,28 +28,73 @@ export const PostWrapper: FC<PostWrapperProps> = ({
   const debounceInteraction = useDebounceInteraction();
   const queryClient = useQueryClient();
 
+  const didInitialFetch = useRef(false);
+  const prevInteractionState = useRef<PostInteractionState>({} as PostInteractionState); // Add this new ref
+
   const handleEngagementAction = useCallback(async (action: () => Promise<void>) => {
     await debounceInteraction(action);
   }, [debounceInteraction]);
 
-
   useEffect(() => {
-    // When the post prop changes (including its metrics or interaction_state),
-    // ensure we update the component's internal state
+    // When the post prop changes, log for debugging
     console.log("Post data changed:", {
       postId: post.post_id,
       metrics: post.metrics,
       interactionState: post.interaction_state
     });
 
-    // Force invalidation of the query to refresh data
     if (post.post_id) {
-      queryClient.invalidateQueries({
-        queryKey: ['post', post.post_id],
-        exact: true
+      // Set query defaults to prevent unwanted refetches
+      queryClient.setQueryDefaults(['post', post.post_id], {
+        staleTime: 30000, // Consider data fresh for 30 seconds
+        refetchOnWindowFocus: false, // Don't refetch when window regains focus
+        refetchOnMount: false, // Don't refetch when component mounts
       });
+
+      // Force invalidation of the query to refresh data, but only once per mount
+      const shouldFetchFresh = !didInitialFetch.current;
+      if (shouldFetchFresh) {
+        didInitialFetch.current = true;
+
+        // Fetch fresh data
+        queryClient.fetchQuery({
+          queryKey: ['post', post.post_id],
+          queryFn: () => postService.getPostById(post.post_id),
+          staleTime: 0
+        }).catch(error => {
+          console.error(`Error fetching fresh data for post ${post.post_id}:`, error);
+        });
+      }
     }
-  }, [post.post_id, post.metrics, post.interaction_state, queryClient]);
+  }, [post.post_id, queryClient]);
+
+  useEffect(() => {
+    if (post?.post_id && prevInteractionState.current) {
+      // Type-safe approach to check if interaction state has changed
+      const currentState = post.interaction_state;
+      const prevState = prevInteractionState.current;
+
+      // Manual check of each property
+      const hasChanged =
+        currentState.like !== prevState.like ||
+        currentState.dislike !== prevState.dislike ||
+        currentState.save !== prevState.save ||
+        currentState.share !== prevState.share ||
+        currentState.report !== prevState.report;
+
+      if (hasChanged) {
+        console.log('Interaction state changed, refetching post data');
+        // Fix the fetchQuery call
+        queryClient.fetchQuery({
+          queryKey: ['post', post.post_id],
+          queryFn: () => postService.getPostById(post.post_id)
+        });
+      }
+    }
+
+    // Update previous state
+    prevInteractionState.current = { ...post.interaction_state };
+  }, [post?.interaction_state, post?.post_id, queryClient]);
 
   const { isAuthenticated } = useAuth();
   const router = useRouter();

@@ -28,19 +28,22 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   // Initialize QueryClient with enhanced settings
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000, // 1 minute
-        gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
-        retry: 1,
-        refetchOnWindowFocus: true,
-        refetchOnMount: true,
-        refetchOnReconnect: true,
-      },
+const [queryClient] = useState(() => new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
     },
-  }));
-
+    mutations: {
+      retry: 1,
+      retryDelay: 1000,
+    },
+  },
+}));
   useEffect(() => {
     setMounted(true);
     // Set the queryClient for auth service

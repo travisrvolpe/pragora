@@ -153,7 +153,12 @@ class PostEngagementService:
 
             if cached_counts:
                 logger.info(f"Found cached counts for post {post_id}: {cached_counts}")
-                return cached_counts
+                # TEMPORARY TEST: Skip cache to see if database values work
+                # return cached_counts
+                logger.info("Temporarily bypassing cache to get fresh DB counts")
+                cached_counts = None  # Force DB lookup
+            else:
+                logger.info(f"CACHE MISS for post {post_id}, querying database")
 
             # If no cache, get actual counts with a read-only query first
             actual_counts = (

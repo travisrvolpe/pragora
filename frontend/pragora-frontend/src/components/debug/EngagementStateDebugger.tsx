@@ -15,6 +15,14 @@ interface EngagementCounts {
   [key: string]: number | undefined;
 }
 
+interface InteractionState {
+  like: boolean;
+  dislike: boolean;
+  save: boolean;
+  share: boolean;
+  report: boolean;
+}
+
 interface DebugResponse {
   stored_counts: EngagementCounts;
   actual_counts: EngagementCounts;
@@ -23,7 +31,24 @@ interface DebugResponse {
 export function EngagementStateDebugger({ postId }: { postId: number }) {
   const [expanded, setExpanded] = useState(false);
 
-  const { data, isLoading, error, refetch } = useQuery<DebugResponse>({
+  // Add a query to get post data directly
+  const postQuery = useQuery({
+    queryKey: ['post-debug-full', postId],
+    queryFn: async () => {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/${postId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch post data: ${response.status}`);
+      }
+      const data = await response.json();
+      return data?.data?.post || data;
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 10 * 1000,
+    enabled: expanded
+  });
+
+  // Keep the engagement debug query
+  const engagementQuery = useQuery<DebugResponse>({
     queryKey: ['post-debug', postId],
     queryFn: async () => {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/posts/engagement/${postId}/debug`);
@@ -33,19 +58,23 @@ export function EngagementStateDebugger({ postId }: { postId: number }) {
       return response.json();
     },
     refetchOnWindowFocus: false,
-    staleTime: 10 * 1000, // 10 seconds
-    enabled: expanded // Only fetch when expanded
+    staleTime: 10 * 1000,
+    enabled: expanded
   });
 
   useEffect(() => {
     if (expanded) {
-      refetch();
+      postQuery.refetch();
+      engagementQuery.refetch();
     }
-  }, [expanded, refetch]);
+  }, [expanded, postQuery, engagementQuery]);
 
   if (process.env.NODE_ENV !== 'development') {
     return null;
   }
+
+  const isLoading = postQuery.isLoading || engagementQuery.isLoading;
+  const error = postQuery.error || engagementQuery.error;
 
   return (
     <div className="mt-4 text-xs">
@@ -68,41 +97,93 @@ export function EngagementStateDebugger({ postId }: { postId: number }) {
             <div className="text-red-500 p-2">
               Error: {error instanceof Error ? error.message : 'Failed to load data'}
             </div>
-          ) : data ? (
+          ) : (
             <div>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div className="font-medium">Database Counts:</div>
-                <div>
-                  {Object.entries(data.stored_counts || {}).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span>{key}:</span>
-                      <span>{String(value)}</span>
-                    </div>
-                  ))}
+              {/* Post API Response */}
+              <div className="mb-4">
+                <div className="font-medium mb-1">Post API Data:</div>
+                <div className="grid grid-cols-2 gap-2 bg-gray-50 p-2 rounded">
+                  <div className="font-medium">Metrics from API:</div>
+                  <div>
+                    {postQuery.data?.metrics && Object.entries(postQuery.data.metrics).map(([key, value]) => (
+                      <div key={key} className="flex justify-between">
+                        <span>{key}:</span>
+                        <span>{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="font-medium">Interaction State:</div>
+                  <div>
+                    {postQuery.data?.interaction_state && Object.entries(postQuery.data.interaction_state).map(([key, value]) => (
+                      <div key={key} className="flex justify-between">
+                        <span>{key}:</span>
+                        <span>{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div className="font-medium">Actual Counts:</div>
-                <div>
-                  {Object.entries(data.actual_counts || {}).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span>{key}:</span>
-                      <span>{String(value)}</span>
+              {/* Engagement Debug Info */}
+              {engagementQuery.data && (
+                <div className="mb-4">
+                  <div className="font-medium mb-1">Backend Verification:</div>
+                  <div className="grid grid-cols-2 gap-2 bg-gray-50 p-2 rounded">
+                    <div className="font-medium">Database Counts:</div>
+                    <div>
+                      {Object.entries(engagementQuery.data.stored_counts || {}).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span>{key}:</span>
+                          <span>{String(value)}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+
+                    <div className="font-medium">Actual Counts:</div>
+                    <div>
+                      {Object.entries(engagementQuery.data.actual_counts || {}).map(([key, value]) => (
+                        <div key={key} className="flex justify-between">
+                          <span>{key}:</span>
+                          <span>{String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Data Discrepancies */}
+              {postQuery.data?.metrics && engagementQuery.data?.stored_counts && (
+                <div className="mb-4">
+                  <div className="font-medium mb-1">Data Analysis:</div>
+                  <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
+                    {Object.entries(postQuery.data.metrics).map(([key, apiValue]) => {
+                      const dbValue = engagementQuery.data.stored_counts[key];
+                      const actualValue = engagementQuery.data.actual_counts[key.replace('_count', '')];
+                      const hasDiscrepancy = apiValue !== dbValue || dbValue !== actualValue;
+
+                      return (
+                        <div key={key} className={`flex justify-between ${hasDiscrepancy ? 'text-red-600 font-bold' : ''}`}>
+                          <span>{key}:</span>
+                          <span>API: {String(apiValue)} | DB: {String(dbValue)} | Actual: {String(actualValue)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <button
-                onClick={() => refetch()}
+                onClick={() => {
+                  postQuery.refetch();
+                  engagementQuery.refetch();
+                }}
                 className="mt-2 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-xs"
               >
                 Refresh Data
               </button>
             </div>
-          ) : (
-            <div className="text-gray-500">No data available</div>
           )}
         </div>
       </details>

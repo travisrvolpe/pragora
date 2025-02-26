@@ -342,9 +342,13 @@ async def list_posts(
     limit: int = 20,
     category_id: Optional[int] = None,
     tab: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
-    return await post_service.get_all_posts(db, skip, limit, category_id, tab)
+    """Get all posts with optional filtering and user interaction state"""
+    # Pass user_id if authenticated
+    user_id = current_user.user_id if current_user else None
+    return await post_service.get_all_posts(db, skip, limit, category_id, tab, user_id)
 
 # Delete a post
 @router.delete("/{post_id}", response_model=dict)

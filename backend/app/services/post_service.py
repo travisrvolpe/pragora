@@ -200,9 +200,12 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
             logger.error(f"❌ Post not found: {post_id}")
             raise HTTPException(status_code=404, detail="Post not found")
 
-        # Log current metrics state
+        # Log current metrics state directly from database
         logger.info(
-            f"Current post metrics - Post {post_id}: like_count={post.like_count}, dislike_count={post.dislike_count}, save_count={post.save_count}")
+            f"DB values for post {post_id}: like_count={post.like_count}, "
+            f"dislike_count={post.dislike_count}, save_count={post.save_count}, "
+            f"share_count={post.share_count}, comment_count={post.comment_count}"
+        )
 
         # Then get all related data without locks
         post_with_relations = (
@@ -224,8 +227,17 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
         counts = await engagement_service.verify_interaction_counts(post_id)
         interaction_state = await engagement_service.get_user_interaction_state(post_id, user_id)
 
-        logger.info(f"Verified counts for post {post_id}: {counts}")
+        logger.info(f"Verified counts from service for post {post_id}: {counts}")
         logger.info(f"Interaction state for user {user_id}: {interaction_state}")
+
+        # Check for discrepancies between direct DB values and service values
+        has_discrepancy = False
+        if (post.like_count > 0 and counts.get("like_count", 0) == 0) or \
+           (post.dislike_count > 0 and counts.get("dislike_count", 0) == 0) or \
+           (post.save_count > 0 and counts.get("save_count", 0) == 0) or \
+           (post.share_count > 0 and counts.get("share_count", 0) == 0):
+            logger.warning(f"⚠️ Discrepancy detected for post {post_id} - service counts differ from DB values")
+            has_discrepancy = True
 
         # Get engagement metrics
         engagement = db.query(PostEngagement).filter_by(post_id=post_id).first()
@@ -268,6 +280,29 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
             else:
                 logger.warning(f"⚠️ No profile found for user {post_with_relations.user.user_id}")
                 user_data["username"] = f"user_{post_with_relations.user.user_id}"
+
+        # Use direct DB values if discrepancy detected
+        metrics_data = {}
+        if has_discrepancy:
+            logger.info(f"📊 Using direct DB values for post {post_id} due to discrepancy")
+            metrics_data = {
+                "like_count": post.like_count or 0,
+                "dislike_count": post.dislike_count or 0,
+                "save_count": post.save_count or 0,
+                "share_count": post.share_count or 0,
+                "comment_count": post.comment_count or 0,
+                "report_count": post.report_count or 0
+            }
+        else:
+            logger.info(f"📊 Using service-provided counts for post {post_id}")
+            metrics_data = {
+                "like_count": counts.get("like_count", 0),
+                "dislike_count": counts.get("dislike_count", 0),
+                "save_count": counts.get("save_count", 0),
+                "share_count": counts.get("share_count", 0),
+                "comment_count": counts.get("comment_count", 0),
+                "report_count": counts.get("report_count", 0)
+            }
 
         # Assemble complete post data
         post_data = {
@@ -315,14 +350,7 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
             "updated_at": post_with_relations.updated_at,
 
             # Verified interaction counts
-            "metrics": {
-                "like_count": counts.get("like_count", 0),
-                "dislike_count": counts.get("dislike_count", 0),
-                "save_count": counts.get("save_count", 0),
-                "share_count": counts.get("share_count", 0),
-                "comment_count": counts.get("comment_count", 0),
-                "report_count": counts.get("report_count", 0)
-            },
+            "metrics": metrics_data,
 
             # User's interaction state
             "interaction_state": interaction_state,
@@ -330,6 +358,7 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
             # Engagement metrics
             **engagement_dict
         }
+
 
         logger.info(f"✅ Successfully retrieved post {post_id}")
         logger.debug(f"Post data being returned: {post_data}")
@@ -362,27 +391,47 @@ async def get_user_posts(db: Session, user_id: int, skip: int = 0, limit: int = 
             .all()
 
         serialized_posts = []
+
         for post in posts:
-            post_data = {
-                "post_id": post.post_id,
-                "title": post.title or "",
-                "content": post.content,
-                "created_at": post.created_at,
-                "updated_at": post.updated_at or post.created_at,
-                "status": post.status,
-                "like_count": post.like_count or 0,
-                "comment_count": post.comment_count or 0,
-                "share_count": post.share_count or 0,
-                "views": 0
-            }
-            serialized_posts.append(post_data)
+            # Get interaction state for this post and user
+            interaction_state = {}
+            if user_id:
+                try:
+                    interaction_state = await PostEngagementService.get_user_interaction_state(post.post_id, user_id)
+                except Exception as e:
+                    logger.error(f"Error getting interaction state for post {post.post_id}: {e}")
+                    interaction_state = {
+                        "like": False,
+                        "dislike": False,
+                        "save": False,
+                        "share": False,
+                        "report": False
+                    }
+
+                    post_data = {
+                        "post_id": post.post_id,
+                        "title": post.title or "",
+                        "content": post.content,
+                        "created_at": post.created_at,
+                        "updated_at": post.updated_at or post.created_at,
+                        "status": post.status,
+                        "metrics": {
+                            "like_count": post.like_count,
+                            "dislike_count": post.dislike_count,
+                            "comment_count": post.comment_count,
+                            "save_count": post.save_count,
+                            "share_count": post.share_count,
+                            "report_count": post.report_count
+                            # "views": 0
+                        },
+                        "interaction_state": interaction_state
+                    }
+                    serialized_posts.append(post_data)
 
         return {
             "status": "success",
             "message": "Posts retrieved successfully",
-            "data": {
-                "posts": serialized_posts
-            }
+            "data": {"posts": serialized_posts, "hasMore": len(posts) >= limit}
         }
 
     except Exception as e:
@@ -392,8 +441,10 @@ async def get_user_posts(db: Session, user_id: int, skip: int = 0, limit: int = 
             detail=str(e)
         )
 
-async def get_all_posts(db: Session, skip: int = 0, limit: int = 20, category_id: Optional[int] = None, tab: Optional[str] = None):
-    """Get all posts with optional filtering"""
+
+async def get_all_posts(db: Session, skip: int = 0, limit: int = 20, category_id: Optional[int] = None,
+                        tab: Optional[str] = None, user_id: Optional[int] = None):
+    """Get all posts with optional filtering and user-specific interaction state"""
     query = db.query(Post).options(
         joinedload(Post.user).joinedload(User.profile),
         joinedload(Post.post_type),
@@ -414,40 +465,82 @@ async def get_all_posts(db: Session, skip: int = 0, limit: int = 20, category_id
 
     posts = query.offset(skip).limit(limit).all()
 
-    serialized_posts = [{
-        "post_id": post.post_id,
-        "title": post.title,
-        "content": post.content,
-        "created_at": post.created_at,
-        "user_id": post.user_id,
-        "username": post.user.profile.username if post.user and post.user.profile else None,
-        "avatar_img": post.user.profile.avatar_img if post.user and post.user.profile else None,
-        "reputation_score": post.user.profile.reputation_score if post.user and post.user.profile else None,
-        "reputation_cat": post.user.profile.reputation_cat if post.user and post.user.profile else None,
-        "expertise_area": post.user.profile.expertise_area if post.user and post.user.profile else None,
-        "tags": [tag.tag_name for tag in post.tags] if post.tags else [],
-        "image_url": post.image_url,
-        "images": post.images,
-        "video_url": post.video_url,
-        "post_type_id": post.post_type_id,
-        "post_type": post.post_type.post_type_name if post.post_type else None,
-        "category_id": post.category_id,
-        "subcategory_id": post.subcategory_id,
-        "custom_subcategory": post.custom_subcategory,
-        "like_count": post.like_count,
-        "dislike_count": post.dislike_count,
-        "comment_count": post.comment_count,
-        "save_count": post.save_count,
-        "share_count": post.share_count,
-        "status": post.status,
-        "created_at": post.created_at,
-        "updated_at": post.updated_at
-    } for post in posts]
+    # Initialize cache and engagement service
+    cache = get_cache()
+    engagement_service = PostEngagementService(db, cache)
+
+    serialized_posts = []
+    for post in posts:
+        # Get interaction state if user is authenticated
+        interaction_state = {
+            "like": False,
+            "dislike": False,
+            "save": False,
+            "share": False,
+            "report": False
+        }
+
+        if user_id:
+            try:
+                interaction_state = await engagement_service.get_user_interaction_state(post.post_id, user_id)
+                logger.info(f"Interaction state for post {post.post_id}, user {user_id}: {interaction_state}")
+            except Exception as e:
+                logger.error(f"Error getting interaction state: {str(e)}")
+
+        # Get verified counts
+        try:
+            counts = await engagement_service.verify_interaction_counts(post.post_id)
+        except Exception as e:
+            logger.error(f"Error getting verified counts: {str(e)}")
+            # Fallback to direct DB values
+            counts = {
+                "like_count": post.like_count or 0,
+                "dislike_count": post.dislike_count or 0,
+                "save_count": post.save_count or 0,
+                "share_count": post.share_count or 0,
+                "comment_count": post.comment_count or 0,
+                "report_count": post.report_count or 0
+            }
+
+        post_data = {
+            "post_id": post.post_id,
+            "user_id": post.user_id,
+            "username": post.user.profile.username if post.user and post.user.profile else None,
+            "avatar_img": post.user.profile.avatar_img if post.user and post.user.profile else None,
+            "reputation_score": post.user.profile.reputation_score if post.user and post.user.profile else None,
+            "reputation_cat": post.user.profile.reputation_cat if post.user and post.user.profile else None,
+            "expertise_area": post.user.profile.expertise_area if post.user and post.user.profile else None,
+            "title": post.title,
+            "content": post.content,
+            "image_url": post.image_url,
+            "images": post.images,
+            "video_url": post.video_url,
+            "post_type_id": post.post_type_id,
+            "post_type": post.post_type.post_type_name if post.post_type else None,
+            "category_id": post.category_id,
+            "subcategory_id": post.subcategory_id,
+            "custom_subcategory": post.custom_subcategory,
+            "tags": [tag.tag_name for tag in post.tags] if post.tags else [],
+            "status": post.status,
+            "created_at": post.created_at,
+            "updated_at": post.updated_at,
+
+            # Add metrics in consistent format
+            "metrics": counts,
+
+            # Add interaction state
+            "interaction_state": interaction_state
+        }
+
+        serialized_posts.append(post_data)
 
     return {
         "status": "success",
         "message": "Posts retrieved successfully",
-        "data": {"posts": serialized_posts}
+        "data": {
+            "posts": serialized_posts,
+            "hasMore": len(posts) >= limit
+        }
     }
 
 async def delete_post(db: Session, post_id: int, user_id: int) -> Response:

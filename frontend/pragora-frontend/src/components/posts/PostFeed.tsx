@@ -7,7 +7,7 @@ import { PostCardFactory } from './PostCardFactory';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import postService from '@/lib/services/post/postService';
 import { PostWrapper } from './wrapper';
-import {InfiniteScroll} from '@/components/InfiniteScroll';
+import { InfiniteScroll } from '@/components/InfiniteScroll';
 import type { Post } from '@/types/posts/post-types';
 import type { PostMetrics, PostInteractionState, PostWithEngagement } from '@/types/posts/engagement';
 import type { PostFeedProps, PostsResponse } from '@/types/posts/page-types';
@@ -19,6 +19,10 @@ export const PostFeed: React.FC<PostFeedProps> = ({
   searchQuery,
   limit = 20
 }) => {
+  // Define the query key
+  const queryKey = ['posts', selectedTab, selectedCategory, selectedSubcategory, searchQuery] as const;
+  type QueryKey = typeof queryKey;
+
   const {
     data,
     isLoading,
@@ -27,55 +31,48 @@ export const PostFeed: React.FC<PostFeedProps> = ({
     fetchNextPage,
     isFetchingNextPage
   } = useInfiniteQuery({
-    queryKey: ['posts', selectedTab, selectedCategory, selectedSubcategory, searchQuery] as const,
-    queryFn: async (context) => {
-      const { pageParam = 0 } = context;
+    queryKey: queryKey,
+    queryFn: async ({ pageParam }) => {
+      const skipValue = typeof pageParam === 'number' ? pageParam * limit : 0;
+
       console.log('PostFeed Debug - Fetching page:', {
         pageParam,
-        skip: pageParam * limit,
+        skip: skipValue,
         limit
       });
 
-      const response = await postService.fetchPosts({
-        skip: pageParam * limit,
+      return await postService.fetchPosts({
+        skip: skipValue,
         limit,
         tab: selectedTab,
         category: selectedCategory,
         subcategory: selectedSubcategory,
         search: searchQuery
       });
-
-      console.log('PostFeed Debug - Response:', {
-        hasMore: response.data?.hasMore,
-        postsCount: response.data?.posts.length,
-        totalPages: data?.pages.length,
-        currentSkip: pageParam * limit
-      });
-
-      return response;
     },
     initialPageParam: 0,
-    getNextPageParam: (lastPage: PostsResponse, pages) => {
+    getNextPageParam: (lastPage: PostsResponse, allPages: PostsResponse[]) => {
       console.log('PostFeed Debug - getNextPageParam:', {
         hasMore: lastPage.data?.hasMore,
-        nextPage: pages.length,
+        nextPage: allPages.length,
         currentPosts: lastPage.data?.posts.length,
-        totalPages: pages.length
+        totalPages: allPages.length
       });
 
-      return lastPage.data?.hasMore ? pages.length : undefined;
+      return lastPage.data?.hasMore ? allPages.length : undefined;
     },
     refetchOnWindowFocus: false,
-    refetchOnMount: false
+    refetchOnMount: false,
+    staleTime: 30000,
+    gcTime: 60000,
   });
 
   const allPosts = useMemo(() => {
-    const posts = data?.pages.flatMap(page => page.data?.posts || []) ?? [];
-    console.log('PostFeed Debug - All posts:', {
-      count: posts.length,
-      pageCount: data?.pages.length
+    if (!data) return [];
+
+    return data.pages.flatMap((page: PostsResponse) => {
+      return page.data?.posts || [];
     });
-    return posts;
   }, [data]);
 
   const loadMore = useCallback(() => {
@@ -91,33 +88,43 @@ export const PostFeed: React.FC<PostFeedProps> = ({
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, allPosts.length]);
 
-    const transformToEngagementPost = (post: Post): PostWithEngagement => {
-      // Get the existing metrics from post if they exist
-      const metrics: PostMetrics = {
-        like_count: post.metrics?.like_count ?? 0,
-        dislike_count: post.metrics?.dislike_count ?? 0,
-        save_count: post.metrics?.save_count ?? 0,
-        share_count: post.metrics?.share_count ?? 0,
-        report_count: post.metrics?.report_count ?? 0,
-        comment_count: post.metrics?.comment_count ?? 0
-      };
-
-      // Get existing interaction state
-      const interaction_state: PostInteractionState = {
-        like: post.interaction_state?.like ?? false,
-        dislike: post.interaction_state?.dislike ?? false,
-        share: post.interaction_state?.share ?? false,
-        save: post.interaction_state?.save ?? false,
-        report: post.interaction_state?.report ?? false
-      };
-
-      // Preserve existing post data
-      return {
-        ...post,
-        metrics,
-        interaction_state
-      };
+  const transformToEngagementPost = (post: Post): PostWithEngagement => {
+    // Get the existing metrics from post or create defaults
+    const metrics: PostMetrics = {
+      like_count: post.metrics?.like_count ?? 0,
+      dislike_count: post.metrics?.dislike_count ?? 0,
+      save_count: post.metrics?.save_count ?? 0,
+      share_count: post.metrics?.share_count ?? 0,
+      report_count: post.metrics?.report_count ?? 0,
+      comment_count: post.metrics?.comment_count ?? 0
     };
+
+    // Get existing interaction state or create defaults
+    const interaction_state: PostInteractionState = {
+      like: post.interaction_state?.like ?? false,
+      dislike: post.interaction_state?.dislike ?? false,
+      share: post.interaction_state?.share ?? false,
+      save: post.interaction_state?.save ?? false,
+      report: post.interaction_state?.report ?? false
+    };
+
+    // Debug output for development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`PostFeed: Transforming post ${post.post_id}`, {
+        originalMetrics: post.metrics,
+        transformedMetrics: metrics,
+        originalInteraction: post.interaction_state,
+        transformedInteraction: interaction_state
+      });
+    }
+
+    // Return the post with structured metrics and interaction state
+    return {
+      ...post,
+      metrics,
+      interaction_state
+    };
+  };
 
   if (isError) {
     return (
