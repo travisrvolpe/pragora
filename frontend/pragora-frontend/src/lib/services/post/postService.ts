@@ -105,6 +105,14 @@ const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+const getApiBaseUrl = () => {
+  // Check if we should use the API routes instead of direct calls
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return `/api`; // Use Next.js API routes in development
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+};
+
 const postService = {
   fetchPosts: async ({
     skip = 0,
@@ -141,24 +149,23 @@ const postService = {
       throw error;
     }
   },
-  // Update your postService.ts
+
   async getPostById(postId: number, timestamp?: number): Promise<PostWithEngagement> {
     try {
-      const token = authService.getToken();
-      if (!token) {
-        console.warn('No auth token available for post fetch');
-      } else {
-        console.log('Using token for post fetch:', token.substring(0, 15) + '...');
-      }
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('access_token');
+      //const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = getApiBaseUrl();
+      // Add cache-busting parameter to prevent stale data
       const cacheParam = timestamp ? `?_t=${timestamp}` : '';
 
       console.log(`Fetching post ${postId} from server`);
 
+      // First try direct fetch with credentials
       const response = await fetch(`${apiUrl}/posts/${postId}${cacheParam}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : '',
           'Cache-Control': 'no-cache, no-store',
           'Pragma': 'no-cache'
@@ -167,20 +174,18 @@ const postService = {
       });
 
       console.log(`Post fetch response status: ${response.status}`);
+
       if (!response.ok) {
-        if (response.status === 401) {
-          console.error('Authentication error fetching post. Token might be invalid.');
-          // Optionally refresh token or redirect to login
-        }
         throw new Error(`Failed to fetch post: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Post data received:', data);
 
       // Get the post data from any response structure
       const postData = data?.data?.post || data?.post || data;
 
-      // Ensure metrics have a consistent structure
+      // Construct consistent metrics
       const metrics = {
         like_count: postData.metrics?.like_count ?? postData.like_count ?? 0,
         dislike_count: postData.metrics?.dislike_count ?? postData.dislike_count ?? 0,
@@ -190,7 +195,7 @@ const postService = {
         report_count: postData.metrics?.report_count ?? postData.report_count ?? 0,
       };
 
-      // Ensure interaction state has a consistent structure with strict boolean values
+      // Construct consistent interaction state with strict boolean values
       const interaction_state = {
         like: Boolean(postData.interaction_state?.like === true),
         dislike: Boolean(postData.interaction_state?.dislike === true),
@@ -199,32 +204,18 @@ const postService = {
         report: Boolean(postData.interaction_state?.report === true),
       };
 
-      console.log(`Post ${postId} data from server:`, {
+      // Return a consistently structured post object
+      return {
+        ...postData,
         metrics,
         interaction_state
-      });
-
-      // Construct a properly typed return value with all required fields
-      const result: PostWithEngagement = {
-        ...postData,
-        // Ensure all required fields exist even if the API doesn't provide them
-        post_id: postData.post_id,
-        user_id: postData.user_id,
-        content: postData.content || '',
-        post_type_id: postData.post_type_id || 1,
-        metrics,
-        interaction_state,
-        status: postData.status || 'active',
-        created_at: postData.created_at || new Date().toISOString(),
       };
 
-      return result;
     } catch (error) {
       console.error(`Error fetching post ${postId}:`, error);
       throw error;
     }
   },
-
   createPost: async (data: CreatePostData | FormData): Promise<Post> => {
     try {
       const headers = {

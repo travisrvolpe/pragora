@@ -141,6 +141,11 @@ export const PostWrapper: FC<PostWrapperProps> = ({
     return handleEngagementClick(async () => {
       console.log("Like button clicked");
       await handleLike();
+
+      // Add a small delay before refetching
+      setTimeout(() => {
+        console.log("Scheduled refetch after like");
+      }, 500);
     });
   }, [handleEngagementClick, handleLike]);
 

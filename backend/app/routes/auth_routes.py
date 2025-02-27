@@ -79,6 +79,10 @@ async def get_user(request: Request, current_user: UserResponse = Depends(get_cu
     print("User details retrieved for ID:", current_user.user_id)
     return current_user
 
+@router.get("/validate")
+async def validate_token(current_user: User = Depends(get_current_user)):
+    """Simple endpoint to check if the token is valid."""
+    return {"valid": True, "user_id": current_user.user_id}
 
 @router.post("/auth/session/cleanup")
 async def cleanup_sessions(db: Session = Depends(get_db)):

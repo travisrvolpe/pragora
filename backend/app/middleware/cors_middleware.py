@@ -8,7 +8,7 @@ def setup_cors_middleware(app):
         CORSMiddleware,
         allow_origins=["http://localhost:3000"],  # Your frontend URL
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[
             "Content-Type",
             "Authorization",
@@ -25,7 +25,7 @@ def setup_cors_middleware(app):
             "Upgrade",                 # Required for WebSocket
             "Connection"               # Required for WebSocket
         ],
-        expose_headers=["*"],
+        expose_headers=["Content-Type", "Content-Length"],
         max_age=3600,  # Cache preflight requests for 10 minutes
     )
 
