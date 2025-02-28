@@ -171,13 +171,25 @@ async def save_post_endpoint(
 ):
     return await save_post(db, current_user.user_id, post_id)
 
-@router.get("/me/saved-posts", response_model=List[int])
-async def get_saved_posts_endpoint(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return await get_saved_posts(db, current_user.user_id)
 
+@router.get("/me/saved-posts")
+async def get_saved_posts_endpoint(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+):
+    # Get the saved posts data
+    saved_posts_data = await get_saved_posts(db, current_user.user_id)
+
+    # Check if it's already a list
+    if isinstance(saved_posts_data, list):
+        return saved_posts_data
+
+    # If it's a dict with saved_posts key, return just that list
+    if isinstance(saved_posts_data, dict) and 'saved_posts' in saved_posts_data:
+        return saved_posts_data['saved_posts']
+
+    # Default empty list if no data found
+    return []
 
 @router.get("/avatar/{user_id}")
 def get_user_avatar(user_id: int, db: Session = Depends(get_db)):

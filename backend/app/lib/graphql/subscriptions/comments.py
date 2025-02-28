@@ -1,4 +1,4 @@
-# backend/app/lib/graphql/subscriptions/comments.py
+# backend/app/applib/graphql/subscriptions/comments.py
 import asyncio
 from typing import AsyncGenerator, Optional, Dict, Any
 from datetime import datetime

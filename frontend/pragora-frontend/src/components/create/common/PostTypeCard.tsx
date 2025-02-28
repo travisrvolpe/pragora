@@ -3,7 +3,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { cn } from '../../../lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 import { LucideIcon } from 'lucide-react';
 
 interface PostTypeCardProps {

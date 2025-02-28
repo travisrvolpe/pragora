@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { cn } from '../../../lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 import { Button } from '@/components/ui/button';
 import { TagInputProps } from '../../../types/posts/create-content-types';
 

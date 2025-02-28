@@ -4,7 +4,7 @@
 import React from 'react';
 import { MessageCircle } from 'lucide-react';
 import { ThoughtForm } from '@/components/create/forms/ThoughtForm';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 import { useRouter } from 'next/navigation';
 import { ThoughtPost } from '@/types/posts/post-types';
 

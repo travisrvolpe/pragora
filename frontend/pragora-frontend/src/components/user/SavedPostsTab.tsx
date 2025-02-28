@@ -3,7 +3,7 @@ import { FileText, ThumbsUp, MessageSquare, Share2, Calendar, Eye, Bookmark, Use
 import { UserSavedPost } from '@/types/user/user';
 import { Post, isArticlePost } from '@/types/posts/post-types';
 import { UserAvatar } from '@/components/user/UserAvatar';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 
 const SavedPostsTab: React.FC = () => {
   const [savedPosts, setSavedPosts] = useState<UserSavedPost[]>([]);
@@ -17,8 +17,8 @@ const SavedPostsTab: React.FC = () => {
       content: post.content,
       created_at: post.created_at,
       updated_at: post.updated_at || post.created_at,
-      saved_at: new Date().toISOString(), // This would ideally come from the API
-      status: post.status as 'active' | 'deleted' | 'hidden',
+      saved_at: new Date().toISOString(),
+      status: post.status as 'active' | 'deleted' | 'hidden', //status: (post.status as 'active' | 'deleted' | 'hidden') || 'active',
       likes: post.metrics?.like_count || 0,
       comments: post.metrics?.comment_count || 0,
       shares: post.metrics?.share_count || 0,
@@ -33,31 +33,55 @@ const SavedPostsTab: React.FC = () => {
   };
 
   useEffect(() => {
-    const fetchSavedPosts = async () => {
-      setIsLoading(true);
-      try {
-        // First get saved post IDs
-        const { saved_posts: savedPostIds } = await postService.getSavedPosts();
+      const fetchSavedPosts = async () => {
+        setIsLoading(true);
+        try {
+          // First get saved post IDs
+          const response = await postService.getSavedPosts();
+          console.log('Saved posts response:', response);
 
-        // Then fetch full post details for each ID
-        const postsData = await Promise.all(
-          savedPostIds.map(async (postId: number) => {
-            const post = await postService.getPostById(postId);
-            return convertPostToUserSaved(post);
-          })
-        );
+          // Handle different response formats
+          const savedPostIds = (response && response.saved_posts)
+            ? response.saved_posts
+            : Array.isArray(response) ? response : [];
 
-        setSavedPosts(postsData);
-      } catch (err) {
-        setError('Failed to fetch saved posts');
-        console.error('Error fetching saved posts:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+          if (savedPostIds.length === 0) {
+            console.log('No saved posts found');
+            setSavedPosts([]);
+            setIsLoading(false);
+            return;
+          }
 
-    fetchSavedPosts();
-  }, []);
+          console.log(`Found ${savedPostIds.length} saved posts, fetching details...`);
+
+          // Then fetch full post details for each ID, with error handling for individual posts
+          const postsPromises = savedPostIds.map(async (postId: number) => {
+            try {
+              const post = await postService.getPostById(postId);
+              return convertPostToUserSaved(post);
+            } catch (postError) {
+              console.error(`Error fetching post ${postId}:`, postError);
+              return null; // Return null for failed posts
+            }
+          });
+
+          const results = await Promise.all(postsPromises);
+          const validPosts = results.filter(post => post !== null) as UserSavedPost[];
+
+          console.log(`Successfully loaded ${validPosts.length} of ${savedPostIds.length} saved posts`);
+          setSavedPosts(validPosts);
+        } catch (err) {
+          console.error('Error fetching saved posts:', err);
+          // Show user-friendly error but still set empty array to avoid undefined errors
+          setError('Failed to fetch saved posts');
+          setSavedPosts([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchSavedPosts();
+    }, []);
 
   if (isLoading) {
     return (

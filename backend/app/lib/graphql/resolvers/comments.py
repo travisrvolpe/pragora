@@ -1,4 +1,4 @@
-# backend/app/lib/graphql/resolvers/comments.py
+# backend/app/applib/graphql/resolvers/comments.py
 
 from typing import List, Optional
 from datetime import datetime

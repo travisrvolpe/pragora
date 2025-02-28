@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
-import { authService } from '@/lib/services/auth/authService';
+import { authService } from '@/applib/services/auth/authService';
 
 export default function AuthDebug() {
   const { user, isAuthenticated, loading } = useAuth();

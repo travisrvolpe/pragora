@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PostWrapper } from './wrapper';
 import { PostCardFactory } from './PostCardFactory';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CommentThread } from '@/components/comments/CommentThread';
 import type { Post } from '@/types/posts/post-types';

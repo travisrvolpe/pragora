@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
-import { cn } from '@/lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 
 interface CreateLayoutProps {
   children: React.ReactNode;

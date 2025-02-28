@@ -10,9 +10,9 @@ import { EngagementStateDebugger } from '@/components/debug/EngagementStateDebug
 import { PostDetailDebug } from '@/components/debug/PostDetailDebug';
 import AuthDebug from '@/components/debug/AuthDebug';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/lib/hooks/use-toast/use-toast';
-import { engagementService } from '@/lib/services/engagement/engageService';
-import { updatePostCache } from '@/lib/utils/postCache';
+import { toast } from '@/applib/hooks/use-toast/use-toast';
+import { engagementService } from '@/applib/services/engagement/engageService';
+import { updatePostCache } from '@/applib/utils/postCache';
 import type { PostWithEngagement, PostMetrics, PostInteractionState } from '@/types/posts/engagement';
 
 interface PostViewPageProps {

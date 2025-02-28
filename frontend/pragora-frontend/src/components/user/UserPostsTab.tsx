@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, ThumbsUp, MessageSquare, Share2, Calendar, Eye, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { authService } from '@/lib/services/auth/authService';
+import { authService } from '@/applib/services/auth/authService';
 
 // Updated interface with status field
 interface UserPost {

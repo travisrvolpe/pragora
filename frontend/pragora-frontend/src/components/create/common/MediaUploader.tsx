@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Upload, X } from 'lucide-react';
-import { cn } from '../../../lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 import { MediaUploaderProps } from '../../../types/posts/create-content-types';
 
 export const MediaUploader: React.FC<MediaUploaderProps> = ({

@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { PostTypeId } from '@/types/posts/post-types';
 

@@ -4,7 +4,7 @@ import { Clock, BookOpen } from 'lucide-react';
 import { BasePostCard } from './BasePostCard';
 import type { PostCardProps } from '../../types/posts/component-types';
 import type { Post, ArticlePost } from '../../types/posts/post-types';
-import { cn } from '../../lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 
 
 const isArticlePost = (post: Post): post is ArticlePost => {

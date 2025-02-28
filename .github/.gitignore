@@ -24,7 +24,7 @@ env/
 .venv*/
 bin/
 include/
-#lib/
+#applib/
 local/
 share/
 pyvenv.cfg

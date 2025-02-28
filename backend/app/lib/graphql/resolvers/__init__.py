@@ -1,4 +1,4 @@
-# app/lib/graphql/resolvers/__init__.py
+# app/applib/graphql/resolvers/__init__.py
 from typing import Dict, Any
 from .comments import CommentResolvers
 from app.services.comment_service import CommentService

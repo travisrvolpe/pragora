@@ -4,7 +4,7 @@
 import * as React from 'react'
 import { ThumbsUp } from 'lucide-react'
 import { EngagementButton, EngagementButtonProps } from './EngagementButton'
-import { cn } from '@/lib/utils/utils'
+import { cn } from '@/applib/utils/utils'
 import { useEffect } from 'react'
 
 type LikeButtonProps = Omit<EngagementButtonProps, 'icon'> & {

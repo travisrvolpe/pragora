@@ -1,4 +1,4 @@
-# app/lib/graphql/schema/__init__.py
+# app/applib/graphql/schema/__init__.py
 import strawberry
 from .schema import Query, Mutation, Subscription
 

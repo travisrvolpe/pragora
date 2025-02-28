@@ -2,8 +2,8 @@
 'use client';
 
 import React, { createContext, useContext, useCallback } from 'react';
-import { toast } from '@/lib/hooks/use-toast/use-toast';
-import { commentService } from '@/lib/services/comment/commentService';
+import { toast } from '@/applib/hooks/use-toast/use-toast';
+import { commentService } from '@/applib/services/comment/commentService';
 import { useAuth } from '@/contexts/auth/AuthContext';
 
 interface CommentContextData {

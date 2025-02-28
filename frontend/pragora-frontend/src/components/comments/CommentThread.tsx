@@ -5,14 +5,14 @@ import { CommentCard } from './CommentCard';
 import { CommentForm } from './CommentForm';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert } from '@/components/ui/alert';
-import { toast } from '@/lib/hooks/use-toast/use-toast';
+import { toast } from '@/applib/hooks/use-toast/use-toast';
 import {
   GET_COMMENTS,
   COMMENT_ADDED_SUBSCRIPTION,
   COMMENT_UPDATED_SUBSCRIPTION,
   COMMENT_DELETED_SUBSCRIPTION,
   COMMENT_ACTIVITY_SUBSCRIPTION
-} from '@/lib/graphql/operations/comments';
+} from '@/applib/graphql/operations/comments';
 
 import type {
   Comment,
@@ -21,7 +21,7 @@ import type {
   OnCommentUpdatedSubscription,
   OnCommentDeletedSubscription,
   OnCommentActivitySubscription
-} from '@/lib/graphql/generated/types';
+} from '@/applib/graphql/generated/types';
 
 interface CommentThreadProps {
   postId: number;

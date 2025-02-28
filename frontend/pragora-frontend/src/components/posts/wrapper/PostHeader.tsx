@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { PostComponentProps } from './types';
-import { formatDate } from '@/lib/utils/utils';
+import { formatDate } from '@/applib/utils/utils';
 import { PostTypeId } from '@/types/posts/post-types';
 
 const POST_TYPE_GRADIENTS: Record<PostTypeId, string> = {

@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 import strawberry
@@ -14,7 +15,7 @@ from app.lib.graphql.schema.schema import Query, Mutation, Subscription
 from app.services.post_engagement_service import verify_all_post_counts
 from database.database import database, Base, engine, SessionLocal
 from app.utils.database_utils import (
-    init_categories, init_post_types, init_post_interaction_types
+    init_categories, init_post_types, init_post_interaction_types, sync_saved_posts, periodic_sync_saved_posts
 )
 from app.core.config import settings
 from app.core.cache import init_redis, close_redis
@@ -24,6 +25,8 @@ from app.routes import (
 )
 from app.websocket_manager import manager
 from app.middleware.auth_middleware import auth_middleware
+from app.services.post_engagement_service import PostEngagementService
+from app.RedisCache import get_cache
 
 # Import your custom cors_middleware setup function
 from app.middleware.cors_middleware import setup_cors_middleware
@@ -39,18 +42,19 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-logging.getLogger('app.lib.graphql').setLevel(logging.DEBUG)
+logging.getLogger('app.applib.graphql').setLevel(logging.DEBUG)
 logging.getLogger('app.auth').setLevel(logging.DEBUG)
 
 Base.metadata.create_all(bind=engine)
 
+
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app_instance: FastAPI):
     print("Starting up...")
     await database.connect()
+
     try:
         await init_redis()
-        await verify_all_post_counts()
     except Exception as e:
         print(f"Redis initialization error: {str(e)}")
 
@@ -59,12 +63,12 @@ async def lifespan(app: FastAPI):
         await init_categories()
         await init_post_types()
         await init_post_interaction_types(db)
-
-        from app.services.post_engagement_service import PostEngagementService
-        from app.RedisCache import get_cache
+        await sync_saved_posts(db)
 
         cache = get_cache()
         service = PostEngagementService(db, cache)
+
+        # Keep only this call
         await service.repair_all_post_counts()
         print("✅ Post counts verified and fixed")
     except Exception as e:
@@ -72,13 +76,27 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
+    # Store the task in app_instance.state
+    app_instance.state = type('AppState', (), {})()
+    app_instance.state.sync_task = asyncio.create_task(periodic_sync_saved_posts())
+
     print("Startup complete")
     yield
+
+    # Use app_instance.state to access the task
+    if hasattr(app_instance.state, 'sync_task') and app_instance.state.sync_task:
+        app_instance.state.sync_task.cancel()
+        try:
+            await app_instance.state.sync_task
+        except asyncio.CancelledError:
+            print("Saved posts sync task cancelled")
 
     await database.disconnect()
     await close_redis()
 
 app = FastAPI(lifespan=lifespan)
+app.state = type('AppState', (), {})()
+app.state.sync_task = None
 
 # Use your custom CORS setup
 #setup_cors_middleware(app)

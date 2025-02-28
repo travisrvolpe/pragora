@@ -1,6 +1,6 @@
 // components/auth/AuthErrorBoundary.tsx
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { authService } from '@/lib/services/auth/authService';
+import { authService } from '@/applib/services/auth/authService';
 
 interface Props {
   children: ReactNode;

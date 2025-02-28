@@ -4,7 +4,7 @@
 import React from 'react';
 import { BookOpen } from 'lucide-react';
 import { ArticleForm } from '@/components/create/forms/ArticleForm';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 import { useRouter } from 'next/navigation';
 
 export default function CreateArticlePage() {

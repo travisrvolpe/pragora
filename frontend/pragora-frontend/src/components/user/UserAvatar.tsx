@@ -3,8 +3,8 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { cn } from '../../lib/utils/utils';
-import { DEFAULT_AVATAR_URL } from '@/lib/constants/constants';
+import { cn } from '@/applib/utils/utils';
+import { DEFAULT_AVATAR_URL } from '@/applib/constants/constants';
 
 interface UserAvatarProps {
   username: string;

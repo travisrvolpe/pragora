@@ -1,4 +1,4 @@
-# backend/app/lib/graphql/schema/schema.py
+# backend/app/applib/graphql/schema/schema.py
 import strawberry
 import logging
 #from dataclasses import asdict

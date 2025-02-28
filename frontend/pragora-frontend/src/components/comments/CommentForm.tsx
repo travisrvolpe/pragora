@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/lib/hooks/use-toast/use-toast';
+import { toast } from '@/applib/hooks/use-toast/use-toast';
 import { ApolloError, useMutation, ApolloCache, DocumentNode } from '@apollo/client';
 import {
   CREATE_COMMENT,
   UPDATE_COMMENT,
   GET_COMMENTS
-} from '@/lib/graphql/operations/comments';
+} from '@/applib/graphql/operations/comments';
 import type {
   Comment,
   CreateCommentInput,
@@ -19,7 +19,7 @@ import type {
   CommentInteractionState,
   Mutation,
   Scalars
-} from '@/lib/graphql/generated/types';
+} from '@/applib/graphql/generated/types';
 
 interface CommentFormProps {
   postId: Scalars['Int']['input'];  // Match the scalar type postId: number;

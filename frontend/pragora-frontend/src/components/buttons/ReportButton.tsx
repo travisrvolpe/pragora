@@ -16,7 +16,7 @@
 import * as React from 'react'
 import { Flag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { cn } from '../../lib/utils/utils'
+import { cn } from '@/applib/utils/utils'
 
 interface ReportButtonProps {
   onReport: (reason: string) => Promise<void>

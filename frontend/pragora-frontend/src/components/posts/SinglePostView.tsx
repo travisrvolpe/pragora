@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PostWrapper } from './wrapper';
 import { PostCardFactory } from './PostCardFactory';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { CommentThread } from '@/components/comments/CommentThread';
 import type { Post } from '@/types/posts/post-types';
 import type {
   PostWithEngagement,
@@ -59,7 +60,7 @@ export function SinglePostView({ postId }: SinglePostViewProps) {
     error,
     refetch
   } = useQuery({
-    queryKey: ['post', postId], // Changed from 'singlePost' to 'post' to match other components
+    queryKey: ['post', postId], // Using 'post' key to match other components
     queryFn: async () => {
       return postService.getPostById(postId);
     },
@@ -92,35 +93,23 @@ export function SinglePostView({ postId }: SinglePostViewProps) {
     };
   }, [postId, refetch]);
 
-  // Add a backup refresh mechanism to ensure UI stays updated
-  useEffect(() => {
-    // Create a dedicated post engagement handler for this view
-    const handleLocalEngagement = () => {
-      console.log(`Local engagement handler triggered for post ${postId}`);
-      setTimeout(() => refetch(), 500);
-    };
-
-    // Listen for clicks on engagement buttons for this specific post
-    const engagementButtons = document.querySelectorAll(
-      '.post-engagement-button'
-    );
-
-    engagementButtons.forEach(button => {
-      button.addEventListener('click', handleLocalEngagement);
-    });
-
-    return () => {
-      engagementButtons.forEach(button => {
-        button.removeEventListener('click', handleLocalEngagement);
-      });
-    };
-  }, [postId, refetch]);
-
   // Transform the returned data to consistent engagement structure
   const post = useMemo(() => {
     if (!data) return null;
     return transformToEngagementPost(data);
   }, [data]);
+
+  // Handle comment and threaded reply actions
+  const handleComment = useCallback(() => {
+    const commentsSection = document.getElementById('comments-section');
+    if (commentsSection) {
+      commentsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
+  const handleThreadedReply = useCallback(() => {
+    handleComment();
+  }, [handleComment]);
 
   if (isLoading) {
     return (
@@ -155,10 +144,28 @@ export function SinglePostView({ postId }: SinglePostViewProps) {
 
   // Render the single post with the same PostWrapper / PostCardFactory approach as the feed
   return (
-    <div className="max-w-2xl mx-auto px-4">
-      <PostWrapper post={post} variant="detail">
+    <div className="max-w-2xl mx-auto px-4 space-y-8">
+      <PostWrapper
+        post={post}
+        variant="detail"
+        onComment={handleComment}
+        onThreadedReply={handleThreadedReply}
+      >
         <PostCardFactory post={post} variant="detail" />
       </PostWrapper>
+
+      {/* Comments Section */}
+      <div id="comments-section" className="bg-white rounded-lg shadow">
+        <div className="p-4 border-b">
+          <h2 className="text-lg font-semibold">Comments</h2>
+        </div>
+        <div className="p-4">
+          <CommentThread
+            postId={postId}
+            initialComments={[]}
+          />
+        </div>
+      </div>
     </div>
   );
 }

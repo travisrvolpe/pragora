@@ -3,7 +3,7 @@
 
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils/utils'
+import { cn } from '@/applib/utils/utils'
 import { LucideIcon } from 'lucide-react'
 import { useState, useEffect } from 'react'
 

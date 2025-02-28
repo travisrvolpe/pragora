@@ -1,18 +1,18 @@
 // components/posts/wrapper/index.tsx
 'use client';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 import { ErrorBoundary } from 'react-error-boundary';
-import { useDebounceInteraction } from '@/lib/hooks/useDebounceInteraction';
+import { useDebounceInteraction } from '@/applib/hooks/useDebounceInteraction';
 import {FC, useCallback, useEffect, useMemo, useRef} from 'react';
 import { Card } from '@/components/ui/card';
 import { PostHeader } from './PostHeader';
 import { PostFooter } from './PostFooter';
 import { PostAnalytics } from './PostAnalytics';
 import { PostWrapperProps } from './types';
-import { usePostEngagement } from '@/lib/hooks/usePostEngagement';
+import { usePostEngagement } from '@/applib/hooks/usePostEngagement';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/lib/hooks/use-toast/use-toast';
+import { toast } from '@/applib/hooks/use-toast/use-toast';
 import {MetricsData, PostInteractionState} from '@/types/posts/engagement';
 import { useQueryClient } from "@tanstack/react-query";
 import { EngagementStateDebugger } from '@/components/debug/EngagementStateDebugger';

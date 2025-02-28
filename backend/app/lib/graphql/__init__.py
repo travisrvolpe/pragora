@@ -1,4 +1,4 @@
-# app/lib/graphql/__init__.py
+# app/applib/graphql/__init__.py
 from .schema import schema
 from .resolvers import get_resolvers
 from .subscriptions import (

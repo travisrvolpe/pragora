@@ -1,7 +1,7 @@
 import { useRouter } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 import { BaseButtonProps } from '@/types/buttons';
 import { PostVariant } from '@/types/posts/post-types';
 

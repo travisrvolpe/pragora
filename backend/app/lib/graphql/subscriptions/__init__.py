@@ -1,4 +1,4 @@
-# app/lib/graphql/subscriptions/__init__.py
+# app/applib/graphql/subscriptions/__init__.py
 from typing import AsyncGenerator
 from database.database import SessionLocal
 from app.services.comment_service import CommentService

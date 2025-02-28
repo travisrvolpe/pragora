@@ -7,7 +7,7 @@ import { PostWrapper } from '@/components/posts/wrapper';
 import { PostCardFactory } from '@/components/posts/PostCardFactory';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CommentThread } from '@/components/comments/CommentThread';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 import { EngagementStateDebugger } from '@/components/debug/EngagementStateDebugger';
 import type { PostWithEngagement } from '@/types/posts/engagement';
 import AuthDebug from "@/components/debug/AuthDebug";

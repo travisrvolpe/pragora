@@ -850,13 +850,43 @@ async def save_post(db: Session, user_id: int, post_id: int):
     db.commit()
     return {"message": "Post saved successfully"}
 
+
 async def get_saved_posts(db: Session, user_id: int):
-    user = db.query(User).filter(User.user_id == user_id).first()
+    """Get list of saved post IDs for a user checking both saved_posts table and interactions"""
+    try:
+        user = db.query(User).filter(User.user_id == user_id).first()
 
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    return {"saved_posts": [post.post_id for post in user.saved_posts]}
+        # Get post IDs from the saved_posts relationship
+        post_ids_from_relationship = [post.post_id for post in user.saved_posts]
+
+        # Also get post IDs from save interactions
+        save_interaction_type = db.query(InteractionType).filter(
+            InteractionType.interaction_type_name == "save"
+        ).first()
+
+        if save_interaction_type:
+            saved_interactions = db.query(PostInteraction).filter(
+                PostInteraction.user_id == user_id,
+                PostInteraction.interaction_type_id == save_interaction_type.interaction_type_id
+            ).all()
+
+            post_ids_from_interactions = [interaction.post_id for interaction in saved_interactions]
+
+            # Combine both sets of post IDs and remove duplicates
+            all_post_ids = list(set(post_ids_from_relationship + post_ids_from_interactions))
+        else:
+            all_post_ids = post_ids_from_relationship
+
+        logger.info(f"Found {len(all_post_ids)} saved posts for user {user_id}")
+        # Return directly as a list to avoid response validation errors
+        return all_post_ids
+    except Exception as e:
+        logger.error(f"Error fetching saved posts: {str(e)}")
+        # Return empty list instead of raising an error
+        return []
 
 
 async def calculate_post_engagement(post_id: int, db: Session) -> None:

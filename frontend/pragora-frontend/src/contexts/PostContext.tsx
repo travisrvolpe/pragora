@@ -1,6 +1,6 @@
 // contexts/PostContext.tsx
 import React, { createContext, useContext, useState } from 'react';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 import { Post } from '@/types/posts/post-types';
 
 interface PostContextType {

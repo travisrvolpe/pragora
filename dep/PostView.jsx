@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import PostCardFactory from 'frontend/pragora-frontend/src/components/factories/PostCardFactory';
-import { TOKEN_KEY } from '@/lib/constants/constants';
+import { TOKEN_KEY } from '@/applib/constants/constants';
 
 const PostView = () => {
   const { post_id } = useParams();

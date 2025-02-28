@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Alert, AlertDescription } from '../ui/alert';
-import { TOKEN_KEY } from '@/lib/constants/constants';
+import { TOKEN_KEY } from '@/applib/constants/constants';
 
 const ProfileDebug = () => {
   useEffect(() => {

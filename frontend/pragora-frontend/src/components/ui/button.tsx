@@ -2,7 +2,7 @@
 'use client'
 
 import * as React from "react"
-import { cn } from '../../lib/utils/utils'
+import { cn } from '@/applib/utils/utils'
 import { LucideIcon } from 'lucide-react'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

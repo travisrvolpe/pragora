@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/lib/hooks/use-toast/use-toast';
+import { toast } from '@/applib/hooks/use-toast/use-toast';
 import { ThoughtPostFormData } from '@/types/posts/create-content-types';
 import { CategorySelector } from '../common/CategorySelector';
 import { TagInput } from '../common/TagInput';

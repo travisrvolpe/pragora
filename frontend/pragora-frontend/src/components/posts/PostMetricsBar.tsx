@@ -2,7 +2,7 @@
 'use client'
 
 import React from 'react';
-import { usePostEngagement } from '@/lib/hooks/usePostEngagement';
+import { usePostEngagement } from '@/applib/hooks/usePostEngagement';
 import { EngagementMetricsHandler } from '@/components/engagement/EngagementMetricsHandler';
 import type { Post } from '@/types/posts';
 import type {

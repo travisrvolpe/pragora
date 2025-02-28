@@ -1,4 +1,4 @@
-# app/lib/graphql/context.py
+# app/applib/graphql/context.py
 import logging
 from typing import Optional, Any, Dict
 from sqlalchemy.orm import Session

@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { cn } from '../../lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 import type { TopicCardProps } from '@/types/posts/page-types';
 
 

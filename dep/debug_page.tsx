@@ -7,7 +7,7 @@ import { PostWrapper } from 'frontend/pragora-frontend/src/components/posts/wrap
 import { PostCardFactory } from 'frontend/pragora-frontend/src/components/posts/PostCardFactory';
 import { LoadingSpinner } from 'frontend/pragora-frontend/src/components/ui/loading-spinner';
 import { CommentThread } from 'frontend/pragora-frontend/src/components/comments/CommentThread';
-import postService from 'frontend/pragora-frontend/src/lib/services/post/postService';
+import postService from 'frontend/pragora-frontend/src/applib/services/post/postService';
 import { EngagementStateDebugger } from 'frontend/pragora-frontend/src/components/debug/EngagementStateDebugger';
 import type { PostWithEngagement } from 'frontend/pragora-frontend/src/types/posts/engagement';
 import AuthDebug from "frontend/pragora-frontend/src/components/debug/AuthDebug";

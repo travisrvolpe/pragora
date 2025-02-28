@@ -2,7 +2,7 @@
 'use client'
 
 import React from 'react'
-import { cn } from '../../lib/utils/utils'
+import { cn } from '@/applib/utils/utils'
 
 interface LoadingSpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: 'sm' | 'md' | 'lg'

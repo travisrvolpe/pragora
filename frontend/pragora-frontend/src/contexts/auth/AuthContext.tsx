@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from 'next/navigation';
-import { authService } from "@/lib/services/auth/authService";
+import { authService } from "@/applib/services/auth/authService";
 import {
   LoginFormData,
   RegisterFormData,
@@ -12,7 +12,7 @@ import {
   AuthError,
   isAuthSuccess
 } from "@/types/auth";
-import { apolloClient } from '@/lib/graphql/apollo-client';
+import { apolloClient } from '@/applib/graphql/apollo-client';
 
 const PUBLIC_PATHS = ['/auth/login', '/auth/register', '/'];
 const AUTH_CHECK_INTERVAL = 4 * 60 * 1000; // 4 minutes

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { MoreHorizontal, Clock, Hash } from 'lucide-react';
-import { cn } from '@/lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 import { GradientAvatar } from '../common/GradientAvatar';
 import { ViewPostButton } from '../buttons/ViewPostButton';
 import type { PostCardProps } from '@/types/posts/component-types';

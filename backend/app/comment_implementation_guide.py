@@ -117,7 +117,7 @@ async def create_comment(db: Session, user_id: int, comment: CommentCreate):
 
 ### 2.1 Set up Apollo Client
 ```typescript
-// lib/apollo-client.ts
+// applib/apollo-client.ts
 import { ApolloClient, InMemoryCache, split, HttpLink } from '@apollo/client';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
@@ -187,7 +187,7 @@ input AddCommentInput {
 ```tsx
 // components/comments/CommentThread.tsx
 import { useSubscription, useMutation } from '@apollo/client';
-import { COMMENT_ADDED_SUBSCRIPTION, ADD_COMMENT_MUTATION } from '@/lib/graphql';
+import { COMMENT_ADDED_SUBSCRIPTION, ADD_COMMENT_MUTATION } from '@/applib/graphql';
 
 export const CommentThread: React.FC<{ postId: string }> = ({ postId }) => {
   const { data, loading } = useSubscription(COMMENT_ADDED_SUBSCRIPTION, {
@@ -299,7 +299,7 @@ export const PostDetail: React.FC<{ post: Post }> = ({ post }) => {
 
 ### 4.1 Update Cache Configuration
 ```typescript
-// lib/apollo-client.ts
+// applib/apollo-client.ts
 const cache = new InMemoryCache({
   typePolicies: {
     Comment: {

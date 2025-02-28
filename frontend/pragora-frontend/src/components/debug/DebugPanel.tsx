@@ -3,7 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { Settings, Bug, Shield, UserCircle } from 'lucide-react';
 import AuthDebug from './AuthDebug';
 import ProfileDebug from './ProfileDebug';
-import { TOKEN_KEY } from '@/lib/constants/constants';
+import { TOKEN_KEY } from '@/applib/constants/constants';
 
 type DebugTab = 'auth' | 'profile' | 'errors';
 

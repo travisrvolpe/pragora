@@ -18,7 +18,7 @@ import {
 import ViewPostButton from '../../buttons/ViewPostButton';
 import BackButton from '../../buttons/BackButton';
 import EngagementMetricsHandler from '../../engagement/EngagementMetricsHandler';
-import {engagementService} from '@/lib/services/engagement/engageService';
+import {engagementService} from '@/applib/services/engagement/engageService';
 
 // Types
 interface PostAnalysis {

@@ -5,7 +5,7 @@ import { useMemo, useCallback } from 'react';
 import React from 'react';
 import { PostCardFactory } from './PostCardFactory';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 import { PostWrapper } from './wrapper';
 import { InfiniteScroll } from '@/components/InfiniteScroll';
 import type { Post } from '@/types/posts/post-types';

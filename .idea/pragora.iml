@@ -5,7 +5,6 @@
       <sourceFolder url="file://$MODULE_DIR$/backend" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/backend/env" />
-      <excludeFolder url="file://$MODULE_DIR$/frontend/pragora-frontend/src/lib" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.12 virtualenv at ~/pragora/backend/env" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

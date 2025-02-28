@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, ThumbsUp, ThumbsDown, Calendar, Edit3, Trash } from 'lucide-react';
-import { commentService  } from '@/lib/services/comment/commentService';
-import { formatRelativeTime } from '@/lib/utils/date-utils';
+import { commentService  } from '@/applib/services/comment/commentService';
+import { formatRelativeTime } from '@/applib/utils/date-utils';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import type { CommentWithEngagement } from '@/types/comments';
 

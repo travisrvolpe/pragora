@@ -5,7 +5,7 @@ import React from 'react';
 import { TopicCard } from './TopicCard';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useCategories } from '@/contexts/categories/CategoriesContext';
-import { CATEGORIES } from '@/lib/constants/categories';
+import { CATEGORIES } from '@/applib/constants/categories';
 
 export function TopicsList() {
   const {

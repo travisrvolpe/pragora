@@ -9,11 +9,11 @@ import { LayoutProvider } from '@/components/layout/LayoutProvider';
 import { PostProvider } from '@/contexts/PostContext';
 import { CommentProvider } from '@/contexts/comment/CommentContext';
 import { ApolloProvider } from '@apollo/client';
-import { apolloClient } from '@/lib/graphql/apollo-client';
+import { apolloClient } from '@/applib/graphql/apollo-client';
 import { useEffect, useState } from 'react';
 import { AuthErrorBoundary } from '@/components/debug/AuthErrorBoundary';
 import dynamic from 'next/dynamic';
-import { setQueryClient } from '@/lib/services/auth/authService';
+import { setQueryClient } from '@/applib/services/auth/authService';
 
 // Dynamically import DebugPanel for development only
 const DebugPanel = dynamic(

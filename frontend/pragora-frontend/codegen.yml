@@ -1,11 +1,11 @@
 # codegen.yml
 overwrite: true
-#schema: "src/lib/graphql/schema/**/*.graphql"
-#documents: "src/lib/graphql/operations/**/*.ts"
-#schema: "./src/lib/graphql/schema/schema.graphql"
-#documents: "./src/lib/graphql/operations/**/*.ts"
+#schema: "src/applib/graphql/schema/**/*.graphql"
+#documents: "src/applib/graphql/operations/**/*.ts"
+#schema: "./src/applib/graphql/schema/schema.graphql"
+#documents: "./src/applib/graphql/operations/**/*.ts"
 schema: "http://localhost:8000/graphql"
-documents: "./src/lib/graphql/operations/**/*.ts"
+documents: "./src/applib/graphql/operations/**/*.ts"
 generates:
   # The main TypeScript types from your queries:
   src/lib/graphql/generated/types.ts:

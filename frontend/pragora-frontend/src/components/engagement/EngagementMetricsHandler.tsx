@@ -4,14 +4,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageCircle } from 'lucide-react'
-import { cn } from '@/lib/utils/utils'
+import { cn } from '@/applib/utils/utils'
 import { LikeButton } from '@/components/buttons/LikeButton'
 import { DislikeButton } from '@/components/buttons/DislikeButton'
 import { SaveButton } from '@/components/buttons/SaveButton'
 import { ShareButton } from '@/components/buttons/ShareButton'
 import { EngagementButton } from '@/components/buttons/EngagementButton'
 import { MetricsData, MetricStates, LoadingStates, ErrorStates } from '@/types/posts/engagement';
-import { authService } from '@/lib/services/auth/authService';
+import { authService } from '@/applib/services/auth/authService';
 import {router} from "next/client";
 
 interface EngagementMetricsHandlerProps {

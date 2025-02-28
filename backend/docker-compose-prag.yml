@@ -51,7 +51,7 @@ services:
       - POSTGRES_PASSWORD=ugabuga22
       - POSTGRES_DB=pragora
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/applib/postgresql/data
       # Add custom initialization scripts if needed
       - ./backend/db/init:/docker-entrypoint-initdb.d
     networks:
@@ -77,7 +77,7 @@ services:
       - PGADMIN_DEFAULT_EMAIL=admin@pragora.com
       - PGADMIN_DEFAULT_PASSWORD=admin
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - pgadmin_data:/var/applib/pgadmin
     depends_on:
       - db
     networks:

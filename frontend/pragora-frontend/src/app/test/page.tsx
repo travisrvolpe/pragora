@@ -3,7 +3,7 @@
 import React from 'react';
 import { Image } from 'lucide-react';
 import { ImageForm } from '@/components/create/forms/ImageForm';
-import postService from '@/lib/services/post/postService';
+import postService from '@/applib/services/post/postService';
 import { useRouter } from 'next/navigation';
 
 export default function CreateImagePage() {

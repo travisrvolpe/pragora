@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { categoryService } from '@/lib/services/category/categoryService';
+import { categoryService } from '@/applib/services/category/categoryService';
 import type { Category } from '@/types/posts/page-types';
 
 interface CategoriesContextType {

@@ -4,7 +4,7 @@
 import * as React from 'react'
 import { ThumbsDown } from 'lucide-react'
 import { EngagementButton, EngagementButtonProps } from './EngagementButton'
-import { cn } from '@/lib/utils/utils'
+import { cn } from '@/applib/utils/utils'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 

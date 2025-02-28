@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '../../lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 
 interface StartPostButtonProps {
   className?: string;

@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { BasePostCard } from './BasePostCard';
 import type { PostCardProps } from '../../types/posts/component-types';
 import type { Post, ImagePost } from '../../types/posts/post-types';
-import { cn } from '../../lib/utils/utils';
+import { cn } from '@/applib/utils/utils';
 
 const isImagePost = (post: Post): post is ImagePost => {
   return post.post_type_id === 2;

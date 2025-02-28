@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { Profile, ProfileUpdateDto } from '@/types/user/profile';
-import { profileService } from '@/lib/services/user/profileService';
+import { profileService } from '@/applib/services/user/profileService';
 import { useAuth } from '@/contexts/auth/AuthContext';
 
 interface ProfileContextType {

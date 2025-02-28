@@ -11,7 +11,7 @@ import {
   Edit,
   Trash
 } from 'lucide-react';
-import {useToast, toast } from '../../lib/hooks/use-toast/use-toast';
+import {useToast, toast } from '@/applib/hooks/use-toast/use-toast';
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { CommentWithEngagement } from '@/types/comments';

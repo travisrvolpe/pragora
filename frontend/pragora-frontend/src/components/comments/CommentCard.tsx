@@ -6,15 +6,15 @@ import { MessageCircle, ThumbsUp, ThumbsDown, Flag, MoreVertical, Reply, Edit, T
 import { useAuth } from '@/contexts/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { CommentForm } from './CommentForm';
-import { formatRelativeTime } from '@/lib/utils/date-utils';
-import type { Comment, CommentInteractionState, CommentMetrics, User } from '@/lib/graphql/generated/types';
+import { formatRelativeTime } from '@/applib/utils/date-utils';
+import type { Comment, CommentInteractionState, CommentMetrics, User } from '@/applib/graphql/generated/types';
 import {
   useLikeCommentMutation,
   useDislikeCommentMutation,
   useDeleteCommentMutation,
   useReportCommentMutation
-} from '@/lib/graphql/generated/types';
-import { toast } from '@/lib/hooks/use-toast/use-toast';
+} from '@/applib/graphql/generated/types';
+import { toast } from '@/applib/hooks/use-toast/use-toast';
 import {UserAvatar} from "@/components/user/UserAvatar";
 
 interface CommentCardProps {
