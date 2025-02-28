@@ -8,12 +8,11 @@ import { LucideIcon } from 'lucide-react'
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   label?: string
   icon?: LucideIcon
-  variant?: 'default' | 'ghost' | 'outline' | 'primary'
+  variant?: 'default' | 'ghost' | 'outline' | 'primary' | 'destructive'
   size?: 'sm' | 'md' | 'lg'
   tooltip?: string
   isLoading?: boolean
 }
-
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   label,
   icon: Icon,
@@ -33,7 +32,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
     default: 'bg-slate-900 text-white hover:bg-slate-800',
     ghost: 'hover:bg-slate-100 hover:text-slate-900',
     outline: 'border border-slate-200 hover:bg-slate-100',
-    primary: 'bg-primary text-white hover:bg-primary-dark'
+    primary: 'bg-primary text-white hover:bg-primary-dark',
+    destructive: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-400'
   }
 
   const sizeStyles = {

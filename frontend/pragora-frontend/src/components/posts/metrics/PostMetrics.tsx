@@ -18,8 +18,8 @@ import type { PostMetricsProps } from '@/types/posts/component-types';
 const PostMetrics: React.FC<PostMetricsProps> = ({
   post,
   variant,
-  metrics,  // Use directly without local state
-  interactionState,  // Use directly without local state
+  metrics,
+  interactionState,
   loading,
   error,
   onComment,
@@ -67,21 +67,49 @@ const PostMetrics: React.FC<PostMetricsProps> = ({
   // Action handlers
   const handleLikeClick = useCallback(() => {
     console.log("Like button clicked in PostMetrics");
+
+    // Dispatch pre-engagement event only on post detail pages
+    if (variant === 'detail') {
+      console.log('Dispatching pre-engagement event from detail page');
+      window.dispatchEvent(new CustomEvent('pre-engagement'));
+    }
+
     return handleAuthCheck(onLike);
-  }, [handleAuthCheck, onLike]);
+  }, [handleAuthCheck, onLike, variant]);
 
   const handleDislikeClick = useCallback(() => {
     console.log("Dislike button clicked in PostMetrics");
+
+    // Dispatch pre-engagement event only on post detail pages
+    if (variant === 'detail') {
+      console.log('Dispatching pre-engagement event from detail page');
+      window.dispatchEvent(new CustomEvent('pre-engagement'));
+    }
+
     return handleAuthCheck(onDislike);
-  }, [handleAuthCheck, onDislike]);
+  }, [handleAuthCheck, onDislike, variant]);
 
   const handleSaveClick = useCallback(() => {
     console.log("Save button clicked in PostMetrics");
+
+    // Dispatch pre-engagement event only on post detail pages
+    if (variant === 'detail') {
+      console.log('Dispatching pre-engagement event from detail page');
+      window.dispatchEvent(new CustomEvent('pre-engagement'));
+    }
+
     return handleAuthCheck(onSave);
-  }, [handleAuthCheck, onSave]);
+  }, [handleAuthCheck, onSave, variant]);
 
   const handleShareClick = useCallback(() => {
     console.log("Share button clicked in PostMetrics");
+
+    // Dispatch pre-engagement event only on post detail pages
+    if (variant === 'detail') {
+      console.log('Dispatching pre-engagement event from detail page');
+      window.dispatchEvent(new CustomEvent('pre-engagement'));
+    }
+
     return handleAuthCheck(async () => {
       await onShare();
       toast({
@@ -89,7 +117,7 @@ const PostMetrics: React.FC<PostMetricsProps> = ({
         description: "Post shared successfully"
       });
     });
-  }, [handleAuthCheck, onShare]);
+  }, [handleAuthCheck, onShare, variant]);
 
   const handleCommentClick = useCallback(() => {
     console.log("Comment button clicked in PostMetrics");

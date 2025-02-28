@@ -78,6 +78,11 @@ export interface PostActionProps {
 // Factory interfaces
 export interface PostFactoryProps extends Omit<PostCardProps, 'post'> {
   post: PostWithEngagement;
+  variant?: 'feed' | 'detail';
+  className?: string;
+  onBack?: () => void;
+  onViewPost?: (id: number) => void;
+  onComment?: () => void;
 }
 
 // Engagement metrics interfaces
@@ -88,21 +93,6 @@ export interface EngagementMetricsProps {
   variant?: 'feed' | 'detail';
   className?: string;
   onMetricsUpdate?: (metrics: PostMetrics) => void;
-}
-
-export interface PostFactoryProps {
-  post: PostWithEngagement;
-  variant?: 'feed' | 'detail';
-  className?: string;
-  onBack?: () => void;
-  onViewPost?: (id: number) => void;
-  onComment?: () => void;
-}
-
-export interface PostFactoryProps {
-  post: PostWithEngagement;
-  variant?: 'feed' | 'detail';
-  className?: string;
 }
 
 export interface PostHeaderProps {

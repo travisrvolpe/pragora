@@ -3,7 +3,9 @@ from contextlib import asynccontextmanager
 import strawberry
 from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
+# Remove the direct import of CORSMiddleware if you aren't using it anymore
+# from fastapi.middleware.cors import CORSMiddleware
 from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_WS_PROTOCOL, GRAPHQL_TRANSPORT_WS_PROTOCOL
 
@@ -22,9 +24,12 @@ from app.routes import (
 )
 from app.websocket_manager import manager
 from app.middleware.auth_middleware import auth_middleware
+
+# Import your custom cors_middleware setup function
+from app.middleware.cors_middleware import setup_cors_middleware
+
 import logging
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -33,23 +38,17 @@ logging.basicConfig(
     ]
 )
 
-# Create logger for your app
 logger = logging.getLogger(__name__)
-
-# You can adjust the logging level for specific modules
 logging.getLogger('app.lib.graphql').setLevel(logging.DEBUG)
 logging.getLogger('app.auth').setLevel(logging.DEBUG)
 
-# Create DB tables
 Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup code
     print("Starting up...")
     await database.connect()
     try:
-        # Initialize Redis with longer expiration time
         await init_redis()
         await verify_all_post_counts()
     except Exception as e:
@@ -61,16 +60,13 @@ async def lifespan(app: FastAPI):
         await init_post_types()
         await init_post_interaction_types(db)
 
-        # Create service and verify counts
         from app.services.post_engagement_service import PostEngagementService
         from app.RedisCache import get_cache
 
         cache = get_cache()
         service = PostEngagementService(db, cache)
-        # Change this line:
-        await service.repair_all_post_counts()  # Instead of verify_and_fix_counts()
+        await service.repair_all_post_counts()
         print("✅ Post counts verified and fixed")
-
     except Exception as e:
         print(f"❌ Error during startup: {str(e)}")
     finally:
@@ -79,40 +75,39 @@ async def lifespan(app: FastAPI):
     print("Startup complete")
     yield
 
-    # Shutdown code
     await database.disconnect()
     await close_redis()
 
-# Initialize FastAPI
 app = FastAPI(lifespan=lifespan)
+
+# Use your custom CORS setup
+#setup_cors_middleware(app)
+
+# If you still want your auth middleware applied, keep this line:
+#app.middleware("http")(auth_middleware)
 
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000"],  # Your frontend URL
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*", "Authorization", "Content-Type"],# allow_headers=["*"], #allow_headers=["*", "Authorization"],
-    expose_headers=["*"], # expose_headers=["Content-Disposition"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Be explicit about OPTIONS
+    allow_headers=["*"],  # Keep this broad for now for debugging
+    expose_headers=["Content-Type", "Content-Length"],
     max_age=3600
 )
 app.middleware("http")(auth_middleware)
 
-# Static files
 settings.create_media_directories()
 
 app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
-#app.mount("/media", StaticFiles(directory="media"), name="media")
-#app.mount("/avatars", StaticFiles(directory="media/avatars"), name="avatars")
 
-# Strawberry schema
 schema = strawberry.Schema(
     query=Query,
     mutation=Mutation,
     subscription=Subscription,
 )
 
-# Configure GraphQL with subscriptions
 graphql_app = GraphQLRouter(
     schema,
     graphql_ide="graphiql",
@@ -124,7 +119,6 @@ graphql_app = GraphQLRouter(
     allow_queries_via_get=True
 )
 
-# Include routers
 app.include_router(graphql_app, prefix="/graphql")
 app.include_router(auth_routes.router)
 app.include_router(profile_routes.router)
@@ -133,7 +127,6 @@ app.include_router(comment_routes.router)
 app.include_router(category_routes.router)
 app.include_router(post_engagement_routes.router)
 
-# WebSocket endpoint for real-time comments
 @app.websocket("/ws/post/{post_id}")
 async def websocket_endpoint(websocket: WebSocket, post_id: int):
     await manager.connect(websocket, post_id)
@@ -149,3 +142,11 @@ async def websocket_endpoint(websocket: WebSocket, post_id: int):
 @app.get("/")
 async def root():
     return {"message": "Welcome to Pragora API"}
+
+@app.options("/posts/{post_id}")
+async def options_post(post_id: int):
+    return {}
+
+@app.options("/posts/engagement/{post_id}/{action}")
+async def options_engagement(post_id: int, action: str):
+    return {}

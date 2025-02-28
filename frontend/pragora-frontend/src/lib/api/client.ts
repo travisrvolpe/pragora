@@ -2,7 +2,6 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { authService } from '@/lib/services/auth/authService';
 import { API_ENDPOINTS } from './endpoints';
-import { QueryClient } from '@tanstack/react-query';
 
 export const TOKEN_KEY = 'access_token';
 
@@ -20,7 +19,6 @@ let failedQueue: Array<{
   resolve: (value?: unknown) => void;
   reject: (reason?: any) => void;
 }> = [];
-
 
 export const api: AxiosInstance & {
   get<T = any>(url: string, config?: ExtendedAxiosRequestConfig): Promise<T>;
@@ -54,9 +52,13 @@ api.interceptors.request.use(
       return config;
     }
 
+    // Always get a fresh token on each request
     const token = authService.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // If no token but this isn't an auth request, log it
+      console.warn('Making authenticated request without token:', config.url);
     }
     return config;
   },
@@ -76,61 +78,54 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401) {
-      if (originalRequest.url?.includes('/auth/')) {
+    // Only handle 401s that aren't from auth endpoints and haven't been retried
+    if (error.response?.status === 401 &&
+        !originalRequest.url?.includes('/auth/') &&
+        !originalRequest._retry) {
+
+      console.log("Authentication error detected");
+
+      // For API requests, don't auto-redirect to login, just return the error
+      // This allows components to handle auth errors appropriately
+      if (originalRequest.url?.includes('/api/') ||
+          originalRequest.url?.includes('/posts/')) {
+        console.log("API auth error, returning to caller");
         return Promise.reject(error);
       }
 
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        });
-      }
+      // For other requests, redirect after a delay
+      console.log("Navigation auth error, redirecting to login in 3 seconds");
 
-      if (originalRequest._retry) {
-        authService.removeToken();
-        return Promise.reject({
-          message: 'Session expired',
-          status: 401,
-          originalError: error
-        });
-      }
+      // Clear any auth tokens
+      authService.removeToken();
 
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        authService.removeToken();
-        isRefreshing = false;
-        processQueue(error);
-
+      // Add a delay before redirect to avoid interrupting other operations
+      setTimeout(() => {
         if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
+          console.log("Redirecting to login page");
+          window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname);
         }
-
-        return Promise.reject({
-          message: 'Authentication required',
-          status: 401,
-          originalError: error
-        });
-      } catch (refreshError) {
-        isRefreshing = false;
-        processQueue(refreshError);
-        return Promise.reject(refreshError);
-      }
+      }, 3000);
     }
 
     return Promise.reject(error);
   }
 );
 
+
 // Debug interceptor for requests
 api.interceptors.request.use(request => {
+  // Safely log request details
   console.log('API Request:', {
     url: request.url,
     method: request.method,
-    headers: request.headers,
-    data: request.data,
+    // Log Authorization header safely if it exists and is a string
+    headers: {
+      ...request.headers,
+      Authorization: typeof request.headers.Authorization === 'string'
+        ? `${request.headers.Authorization.substring(0, 15)}...`
+        : 'none'
+    }
   });
   return request;
 });
@@ -158,8 +153,10 @@ api.interceptors.response.use(
 export const updateApiAuthHeader = (token: string | null) => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('Updated API auth header with token');
   } else {
     delete api.defaults.headers.common['Authorization'];
+    console.log('Removed API auth header');
   }
 };
 
