@@ -176,28 +176,36 @@ const postService = {
       }
 
       const data = await response.json();
+      console.log('Raw API response for post:', data)
 
       // Get the post data from any response structure
       const postData = data?.data?.post || data?.post || data;
+      console.log('Original metrics data:', postData.metrics);
 
       // Ensure metrics have a consistent structure
       const metrics = {
-        like_count: postData.metrics?.like_count ?? postData.like_count ?? 0,
-        dislike_count: postData.metrics?.dislike_count ?? postData.dislike_count ?? 0,
-        save_count: postData.metrics?.save_count ?? postData.save_count ?? 0,
-        share_count: postData.metrics?.share_count ?? postData.share_count ?? 0,
-        comment_count: postData.metrics?.comment_count ?? postData.comment_count ?? 0,
-        report_count: postData.metrics?.report_count ?? postData.report_count ?? 0,
+        like_count: typeof postData.like_count === 'number' ? postData.like_count : 0,
+        dislike_count: typeof postData.dislike_count === 'number' ? postData.dislike_count : 0,
+        save_count: typeof postData.save_count === 'number' ? postData.save_count : 0,
+        share_count: typeof postData.share_count === 'number' ? postData.share_count : 0,
+        comment_count: typeof postData.comment_count === 'number' ? postData.comment_count : 0,
+        report_count: typeof postData.report_count === 'number' ? postData.report_count : 0,
       };
 
+      console.log('Normalized metrics:', metrics);
+
       // Ensure interaction state has a consistent structure with strict boolean values
+      console.log('Original interaction_state:', postData.interaction_state);
+
       const interaction_state = {
-        like: Boolean(postData.interaction_state?.like === true),
-        dislike: Boolean(postData.interaction_state?.dislike === true),
-        save: Boolean(postData.interaction_state?.save === true),
-        share: Boolean(postData.interaction_state?.share === true),
-        report: Boolean(postData.interaction_state?.report === true),
+        like: Boolean(postData.like),
+        dislike: Boolean(postData.dislike),
+        save: Boolean(postData.save),
+        share: Boolean(postData.share),
+        report: Boolean(postData.report),
       };
+
+      console.log('Normalized interaction_state:', interaction_state);
 
       console.log(`Post ${postId} data from server:`, {
         metrics,
@@ -207,11 +215,12 @@ const postService = {
       // Construct a properly typed return value with all required fields
       const result: PostWithEngagement = {
         ...postData,
-        // Ensure all required fields exist even if the API doesn't provide them
+        // Ensure all required fields exist
         post_id: postData.post_id,
         user_id: postData.user_id,
         content: postData.content || '',
         post_type_id: postData.post_type_id || 1,
+        // Replace any existing metrics/interaction_state with our constructed objects
         metrics,
         interaction_state,
         status: postData.status || 'active',

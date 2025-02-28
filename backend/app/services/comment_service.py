@@ -494,7 +494,7 @@ class CommentService:
                     comment_id=comment_id,
                     user_id=user_id,
                     interaction_type_id=interaction_type_record.interaction_type_id,
-                    target_type="comment",
+                    target_type="COMMENT",
                     interaction_metadata=metadata
                 )
                 self.db.add(new_interaction)

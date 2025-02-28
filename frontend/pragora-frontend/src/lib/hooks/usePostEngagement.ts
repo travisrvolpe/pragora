@@ -237,9 +237,17 @@ export function usePostEngagement(post: PostWithEngagement) {
       onSuccess: (data) => {
         console.log(`${actionType} mutation succeeded:`, data);
 
+          console.log(`Checking response for ${actionType} state:`, {
+            actionType,
+            actionValue: data[actionType],
+            isActive: data[actionType] === true
+          });
+
         // Extract server values
         const isActive = data[actionType] === true;
         const newCount = data[`${actionType}_count`] ?? 0;
+
+        console.log(`Using values: isActive=${isActive}, newCount=${newCount}`);
 
         // First, set query data explicitly to ensure persistence
         queryClient.setQueryData(['post', post.post_id], (oldData: any) => {

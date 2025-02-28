@@ -58,16 +58,11 @@ frontend/pragora-frontend/public
 backend/alembic
 
 #MISC
-backend/EXERCISEDATASCIENTIST_Volpe
-/home/notsure/pragora/backend/alembic
-/home/notsure/pragora/backend/EXERCISEDATASCIENTIST_Volpe
-/home/notsure/pragora/backend/media
-/home/notsure/pragora/frontend/pragora-frontend/public
-/frontend/pragora-frontend/public
+
+
+
 
 !/home/notsure/pragora/frontend/pragora-frontend/src/lib
 !/pragora-frontend/src/lib
 !/home/notsure/pragora/backend/app/lib
 
-alembic/
-media/

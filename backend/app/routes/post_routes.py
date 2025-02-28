@@ -150,7 +150,21 @@ async def create_post(
         print(f"❌ Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{post_id}", response_model=PostResponse)
+@router.get("/{post_id}", response_model=Dict)  # Change to Dict to allow flexible structure
+async def get_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
+    """Get a single post with engagement data"""
+    try:
+        user_id = current_user.user_id if current_user else None
+        return await post_service.get_post(db, post_id, user_id=user_id)
+    except Exception as e:
+        logger.error(f"Error in get_post route: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+'''@router.get("/{post_id}", response_model=PostResponse)
 async def get_post(
     post_id: int,
     db: Session = Depends(get_db),
@@ -165,7 +179,7 @@ async def get_post(
         return response
     except Exception as e:
         logger.error(f"Error in get_post route: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))'''
 
     # Track view only if user is authenticated
     #try:
