@@ -65,6 +65,13 @@ class CommentInteraction(BaseInteraction):
     share = None
     dislike = None
 
+    # Override interaction_id from BaseInteraction to add sequence
+    interaction_id = Column(
+        Integer,
+        Sequence('comment_interactions_interaction_id_seq'),
+        primary_key=True,
+        nullable=False
+    )
     comment_id = Column(Integer, ForeignKey("comments.comment_id", ondelete="CASCADE"), nullable=False)
 
     __table_args__ = (

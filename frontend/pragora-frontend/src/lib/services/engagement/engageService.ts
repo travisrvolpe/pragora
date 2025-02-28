@@ -22,70 +22,45 @@ interface EngagementService {
 }
 
 /**
- * Helper to get base API URL based on context
+ * Helper to get base API URL
  */
 const getApiUrl = () => {
-  // Check if we should use the API routes instead of direct calls
-  // Only use API routes for post detail pages to avoid breaking working pages
-  if (typeof window !== 'undefined') {
-    // Check if we're on a post detail page by looking at the URL
-    const isPostDetailPage = window.location.pathname.startsWith('/dialectica/') &&
-                            !window.location.pathname.endsWith('/dialectica/');
-
-    if (isPostDetailPage) {
-      console.log('Using API route for engagement from post detail page');
-      return '/api'; // Use Next.js API routes on post detail pages
-    }
-  }
-
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 };
 
 /**
  * Helper to get authentication headers
- * Now always gets a fresh token from storage
  */
 const getAuthHeaders = (): Record<string, string> => {
   const token = authService.getToken();
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
+// And then in each method, fix the headers merging:
+const headers: Record<string, string> = {
+  'Accept': 'application/json',
+  'Content-Type': 'application/json',
+  ...getAuthHeaders() // Now this will be type-safe
+};
+
+
 /**
  * Default response handler to ensure consistent response format
  */
 const handleResponse = async <T>(response: Response): Promise<T> => {
   if (!response.ok) {
-    // Special handling for 401 errors
-    if (response.status === 401) {
-      console.warn('Authentication error during engagement operation');
-      // We'll let the caller handle this to avoid redirects during API calls
-      throw new Error('Authentication required');
-    }
-
-    try {
-      // Try to get JSON error response
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Request failed with status: ${response.status}`);
-    } catch (jsonError) {
-      // Fallback to text if not JSON
-      const errorText = await response.text();
-      throw new Error(`Request failed: ${response.status} - ${errorText}`);
-    }
+    const errorText = await response.text();
+    throw new Error(`Request failed: ${response.status} - ${errorText}`);
   }
 
-  try {
-    const responseData = await response.json();
+  const responseData = await response.json();
 
-    // Process response correctly
-    if (responseData?.data) {
-      return responseData.data as T;
-    }
-
-    return responseData as T;
-  } catch (error) {
-    console.error('Error parsing response:', error);
-    throw new Error(`Invalid response format: ${error instanceof Error ? error.message : String(error)}`);
+  // Process response correctly
+  if (responseData?.data) {
+    return responseData.data as T;
   }
+
+  return responseData as T;
 };
 
 /**
@@ -111,66 +86,22 @@ const handleError = (operation: string, postId: number, error: unknown): Error =
   return new Error(`${baseMsg}${detail}`);
 };
 
-/**
- * Make an engagement request with retry logic
- */
-const makeEngagementRequest = async (url: string, method: string = 'POST', body?: any): Promise<Response> => {
-  const maxRetries = 2;
-  let attempt = 0;
-  let lastError: unknown;
-
-  while (attempt <= maxRetries) {
+export const engagementService: EngagementService = {
+  like: async (postId: number): Promise<EngagementResponse> => {
     try {
-      // Always get fresh headers with current token
+      console.log(`Calling like API for post ${postId}`);
+      const apiUrl = getApiUrl();
       const headers: Record<string, string> = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         ...getAuthHeaders()
       };
 
-      const options: RequestInit = {
-        method,
-        headers,
-        credentials: 'include'
-      };
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/like`, {
+        method: 'POST',
+        headers
+      });
 
-      if (body) {
-        options.body = JSON.stringify(body);
-      }
-
-      const response = await fetch(url, options);
-      return response;
-    } catch (error) {
-      lastError = error;
-      attempt++;
-
-      if (attempt <= maxRetries) {
-        console.log(`Engagement request failed, retrying (${attempt}/${maxRetries})...`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-      }
-    }
-  }
-
-  throw lastError;
-};
-
-export const engagementService: EngagementService = {
-  like: async (postId: number): Promise<EngagementResponse> => {
-    try {
-      console.log(`Calling like API for post ${postId}`);
-      const apiUrl = getApiUrl();
-      const url = `${apiUrl}/posts/engagement/${postId}/like`;
-
-      // Dispatch pre-engagement event if on post detail page
-      if (typeof window !== 'undefined' &&
-          window.location.pathname.startsWith('/dialectica/') &&
-          !window.location.pathname.endsWith('/dialectica/')) {
-        // This backup approach ensures the event is dispatched even if not done by PostMetrics
-        console.log('Dispatching pre-engagement event from engagementService');
-        window.dispatchEvent(new CustomEvent('pre-engagement'));
-      }
-
-      const response = await makeEngagementRequest(url);
       const data = await handleResponse<EngagementResponse>(response);
       console.log(`Like API response for post ${postId}:`, data);
       return data;
@@ -183,17 +114,17 @@ export const engagementService: EngagementService = {
     try {
       console.log(`Calling dislike API for post ${postId}`);
       const apiUrl = getApiUrl();
-      const url = `${apiUrl}/posts/engagement/${postId}/dislike`;
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
 
-      // Dispatch pre-engagement event if on post detail page
-      if (typeof window !== 'undefined' &&
-          window.location.pathname.startsWith('/dialectica/') &&
-          !window.location.pathname.endsWith('/dialectica/')) {
-        console.log('Dispatching pre-engagement event from engagementService');
-        window.dispatchEvent(new CustomEvent('pre-engagement'));
-      }
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/dislike`, {
+        method: 'POST',
+        headers
+      });
 
-      const response = await makeEngagementRequest(url);
       const data = await handleResponse<EngagementResponse>(response);
       console.log(`Dislike API response for post ${postId}:`, data);
       return data;
@@ -206,17 +137,17 @@ export const engagementService: EngagementService = {
     try {
       console.log(`Calling save API for post ${postId}`);
       const apiUrl = getApiUrl();
-      const url = `${apiUrl}/posts/engagement/${postId}/save`;
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
 
-      // Dispatch pre-engagement event if on post detail page
-      if (typeof window !== 'undefined' &&
-          window.location.pathname.startsWith('/dialectica/') &&
-          !window.location.pathname.endsWith('/dialectica/')) {
-        console.log('Dispatching pre-engagement event from engagementService');
-        window.dispatchEvent(new CustomEvent('pre-engagement'));
-      }
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/save`, {
+        method: 'POST',
+        headers
+      });
 
-      const response = await makeEngagementRequest(url);
       const data = await handleResponse<EngagementResponse>(response);
       console.log(`Save API response for post ${postId}:`, data);
       return data;
@@ -229,17 +160,17 @@ export const engagementService: EngagementService = {
     try {
       console.log(`Calling share API for post ${postId}`);
       const apiUrl = getApiUrl();
-      const url = `${apiUrl}/posts/engagement/${postId}/share`;
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
 
-      // Dispatch pre-engagement event if on post detail page
-      if (typeof window !== 'undefined' &&
-          window.location.pathname.startsWith('/dialectica/') &&
-          !window.location.pathname.endsWith('/dialectica/')) {
-        console.log('Dispatching pre-engagement event from engagementService');
-        window.dispatchEvent(new CustomEvent('pre-engagement'));
-      }
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/share`, {
+        method: 'POST',
+        headers
+      });
 
-      const response = await makeEngagementRequest(url);
       const data = await handleResponse<EngagementResponse>(response);
       console.log(`Share API response for post ${postId}:`, data);
       return data;
@@ -252,20 +183,22 @@ export const engagementService: EngagementService = {
     try {
       console.log(`Calling report API for post ${postId} with reason: ${reason}`);
       const apiUrl = getApiUrl();
-
-      // Dispatch pre-engagement event if on post detail page
-      if (typeof window !== 'undefined' &&
-          window.location.pathname.startsWith('/dialectica/') &&
-          !window.location.pathname.endsWith('/dialectica/')) {
-        console.log('Dispatching pre-engagement event from engagementService');
-        window.dispatchEvent(new CustomEvent('pre-engagement'));
-      }
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
 
       // Include reason as query parameter
       const url = new URL(`${apiUrl}/posts/engagement/${postId}/report`);
       url.searchParams.append('reason', reason);
 
-      const response = await makeEngagementRequest(url.toString(), 'POST', { reason });
+      const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ reason }) // Also include in body
+      });
+
       const data = await handleResponse<EngagementResponse>(response);
       console.log(`Report API response for post ${postId}:`, data);
       return data;
@@ -278,9 +211,18 @@ export const engagementService: EngagementService = {
     try {
       console.log(`Updating metrics for post ${postId}:`, metrics);
       const apiUrl = getApiUrl();
-      const url = `${apiUrl}/posts/engagement/${postId}/metrics`;
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
 
-      const response = await makeEngagementRequest(url, 'POST', metrics);
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/metrics`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(metrics)
+      });
+
       const data = await handleResponse<EngagementResponse>(response);
       console.log(`Update metrics response for post ${postId}:`, data);
       return data;
@@ -293,18 +235,20 @@ export const engagementService: EngagementService = {
   getDebugInfo: async (postId: number): Promise<any> => {
     try {
       const apiUrl = getApiUrl();
-      const url = `${apiUrl}/posts/engagement/${postId}/debug`;
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      };
 
-      const response = await makeEngagementRequest(url, 'GET');
+      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/debug`, {
+        method: 'GET',
+        headers
+      });
 
-      try {
-        const data = await response.json();
-        console.log(`Debug info for post ${postId}:`, data);
-        return data;
-      } catch (error) {
-        console.error('Error parsing debug info:', error);
-        throw new Error('Invalid debug response format');
-      }
+      const data = await response.json();
+      console.log(`Debug info for post ${postId}:`, data);
+      return data;
     } catch (error) {
       console.error(`Error getting debug info for post ${postId}:`, error);
       throw new Error(`Failed to get debug info: ${error instanceof Error ? error.message : 'Unknown error'}`);
