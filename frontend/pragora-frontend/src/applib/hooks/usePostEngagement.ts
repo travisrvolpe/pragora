@@ -234,97 +234,43 @@ export function usePostEngagement(post: PostWithEngagement) {
         }
         handleError(error, actionType);
       },
-      onSuccess: (data: EngagementResponse) => {
+      onSuccess: (data) => {
         console.log(`${actionType} mutation succeeded:`, data);
 
-        // When the server returns true, we need to forcefully keep that state
-        const isActive = Boolean(data[actionType]);
-        console.log(`Server response for ${actionType}: ${isActive}`);
+        // Extract server values
+        const isActive = data[actionType] === true;
+        const newCount = data[`${actionType}_count`] ?? 0;
 
-        const countField = `${actionType}_count`;
-        let newCount = 0;
-
-        // Ensure we have a proper count value from the server response
-        if (typeof data[countField] === 'number') {
-          newCount = data[countField];
-        } else if (data.metrics && typeof data.metrics[countField] === 'number') {
-          newCount = data.metrics[countField];
-        } else if (isActive) {
-          // If server says action is active but count is missing or zero,
-          // ensure we have a non-zero count for UI consistency
-          newCount = Math.max(1, post.metrics?.[countField as keyof PostMetrics] || 1);
-          console.log(`No ${countField} provided but ${actionType} is active, using count: ${newCount}`);
-        }
-
-        // First update the post directly in cache
-        queryClient.setQueryData<PostWithEngagement | undefined>(['post', post.post_id], (oldData) => {
+        // First, set query data explicitly to ensure persistence
+        queryClient.setQueryData(['post', post.post_id], (oldData: any) => {
           if (!oldData) return oldData;
 
-          // Safely create updated metrics
-          const updatedMetrics: PostMetrics = {
-            like_count: oldData.metrics?.like_count || 0,
-            dislike_count: oldData.metrics?.dislike_count || 0,
-            save_count: oldData.metrics?.save_count || 0,
-            share_count: oldData.metrics?.share_count || 0,
-            report_count: oldData.metrics?.report_count || 0,
-            comment_count: oldData.metrics?.comment_count || 0
-          };
-
-          // Create updated interaction state
-          const updatedInteractionState: PostInteractionState = {
-            like: oldData.interaction_state?.like || false,
-            dislike: oldData.interaction_state?.dislike || false,
-            save: oldData.interaction_state?.save || false,
-            share: oldData.interaction_state?.share || false,
-            report: oldData.interaction_state?.report || false
-          };
-
-          // Set the updated count and state directly from server response
-          updatedMetrics[countField as keyof PostMetrics] = newCount;
-          updatedInteractionState[actionType as keyof PostInteractionState] = isActive;
-
-          // If server provided complete metrics, use those values as they're more accurate
-          if (data.metrics) {
-            Object.entries(data.metrics).forEach(([key, value]) => {
-              if (key in updatedMetrics && typeof value === 'number') {
-                (updatedMetrics as any)[key] = value;
-              }
-            });
-          }
-
-          // Handle mutual exclusivity between like and dislike
-          if (actionType === 'like' && isActive) {
-            updatedInteractionState.dislike = false;
-            // If we're turning off dislike, reduce the dislike count if needed
-            if (oldData.interaction_state?.dislike) {
-              updatedMetrics.dislike_count = Math.max(0, updatedMetrics.dislike_count - 1);
-            }
-          } else if (actionType === 'dislike' && isActive) {
-            updatedInteractionState.like = false;
-            // If we're turning off like, reduce the like count if needed
-            if (oldData.interaction_state?.like) {
-              updatedMetrics.like_count = Math.max(0, updatedMetrics.like_count - 1);
-            }
-          }
-
-          console.log(`Updated ${actionType} state in cache:`, {
-            before: oldData.interaction_state,
-            after: updatedInteractionState
-          });
-
-          console.log(`Updated metrics in cache:`, {
-            before: oldData.metrics,
-            after: updatedMetrics
-          });
-
-          return {
+          // Create updated post with the new state
+          const updatedPost = {
             ...oldData,
-            metrics: updatedMetrics,
-            interaction_state: updatedInteractionState
+            metrics: {
+              ...oldData.metrics,
+              [`${actionType}_count`]: newCount
+            },
+            interaction_state: {
+              ...oldData.interaction_state,
+              [actionType]: isActive
+            }
           };
+
+          // Handle mutual exclusivity in the cache
+          if (actionType === 'like' && isActive && oldData.interaction_state.dislike) {
+            updatedPost.interaction_state.dislike = false;
+            updatedPost.metrics.dislike_count = Math.max(0, oldData.metrics.dislike_count - 1);
+          } else if (actionType === 'dislike' && isActive && oldData.interaction_state.like) {
+            updatedPost.interaction_state.like = false;
+            updatedPost.metrics.like_count = Math.max(0, oldData.metrics.like_count - 1);
+          }
+
+          return updatedPost;
         });
 
-        // Cancel any refetches that might overwrite our update
+        // Cancel any pending refetches that might override our update
         queryClient.cancelQueries({ queryKey: ['post', post.post_id] });
 
         // Create a metrics update object based on available data
@@ -333,68 +279,73 @@ export function usePostEngagement(post: PostWithEngagement) {
         // If the backend returns full metrics object, use it
         if (data.metrics) {
           console.log('Server provided complete metrics:', data.metrics);
-
-          // Make a clone to avoid modifying the original
-          const adjustedMetrics = {...data.metrics};
-
-          // Special handling for save action: ensure save_count is at least 1 if save is true
-          if (isActive && actionType === 'save' && (!adjustedMetrics.save_count || adjustedMetrics.save_count === 0)) {
-            adjustedMetrics.save_count = 1;
-            console.log('Adjusting save_count to 1 for UI consistency');
-          }
-
-          // Update the cache with the adjusted metrics
-          updateMetricsCache(actionType, adjustedMetrics, {
+          updateMetricsCache(actionType, data.metrics, {
             ...post.interaction_state,
-            [actionType]: isActive
+            [actionType]: typeof data[actionType] === 'boolean' ? data[actionType] : !post.interaction_state[actionType]
           });
-        } else {
-          // Create updated metrics manually
-          metricsUpdate[`${actionType}_count` as keyof Partial<PostMetrics>] = newCount;
-
-          // Update the cache with our best understanding of the current state
-          updateMetricsCache(actionType, metricsUpdate, {
-            ...post.interaction_state,
-            [actionType]: isActive
-          });
+          return;
         }
 
-        // Force a refresh to ensure consistency
-        setTimeout(() => {
-          queryClient.invalidateQueries({
-            queryKey: ['posts'],
-            exact: false
+        // Otherwise use individual count fields if available
+        if (typeof data.like_count === 'number') metricsUpdate.like_count = data.like_count;
+        if (typeof data.dislike_count === 'number') metricsUpdate.dislike_count = data.dislike_count;
+        if (typeof data.save_count === 'number') metricsUpdate.save_count = data.save_count;
+        if (typeof data.share_count === 'number') metricsUpdate.share_count = data.share_count;
+        if (typeof data.comment_count === 'number') metricsUpdate.comment_count = data.comment_count;
+        if (typeof data.report_count === 'number') metricsUpdate.report_count = data.report_count;
+
+        // If we have at least one valid count
+        if (Object.keys(metricsUpdate).length > 0) {
+          console.log('Server provided partial metrics:', metricsUpdate);
+          updateMetricsCache(actionType, metricsUpdate, {
+            ...post.interaction_state,
+            [actionType]: typeof data[actionType] === 'boolean' ? data[actionType] : !post.interaction_state[actionType]
           });
+          return;
+        }
+
+        // Fallback: Calculate new metrics based on current state
+        const isActiveState = typeof data[actionType] === 'boolean' ? data[actionType] : !post.interaction_state[actionType];
+        const newMetricsData = {
+          ...post.metrics
+        };
+
+        newMetricsData[`${actionType}_count`] = Math.max(0,
+          post.metrics[`${actionType}_count`] + (isActiveState ? 1 : -1)
+        );
+
+        // Handle mutual exclusivity
+        if (actionType === 'like' && isActiveState && post.interaction_state.dislike) {
+          newMetricsData.dislike_count = Math.max(0, post.metrics.dislike_count - 1);
+        } else if (actionType === 'dislike' && isActiveState && post.interaction_state.like) {
+          newMetricsData.like_count = Math.max(0, post.metrics.like_count - 1);
+        }
+
+        // Update interaction state
+        const newState = {
+          ...post.interaction_state,
+          [actionType]: isActiveState
+        };
+
+        // Handle mutual exclusivity in state
+        if (actionType === 'like' && isActiveState) {
+          newState.dislike = false;
+        } else if (actionType === 'dislike' && isActiveState) {
+          newState.like = false;
+        }
+
+        console.log('Calculated metrics update:', newMetricsData);
+        updateMetricsCache(actionType, newMetricsData, newState);
+
+        // Force a refresh after a short delay to ensure consistent state
+        setTimeout(() => {
+          // Invalidate only the specific post
           queryClient.invalidateQueries({
             queryKey: ['post', post.post_id],
-            exact: true
+            exact: true,
+            refetchActive: true
           });
-        }, 300);
-
-        // If it's still not correct after 1.5 seconds, try one more time
-        setTimeout(() => {
-          // Check if the state is still correct
-          const currentPost = queryClient.getQueryData<PostWithEngagement>(['post', post.post_id]);
-          if (currentPost && currentPost.interaction_state[actionType] !== isActive) {
-            console.log(`Forcing ${actionType} state to ${isActive} after server didn't update correctly`);
-
-            // Force update the state again
-            queryClient.setQueryData<PostWithEngagement>(['post', post.post_id], {
-              ...currentPost,
-              interaction_state: {
-                ...currentPost.interaction_state,
-                [actionType]: isActive
-              }
-            });
-
-            // Force a final refresh
-            queryClient.invalidateQueries({
-              queryKey: ['post', post.post_id],
-              exact: true,
-              refetchActive: true
-            });
-          }
-        }, 1500);
+        }, 500); // Increased delay to ensure UI has time to update
       }
       });
     };
@@ -493,49 +444,19 @@ export function usePostEngagement(post: PostWithEngagement) {
       console.log('Like handler called');
       return likeMutation.mutate({});
     }, [likeMutation]),
-
     handleDislike: useCallback(() => {
       console.log('Dislike handler called');
       return dislikeMutation.mutate({});
     }, [dislikeMutation]),
-
     handleSave: useCallback(() => {
       console.log('Save handler called');
-        if (isLoading.save) {
-          console.log('Save operation already in progress');
-          return;
-        }
-         setIsLoading(prev => ({ ...prev, save: true }));
-        return saveMutation.mutate({}, {
-          onSuccess: (data) => {
-            const isSaved = Boolean(data.save);
-            const saveCount = typeof data.save_count === 'number' ? data.save_count :
-                          (data.metrics?.save_count || 0);
-            console.log(`Save operation completed. Server state: isSaved=${isSaved}, count=${saveCount}`);
-            setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ['post', post.post_id] });
-              }, 250);
-            },
-          onError: (error) => {
-            console.error('Save operation failed:', error);
-            toast({
-              title: "Error",
-              description: error instanceof Error ? error.message : "Failed to save post",
-              variant: "destructive"
-            });
-            },
-          onSettled: () => {
-            setIsLoading(prev => ({ ...prev, save: false }));
-          }
-        });
-        }, [saveMutation, setIsLoading, post.post_id, queryClient]),
-
+      return saveMutation.mutate({});
+    }, [saveMutation]),
     handleShare,
     handleReport: useCallback((reason: string) => {
       console.log('Report handler called with reason:', reason);
       return reportMutation.mutate({ reason });
     }, [reportMutation]),
-
     isLoading,
     isError: {
       like: likeMutation.isError,

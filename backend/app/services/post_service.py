@@ -344,6 +344,246 @@ async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> 
         logger.error(f"❌ Unexpected error in get_post: {str(e)}")
         raise HTTPException(status_code=500, detail="Error retrieving post")
 
+'''async def get_post(db: Session, post_id: int, user_id: Optional[int] = None) -> dict:
+    """
+    Get a single post with all required fields. Fetches verified interaction
+    counts from PostEngagementService, fixes any mismatch in DB columns,
+    and returns consistent metrics.
+
+    Args:
+        db: SQLAlchemy session
+        post_id: ID of the post
+        user_id: (Optional) ID of the current user for personalized interaction_state
+
+    Returns:
+        Dictionary with post data, including verified `metrics` and `interaction_state`.
+    """
+
+    logger.info(f"Fetching post {post_id} for user {user_id if user_id else 'anonymous'}")
+
+    try:
+        # First, lock just the post row (so we can fix DB columns if needed)
+        post = (
+            db.query(Post)
+            .filter(Post.post_id == post_id)
+            .with_for_update()
+            .first()
+        )
+
+        if not post:
+            logger.error(f"❌ Post not found: {post_id}")
+            raise HTTPException(status_code=404, detail="Post not found")
+
+        # For debugging, log current DB values
+        logger.info(
+            f"DB values for post {post_id}: "
+            f"like_count={post.like_count}, "
+            f"dislike_count={post.dislike_count}, "
+            f"save_count={post.save_count}, "
+            f"share_count={post.share_count}, "
+            f"comment_count={post.comment_count}, "
+            f"report_count={post.report_count}"
+        )
+
+        # Then get a "post_with_relations" WITHOUT locking (joinedload for user, profile, etc.)
+        post_with_relations = (
+            db.query(Post)
+            .options(
+                joinedload(Post.user).joinedload(User.profile),
+                joinedload(Post.post_type),
+                joinedload(Post.tags)
+            )
+            .filter(Post.post_id == post_id)
+            .first()
+        )
+
+        # Initialize the engagement service
+        cache = get_cache()
+        engagement_service = PostEngagementService(db, cache)
+
+        # 1) Retrieve verified counts from the service
+        counts = await engagement_service.verify_interaction_counts(post_id)
+        logger.info(f"Verified counts from service for post {post_id}: {counts}")
+
+        # 2) Fix DB columns if they differ from the verified counts
+        corrected = False
+        for key in ["like", "dislike", "save", "share", "comment", "report"]:
+            db_val = getattr(post, f"{key}_count", 0) or 0
+            svc_val = counts.get(f"{key}_count", 0)
+            if db_val != svc_val:
+                logger.info(
+                    f"Fixing {key}_count mismatch for post {post_id}: "
+                    f"DB={db_val} -> Service={svc_val}"
+                )
+                setattr(post, f"{key}_count", svc_val)
+                corrected = True
+
+        if corrected:
+            db.commit()
+            logger.info(f"✅ Mismatched counts updated in database for post {post_id}")
+
+        # 3) Determine the user's interaction state for this post
+        interaction_state = await engagement_service.get_user_interaction_state(post_id, user_id)
+        logger.info(f"Interaction state for user {user_id}: {interaction_state}")
+
+        # 4) Fetch any engagement record (optional debug info)
+        engagement = db.query(PostEngagement).filter_by(post_id=post_id).first()
+        engagement_dict = {
+            "view_count": engagement.view_time_total if engagement and engagement.view_time_total else 0,
+            "unique_viewers": engagement.unique_viewers if engagement and engagement.unique_viewers else 0,
+            "avg_view_duration": engagement.avg_view_duration if engagement and engagement.avg_view_duration else 0.0,
+            "engagement_score": engagement.engagement_score if engagement and engagement.engagement_score else 0.0,
+            "quality_score": engagement.quality_score if engagement and engagement.quality_score else 0.0
+        }
+
+        # 5) Build user/profile data
+        user_data = {
+            "username": "Anonymous",
+            "avatar_img": None,
+            "reputation_score": 0,
+            "reputation_cat": "",
+            "expertise_area": "",
+            "worldview_ai": ""
+        }
+        if post_with_relations.user:
+            profile = post_with_relations.user.profile
+            if profile:
+                user_data.update({
+                    "username": profile.username or f"user_{post_with_relations.user.user_id}",
+                    "avatar_img": profile.avatar_img,
+                    "reputation_score": profile.reputation_score or 0,
+                    "reputation_cat": profile.reputation_cat or "Newbie",
+                    "expertise_area": profile.expertise_area or "",
+                    "worldview_ai": profile.worldview_ai or ""
+                })
+            else:
+                logger.warning(f"⚠️ No profile found for user {post_with_relations.user.user_id}")
+                user_data["username"] = f"user_{post_with_relations.user.user_id}"
+
+        # 6) Prepare final post data object, always using the verified counts
+        #metrics_data = {
+            #"like_count": counts.get("like_count", 0),
+            #"dislike_count": counts.get("dislike_count", 0),
+            #"save_count": counts.get("save_count", 0),
+            #"share_count": counts.get("share_count", 0),
+            #"comment_count": counts.get("comment_count", 0),
+            #"report_count": counts.get("report_count", 0),
+        #}
+
+
+        post_data = {
+            # Base fields
+            "post_id": post_with_relations.post_id,
+            "user_id": post_with_relations.user_id,
+
+            # User fields
+            **user_data,
+
+            # Content fields
+            "title": post_with_relations.title or "",
+            "subtitle": post_with_relations.subtitle or "",
+            "content": post_with_relations.content,
+            "summary": post_with_relations.summary or "",
+
+            # Media
+            "image_url": post_with_relations.image_url or "",
+            "images": post_with_relations.images or [],
+            "video_url": post_with_relations.video_url or "",
+            "video_metadata": post_with_relations.video_metadata or {},
+            "audio_url": post_with_relations.audio_url or "",
+            "document_url": post_with_relations.document_url or "",
+            "embedded_content": post_with_relations.embedded_content or {},
+            "link_preview": post_with_relations.link_preview or {},
+
+            # Post classification
+            "post_type_id": post_with_relations.post_type_id,
+            "post_type": post_with_relations.post_type.post_type_name
+                if post_with_relations.post_type else None,
+            "category_id": post_with_relations.category_id,
+            "subcategory_id": post_with_relations.subcategory_id,
+            "custom_subcategory": post_with_relations.custom_subcategory or "",
+
+            # Status
+            "visibility": post_with_relations.visibility,
+            "is_pinned": post_with_relations.is_pinned or False,
+            "is_draft": post_with_relations.is_draft or False,
+            "parent_post_id": post_with_relations.parent_post_id,
+            "edit_history": post_with_relations.edit_history or {},
+            "tags": [tag.tag_name for tag in post_with_relations.tags] if post_with_relations.tags else [],
+            "status": post_with_relations.status,
+
+            # Timestamps
+            "created_at": post_with_relations.created_at,
+            "updated_at": post_with_relations.updated_at,
+
+            # DIRECTLY include like_count, dislike_count, etc. at top level
+            "like_count": counts.get("like_count", 0),
+            "dislike_count": counts.get("dislike_count", 0),
+            "save_count": counts.get("save_count", 0),
+            "share_count": counts.get("share_count", 0),
+            "comment_count": counts.get("comment_count", 0),
+            "report_count": counts.get("report_count", 0),
+
+            # Directly include interaction state flags at top level
+            "like": interaction_state.get("like", False),
+            "dislike": interaction_state.get("dislike", False),
+            "save": interaction_state.get("save", False),
+            "share": interaction_state.get("share", False),
+            "report": interaction_state.get("report", False),
+
+            # Verified metrics (like_count, etc.)
+            "metrics": {
+                "like_count": post.like_count or 0,
+                "dislike_count": post.dislike_count or 0,
+                "save_count": post.save_count or 0,
+                "share_count": post.share_count or 0,
+                "comment_count": post.comment_count or 0,
+                "report_count": post.report_count or 0
+            },
+            "interaction_state": {
+                "like": False,
+                "dislike": False,
+                "save": False,
+                "share": False,
+                "report": False
+            },
+            #"interaction_state": {
+                #"like": interaction_state.get("like", False),
+                #"dislike": interaction_state.get("dislike", False),
+                #"save": interaction_state.get("save", False),
+                #"share": interaction_state.get("share", False),
+                #"report": interaction_state.get("report", False)
+            #},
+
+
+            # User's interaction state
+            #"interaction_state": interaction_state,
+
+            # Engagement (view, etc.)
+            **engagement_dict
+        }
+
+        logger.info(f"✅ Successfully retrieved and verified post {post_id}")
+        # logger.debug(f"Post data being returned: {post_data}")
+
+        final_response = {
+            "status": "success",
+            "message": "Post retrieved successfully",
+            "data": {
+                "post": post_data
+            }
+        }
+
+        logger.info("Final JSON: %s", json.dumps(final_response, cls=DateTimeEncoder))
+        return final_response
+
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Database error in get_post: {str(e)}")
+        raise HTTPException(status_code=500, detail="Database error")
+    except Exception as e:
+        logger.error(f"❌ Unexpected error in get_post: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error retrieving post")'''
+
 
 async def get_user_posts(db: Session, user_id: int, skip: int = 0, limit: int = 20) -> dict:
     """Get all posts for a specific user"""

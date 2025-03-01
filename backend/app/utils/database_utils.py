@@ -28,167 +28,78 @@ async def init_categories():
     db = SessionLocal()
     try:
         categories_data = [
-            {"id": 1, "name": "Self-Development",
-             "subcategories": [
-                 {"id": 1, "name": "Health & Wellness"},
-                 {"id": 2, "name": "Mental Health"},
-                 {"id": 3, "name": "Fitness & Physical Health"},
-                 {"id": 4, "name": "Personal Growth"},
-                 {"id": 5, "name": "Skill Development"},
-                 {"id": 6, "name": "Mindfulness & Meditation"},
-                 {"id": 7, "name": "Productivity & Time Management"},
-                 {"id": 8, "name": "Relationships & Social Skills"},
-                 {"id": 9, "name": "Financial Well-being"},
-                 {"id": 10, "name": "Parenting & Family"},
-                 {"id": 11, "name": "Education & Learning"},
-                 {"id": 12, "name": "Life Hacks"},
-                 {"id": 13, "name": "Meal Planning"}
-             ]},
-            {"id": 2, "name": "Home & Habitat",
-             "subcategories": [
-                 {"id": 14, "name": "Home Design"},
-                 {"id": 15, "name": "Gardening & Landscaping"},
-                 {"id": 16, "name": "DIY"},
-                 {"id": 17, "name": "Smart Homes"},
-                 {"id": 18, "name": "Organization & Decluttering"},
-                 {"id": 19, "name": "Eco-Friendly Practices"},
-                 {"id": 20, "name": "Home Cooking"},
-                 {"id": 21, "name": "Fashion & Style"},
-                 {"id": 22, "name": "Real Estate & Housing Markets"}
-             ]},
-            {"id": 3, "name": "Nature & Environment",
-             "subcategories": [
-                 {"id": 23, "name": "Pets & Wildlife"},
-                 {"id": 24, "name": "Resource Conservation"},
-                 {"id": 25, "name": "Environmental Stewardship"},
-                 {"id": 26, "name": "Outdoor Activities"},
-                 {"id": 27, "name": "Disaster Resilience"},
-                 {"id": 28, "name": "Natural Phenomena"},
-                 {"id": 29, "name": "Urban Nature"},
-                 {"id": 30, "name": "Agriculture"},
-                 {"id": 31, "name": "Forestry"}
-             ]},
-            {"id": 4, "name": "Science & Technology",
-             "subcategories": [
-                 {"id": 32, "name": "Physics"},
-                 {"id": 33, "name": "Chemistry"},
-                 {"id": 34, "name": "Biology"},
-                 {"id": 35, "name": "Computer Science"},
-                 {"id": 36, "name": "Engineering"},
-                 {"id": 37, "name": "Space Exploration"},
-                 {"id": 38, "name": "Healthcare & Medical Advancements"},
-                 {"id": 39, "name": "Emerging Technologies & Future Trends"},
-                 {"id": 40, "name": "Systems Theory"},
-                 {"id": 41, "name": "Digital Technology"},
-                 {"id": 42, "name": "Social Sciences"},
-                 {"id": 43, "name": "Citizen Science"},
-                 {"id": 44, "name": "Data Science & Machine Learning"},
-                 {"id": 45, "name": "Energy Technologies"},
-                 {"id": 46, "name": "Autonomous Technologies & Artificial Intelligence"}
-             ]},
-            {"id": 5, "name": "Philosophy",
-             "subcategories": [
-                 {"id": 47, "name": "Ethics"},
-                 {"id": 48, "name": "Metaphysics"},
-                 {"id": 49, "name": "Logic & Critical Thinking"},
-                 {"id": 50, "name": "Epistemology"},
-                 {"id": 51, "name": "Philosophy of Mind"},
-                 {"id": 52, "name": "Political Philosophy"},
-                 {"id": 53, "name": "Aesthetics"},
-                 {"id": 54, "name": "Philosophical Systems & Schools"}
-             ]},
-            {"id": 6, "name": "Economics & Business",
-             "subcategories": [
-                 {"id": 55, "name": "Finance"},
-                 {"id": 56, "name": "Entrepreneurship"},
-                 {"id": 57, "name": "Career Development"},
-                 {"id": 58, "name": "Market Trends"},
-                 {"id": 59, "name": "Economic Theory"},
-                 {"id": 60, "name": "Budgeting & Retirement Planning"},
-                 {"id": 61, "name": "Business Ethics & Responsibility"},
-                 {"id": 62, "name": "Small Business Management"},
-                 {"id": 63, "name": "Global Trade & Supply Chains"},
-                 {"id": 64, "name": "Investing"},
-                 {"id": 65, "name": "Cooperatives"}
-             ]},
-            {"id": 7, "name": "Society & Culture",
-             "subcategories": [
-                 {"id": 66, "name": "Politics"},
-                 {"id": 67, "name": "History"},
-                 {"id": 68, "name": "Anthropology"},
-                 {"id": 69, "name": "Arts & Literature"},
-                 {"id": 70, "name": "Languages & Linguistics"},
-                 {"id": 71, "name": "Religion & Spirituality"},
-                 {"id": 72, "name": "Cultural Traditions"},
-                 {"id": 73, "name": "Food & Cuisine"},
-                 {"id": 74, "name": "Migration & Demographics"},
-                 {"id": 75, "name": "Civilization Growth & Decline"}
-             ]},
-            {"id": 8, "name": "Civic Engagement",
-             "subcategories": [
-                 {"id": 76, "name": "Volunteerism"},
-                 {"id": 77, "name": "Governance"},
-                 {"id": 78, "name": "Community Development"},
-                 {"id": 79, "name": "Civic Advocacy"},
-                 {"id": 80, "name": "Economic Opportunity Initiatives"},
-                 {"id": 81, "name": "Public Policy"},
-                 {"id": 82, "name": "Global Citizenship"}
-             ]},
-            {"id": 9, "name": "Entertainment & Leisure",
-             "subcategories": [
-                 {"id": 83, "name": "Pop Culture"},
-                 {"id": 84, "name": "Media"},
-                 {"id": 85, "name": "Gaming"},
-                 {"id": 86, "name": "Music"},
-                 {"id": 87, "name": "Film & Television"},
-                 {"id": 88, "name": "Sports & Recreation"},
-                 {"id": 89, "name": "Creative Arts"},
-                 {"id": 90, "name": "Travel & Exploration"},
-                 {"id": 91, "name": "Hobbies & Collecting"},
-                 {"id": 92, "name": "Live Events & Performances"}
-             ]},
-            {"id": 10, "name": "Miscellaneous", "subcategories": []}
+            {"name": "Self-Development",
+             "subcategories": ["Health & Wellness", "Mental Health", "Fitness & Physical Health", "Personal Growth",
+                               "Skill Development", "Mindfulness & Meditation", "Productivity & Time Management",
+                               "Relationships & Social Skills", "Financial Well-being", "Parenting & Family",
+                               "Education & Learning", "Life Hacks", "Meal Planning"]},
+            {"name": "Home & Habitat",
+             "subcategories": ["Home Design", "Gardening & Landscaping", "DIY", "Smart Homes",
+                               "Organization & Decluttering", "Eco-Friendly Practices", "Home Cooking",
+                               "Fashion & Style", "Real Estate & Housing Markets"]},
+            {"name": "Nature & Environment",
+             "subcategories": ["Pets & Wildlife", "Resource Conservation", "Environmental Stewardship",
+                               "Outdoor Activities", "Disaster Resilience", "Natural Phenomena",
+                               "Urban Nature", "Agriculture", "Forestry"]},
+            {"name": "Science & Technology",
+             "subcategories": ["Physics", "Chemistry", "Biology", "Computer Science", "Engineering",
+                               "Space Exploration", "Healthcare & Medical Advancements",
+                               "Emerging Technologies & Future Trends", "Systems Theory", "Digital Technology",
+                               "Social Sciences", "Citizen Science", "Data Science & Machine Learning",
+                               "Energy Technologies", "Autonomous Technologies & Artificial Intelligence"]},
+            {"name": "Philosophy",
+             "subcategories": ["Ethics", "Metaphysics", "Logic & Critical Thinking", "Epistemology",
+                               "Philosophy of Mind", "Political Philosophy", "Aesthetics",
+                               "Philosophical Systems & Schools"]},
+            {"name": "Economics & Business",
+             "subcategories": ["Finance", "Entrepreneurship", "Career Development", "Market Trends",
+                               "Economic Theory", "Budgeting & Retirement Planning", "Business Ethics & Responsibility",
+                               "Small Business Management", "Global Trade & Supply Chains", "Investing",
+                               "Cooperatives"]},
+            {"name": "Society & Culture",
+             "subcategories": ["Politics", "History", "Anthropology", "Arts & Literature",
+                               "Languages & Linguistics", "Religion & Spirituality", "Cultural Traditions",
+                               "Food & Cuisine", "Migration & Demographics", "Civilization Growth & Decline"]},
+            {"name": "Civic Engagement",
+             "subcategories": ["Volunteerism", "Governance", "Community Development", "Civic Advocacy",
+                               "Economic Opportunity Initiatives", "Public Policy", "Global Citizenship"]},
+            {"name": "Entertainment & Leisure",
+             "subcategories": ["Pop Culture", "Media", "Gaming", "Music", "Film & Television",
+                               "Sports & Recreation", "Creative Arts", "Travel & Exploration",
+                               "Hobbies & Collecting", "Live Events & Performances"]},
+            {"name": "Miscellaneous", "subcategories": []}
         ]
 
         for cat_data in categories_data:
-            category = db.query(Category).filter(Category.category_id == cat_data["id"]).first()
+            category = db.query(Category).filter(Category.cat_name == cat_data["name"]).first()
             if not category:
-                # Create with specific ID
-                category = Category(category_id=cat_data["id"], cat_name=cat_data["name"])
+                category = Category(cat_name=cat_data["name"])
                 db.add(category)
                 db.flush()
+
+                for sub_name in cat_data["subcategories"]:
+                    # Check if subcategory already exists for this category
+                    existing_subcategory = db.query(Subcategory).filter(
+                        Subcategory.name == sub_name,
+                        Subcategory.category_id == category.category_id
+                    ).first()
+
+                    if not existing_subcategory:
+                        subcategory = Subcategory(name=sub_name, category_id=category.category_id)
+                        db.add(subcategory)
             else:
-                # Update name if needed
-                if category.cat_name != cat_data["name"]:
-                    category.cat_name = cat_data["name"]
-                    db.add(category)
+                # Category exists, check and add missing subcategories
+                for sub_name in cat_data["subcategories"]:
+                    existing_subcategory = db.query(Subcategory).filter(
+                        Subcategory.name == sub_name,
+                        Subcategory.category_id == category.category_id
+                    ).first()
 
-            # Process subcategories
-            for sub_data in cat_data["subcategories"]:
-                subcategory = db.query(Subcategory).filter(
-                    Subcategory.subcategory_id == sub_data["id"]
-                ).first()
-
-                if not subcategory:
-                    # Create new subcategory with specified ID
-                    subcategory = Subcategory(
-                        subcategory_id=sub_data["id"],
-                        name=sub_data["name"],
-                        category_id=category.category_id
-                    )
-                    db.add(subcategory)
-                else:
-                    # Update existing subcategory if needed
-                    if subcategory.name != sub_data["name"] or subcategory.category_id != category.category_id:
-                        subcategory.name = sub_data["name"]
-                        subcategory.category_id = category.category_id
+                    if not existing_subcategory:
+                        subcategory = Subcategory(name=sub_name, category_id=category.category_id)
                         db.add(subcategory)
 
         db.commit()
-    except Exception as e:
-        db.rollback()
-        print(f"Error initializing categories: {str(e)}")
-        raise
     finally:
         db.close()
 

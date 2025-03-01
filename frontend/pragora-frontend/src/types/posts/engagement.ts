@@ -9,7 +9,6 @@ export interface PostMetrics {
   share_count: number;
   report_count: number;
   comment_count: number;
-  [key: string]: number;
 }
 
 // Remove MetricsData and just use PostMetrics everywhere
@@ -122,8 +121,6 @@ export interface EngagementResponse {
   share?: boolean;
   report?: boolean;
   metrics?: PostMetrics;
-  [key: string]: any;
-
 }
 
 export interface EngagementMetricsHandlerProps {

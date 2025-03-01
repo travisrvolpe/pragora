@@ -2,13 +2,9 @@ import asyncio
 from contextlib import asynccontextmanager
 
 import strawberry
-from fastapi import FastAPI, WebSocket, Request, status
+from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
-from fastapi.exceptions import HTTPException
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
 # Remove the direct import of CORSMiddleware if you aren't using it anymore
 # from fastapi.middleware.cors import CORSMiddleware
 from strawberry.fastapi import GraphQLRouter
@@ -31,7 +27,6 @@ from app.websocket_manager import manager
 from app.middleware.auth_middleware import auth_middleware
 from app.services.post_engagement_service import PostEngagementService
 from app.RedisCache import get_cache
-from app.middleware.cors_middleware import setup_cors_middleware
 
 # Import your custom cors_middleware setup function
 from app.middleware.cors_middleware import setup_cors_middleware
@@ -100,39 +95,6 @@ async def lifespan(app_instance: FastAPI):
     await close_redis()
 
 app = FastAPI(lifespan=lifespan)
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler that ensures CORS headers are included"""
-    print(f"Global exception handler caught: {str(exc)}")
-
-    # Create a response with CORS headers
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": str(exc)},
-        headers={
-            "Access-Control-Allow-Origin": "http://localhost:3000",
-            "Access-Control-Allow-Credentials": "true",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-            "Access-Control-Allow-Headers": "*"
-        }
-    )
-
-@app.exception_handler(StarletteHTTPException)
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """HTTP exception handler with CORS headers"""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": str(exc.detail)},
-        headers={
-            "Access-Control-Allow-Origin": "http://localhost:3000",
-            "Access-Control-Allow-Credentials": "true",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-            "Access-Control-Allow-Headers": "*"
-        }
-    )
-
 app.state = type('AppState', (), {})()
 app.state.sync_task = None
 
@@ -143,17 +105,15 @@ app.state.sync_task = None
 #app.middleware("http")(auth_middleware)
 
 # CORS configuration
-#app.add_middleware(
-#    CORSMiddleware,
-#    allow_origins=["http://localhost:3000"],  # Your frontend URL
-#    allow_credentials=True,
-#    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Be explicit about OPTIONS
-#    allow_headers=["*"],  # Keep this broad for now for debugging
-#    expose_headers=["Content-Type", "Content-Length"],
-#    max_age=3600
-#)
-#app.middleware("http")(auth_middleware)
-setup_cors_middleware(app)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Your frontend URL
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Be explicit about OPTIONS
+    allow_headers=["*"],  # Keep this broad for now for debugging
+    expose_headers=["Content-Type", "Content-Length"],
+    max_age=3600
+)
 app.middleware("http")(auth_middleware)
 
 settings.create_media_directories()

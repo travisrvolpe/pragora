@@ -321,28 +321,15 @@ class PostEngagementService:
             raise DatabaseError("Error verifying counts")
 
     async def reconcile_saved_post(self, post_id: int, user_id: int):
+        """Ensure saved_posts and PostInteraction records are in sync for a user/post pair"""
         try:
-            # Create a new clean transaction
-            if self.db.in_transaction():
-                self.db.rollback()
-
             self.db.begin()
-
             # Get save interaction type
             save_type = self.db.query(InteractionType).filter(
                 InteractionType.interaction_type_name == "save"
             ).first()
 
             if not save_type:
-                self.db.rollback()
-                return
-
-            # Get user and post with explicit locking
-            user = self.db.query(User).filter(User.user_id == user_id).first()
-            post = self.db.query(Post).filter(Post.post_id == post_id).with_for_update().first()
-
-            if not user or not post:
-                self.db.rollback()
                 return
 
             # Check if interaction exists
@@ -352,21 +339,22 @@ class PostEngagementService:
                 PostInteraction.interaction_type_id == save_type.interaction_type_id
             ).first()
 
+            # Get user and post
+            user = self.db.query(User).filter(User.user_id == user_id).first()
+            post = self.db.query(Post).filter(Post.post_id == post_id).first()
+
+            if not user or not post:
+                return
+
             # Check if post is in saved_posts
-            is_saved = False
-            for saved_post in user.saved_posts:
-                if saved_post.post_id == post_id:
-                    is_saved = True
-                    break
+            is_saved = post in user.saved_posts
 
             # Reconcile differences
-            made_changes = False
-
             if existing_interaction and not is_saved:
                 # Add to saved_posts
                 user.saved_posts.append(post)
                 logger.info(f"Reconciled: Added post {post_id} to user {user_id}'s saved_posts")
-                made_changes = True
+                self.db.commit()
             elif is_saved and not existing_interaction:
                 # Add interaction
                 new_interaction = PostInteraction(
@@ -377,41 +365,10 @@ class PostEngagementService:
                 )
                 self.db.add(new_interaction)
                 logger.info(f"Reconciled: Added save interaction for post {post_id}, user {user_id}")
-                made_changes = True
-
-            # Count actual save interactions
-            save_count_query = self.db.query(func.count(PostInteraction.interaction_id)).filter(
-                PostInteraction.post_id == post_id,
-                PostInteraction.interaction_type_id == save_type.interaction_type_id
-            ).scalar()
-
-            # Always update the save_count to reflect actual count
-            if post.save_count != save_count_query:
-                post.save_count = save_count_query
-                logger.info(f"Reconciled: Updated save_count for post {post_id} to {save_count_query}")
-                made_changes = True
-
-            # Explicitly invalidate the cache
-            cache_key = f"post:{post_id}:counts"
-            await self.cache.delete(cache_key)
-
-            # Commit changes if any were made
-            if made_changes:
                 self.db.commit()
-                logger.info(f"Successfully reconciled saved_posts status for post {post_id}, user {user_id}")
-            else:
-                self.db.rollback()
-                logger.info(f"No changes needed during reconciliation for post {post_id}, user {user_id}")
-
-            # Update the cache with the new state regardless of changes
-            new_counts = await self._get_interaction_counts(post_id)
-            await self.cache.set(cache_key, new_counts, expire=self.cache_expiry)
-
         except Exception as e:
-            if self.db.in_transaction():
-                self.db.rollback()
             logger.error(f"Error in reconcile_saved_post: {str(e)}")
-
+            self.db.rollback()
 
     # TODO OPTIMIZE toggle_interaction BY USING get_or_create
     # existing = db.query(PostInteraction).filter(
@@ -431,258 +388,222 @@ class PostEngagementService:
             metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Toggle a post interaction with improved persistence"""
-        logger.info(f"🔍 Starting interaction toggle - Type: {interaction_type}, Post: {post_id}, User: {user_id}")
-
-        # Get interaction type ID (outside transaction)
-        interaction_type_record = await self._get_interaction_type(interaction_type)
-        count_field = f"{interaction_type}_count"
-
-        # Track results
-        action = None
-        is_active = None
-        new_count = None
-
         try:
-            # Always start fresh
+            logger.info(f"🔍 Starting interaction toggle - Type: {interaction_type}, Post: {post_id}, User: {user_id}")
+
+            # Get interaction type record without locking
+            interaction_type_record = await self._get_interaction_type(interaction_type)
+            count_field = f"{interaction_type}_count"
+
+            # Check if there's an active transaction and roll it back if so
             if self.db.in_transaction():
                 self.db.rollback()
 
+            # Start a new transaction explicitly
             self.db.begin()
 
-            # First check if the interaction exists
-            existing = self.db.query(PostInteraction).filter(
-                PostInteraction.post_id == post_id,
-                PostInteraction.user_id == user_id,
-                PostInteraction.interaction_type_id == interaction_type_record.interaction_type_id
-            ).first()
+            try:
+                # Get post with short-term lock
+                post = (
+                    self.db.query(Post)
+                    .filter(Post.post_id == post_id)
+                    .with_for_update(skip_locked=True)
+                    .first()
+                )
 
-            # For save interactions, also check the saved_posts relationship
-            is_in_saved_posts = False
-            if interaction_type == "save":
-                user = self.db.query(User).filter(User.user_id == user_id).first()
-                if user:
-                    post = self.db.query(Post).filter(Post.post_id == post_id).first()
-                    if post in user.saved_posts:
-                        is_in_saved_posts = True
-
-            # Determine if this interaction should be considered active
-            # For save interactions, check both the interaction table and saved_posts relationship
-            if interaction_type == "save":
-                is_active = is_in_saved_posts or (existing is not None)
-            else:
-                is_active = existing is not None
-
-            # Commit this check transaction and start a new one for the update
-            self.db.commit()
-
-            # Now determine the action: remove if active, add if not
-            if is_active:
-                # REMOVE INTERACTION
-                logger.info(f"Removing existing {interaction_type} interaction for post {post_id}, user {user_id}")
-                action = "removed"
-                is_active = False
-
-                # Start a new transaction
-                if self.db.in_transaction():
-                    self.db.rollback()
-
-                self.db.begin()
-
-                # Get the post for updating counts
-                post = self.db.query(Post).filter(Post.post_id == post_id).with_for_update().first()
                 if not post:
                     self.db.rollback()
                     raise PostNotFoundError(post_id)
 
-                # Update count
-                current_count = getattr(post, count_field, 0) or 0
-                new_count = max(0, current_count - 1)
-                setattr(post, count_field, new_count)
-
-                # Delete the interaction
-                if existing:
-                    self.db.query(PostInteraction).filter(
-                        PostInteraction.interaction_id == existing.interaction_id
-                    ).delete()
-
-                # For save interactions, also handle saved_posts relationship
+                # Get user for saved_posts handling
+                #user = self.db.query(User).filter(User.user_id == user_id).first()
+                #if not user:
+                    #raise HTTPException(status_code=404, detail="User not found")
+                # Get user for saved_posts handling - ONLY if it's a save interaction
+                user = None
                 if interaction_type == "save":
                     user = self.db.query(User).filter(User.user_id == user_id).first()
-                    if user:
-                        # Get the post specifically for the relationship
-                        saved_post = self.db.query(Post).filter(Post.post_id == post_id).first()
-                        if saved_post in user.saved_posts:
-                            user.saved_posts.remove(saved_post)
-                            logger.info(f"Removed post {post_id} from user {user_id}'s saved_posts")
+                    if not user:
+                        logger.error(f"User not found for ID: {user_id}")
+                        # Don't raise an exception here, just log and continue without saved_posts sync
 
-                # Commit the transaction
-                self.db.commit()
-
-            else:
-                # ADD INTERACTION
-                logger.info(f"Adding new {interaction_type} interaction for post {post_id}, user {user_id}")
-                action = "added"
-                is_active = True
-
-                # Start a new transaction
-                if self.db.in_transaction():
-                    self.db.rollback()
-
-                self.db.begin()
-
-                # Get the post for updating counts
-                post = self.db.query(Post).filter(Post.post_id == post_id).with_for_update().first()
-                if not post:
-                    self.db.rollback()
-                    raise PostNotFoundError(post_id)
-
-                # For save interactions, handle saved_posts relationship first
-                if interaction_type == "save":
-                    user = self.db.query(User).filter(User.user_id == user_id).first()
-                    if user:
-                        # Get the post specifically for the relationship
-                        saved_post = self.db.query(Post).filter(Post.post_id == post_id).first()
-                        if saved_post not in user.saved_posts:
-                            user.saved_posts.append(saved_post)
-                            logger.info(f"Added post {post_id} to user {user_id}'s saved_posts")
-
-                # Check one more time to avoid race conditions
-                existing_check = self.db.query(PostInteraction).filter(
-                    PostInteraction.post_id == post_id,
-                    PostInteraction.user_id == user_id,
-                    PostInteraction.interaction_type_id == interaction_type_record.interaction_type_id
-                ).first()
-
-                if not existing_check:
-                    # Create new interaction
-                    new_interaction = PostInteraction(
-                        post_id=post_id,
-                        user_id=user_id,
-                        interaction_type_id=interaction_type_record.interaction_type_id,
-                        target_type="POST",
-                        interaction_metadata=metadata
-                    )
-                    self.db.add(new_interaction)
-
-                # Update count
-                current_count = getattr(post, count_field, 0) or 0
-                new_count = current_count + 1
-                setattr(post, count_field, new_count)
-
-                # Handle mutual exclusivity (like/dislike)
-                if interaction_type == "like":
-                    dislike = self.db.query(PostInteraction).join(InteractionType).filter(
+                # Check for existing interaction
+                existing = (
+                    self.db.query(PostInteraction)
+                    .filter(
                         PostInteraction.post_id == post_id,
                         PostInteraction.user_id == user_id,
-                        InteractionType.interaction_type_name == "dislike"
+                        PostInteraction.interaction_type_id == interaction_type_record.interaction_type_id
+                    )
+                    .first()
+                )
+
+                current_count = getattr(post, count_field, 0)
+
+                if existing:
+                    # Remove interaction
+                    self.db.delete(existing)
+                    new_count = max(0, current_count - 1)
+                    action = "removed"
+                    is_active = False
+
+                    # ADDED: If this is a save interaction, also remove from saved_posts
+                    if interaction_type == "save" and user:
+                        try:
+                            if post in user.saved_posts:
+                                user.saved_posts.remove(post)
+                                logger.info(f"Removed post {post_id} from user {user_id}'s saved_posts")
+                        except Exception as e:
+                            logger.error(f"Error removing from saved_posts: {str(e)}")
+                            # Continue even if this fails
+
+                else:
+                    existing_check = self.db.query(PostInteraction).filter(
+                        PostInteraction.post_id == post_id,
+                        PostInteraction.user_id == user_id,
+                        PostInteraction.interaction_type_id == interaction_type_record.interaction_type_id
                     ).first()
 
+                    if not existing_check:
+                        new_interaction = PostInteraction(
+                            post_id=post_id,
+                            user_id=user_id,
+                            interaction_type_id=interaction_type_record.interaction_type_id,
+                            target_type="POST", # TODO THIS NEEDS TO WORK FOR BOTH POSTS AND COMMENTS
+                            interaction_metadata=metadata
+                        )
+                        self.db.add(new_interaction)
+
+                        if interaction_type == "save" and user:
+                            try:
+                                if post not in user.saved_posts:
+                                    user.saved_posts.append(post)
+                                    logger.info(f"Added post {post_id} to user {user_id}'s saved_posts")
+                            except Exception as e:
+                                logger.error(f"Error adding to saved_posts: {str(e)}")
+                                # Continue even if this fails
+                    else:
+                            logger.info(f"Duplicate interaction detected, skipping insert")
+                        
+                    new_count = current_count + 1
+                    action = "added"
+                    is_active = True
+
+                    # ADDED: If this is a save interaction, also add to saved_posts
+                    if interaction_type == "save" and user:
+                        try:
+                            if post not in user.saved_posts:
+                                user.saved_posts.append(post)
+                                logger.info(f"Added post {post_id} to user {user_id}'s saved_posts")
+                        except Exception as e:
+                            logger.error(f"Error adding to saved_posts: {str(e)}")
+                            # Continue even if this fails
+
+                # Update post count
+                setattr(post, count_field, new_count)
+
+                # Handle mutual exclusivity
+                if interaction_type == "like" and action == "added":
+                    dislike = (
+                        self.db.query(PostInteraction)
+                        .join(InteractionType)
+                        .filter(
+                            PostInteraction.post_id == post_id,
+                            PostInteraction.user_id == user_id,
+                            InteractionType.interaction_type_name == "dislike"
+                        )
+                        .first()
+                    )
                     if dislike:
                         self.db.delete(dislike)
                         post.dislike_count = max(0, post.dislike_count - 1)
 
-                elif interaction_type == "dislike":
-                    like = self.db.query(PostInteraction).join(InteractionType).filter(
-                        PostInteraction.post_id == post_id,
-                        PostInteraction.user_id == user_id,
-                        InteractionType.interaction_type_name == "like"
-                    ).first()
-
+                elif interaction_type == "dislike" and action == "added":
+                    like = (
+                        self.db.query(PostInteraction)
+                        .join(InteractionType)
+                        .filter(
+                            PostInteraction.post_id == post_id,
+                            PostInteraction.user_id == user_id,
+                            InteractionType.interaction_type_name == "like"
+                        )
+                        .first()
+                    )
                     if like:
                         self.db.delete(like)
                         post.like_count = max(0, post.like_count - 1)
 
-                # Commit the transaction
+                # Commit changes
                 self.db.commit()
 
-            # Get fresh metrics after all transactions
-            metrics = {
-                "like_count": 0,
-                "dislike_count": 0,
-                "save_count": 0,
-                "share_count": 0,
-                "comment_count": 0,
-                "report_count": 0
-            }
+                # Invalidate and update cache
+                cache_key = f"post:{post_id}:counts"
+                await self.cache.delete(cache_key)
 
-            # Get post with current metrics
-            post = self.db.query(Post).filter(Post.post_id == post_id).first()
-            if post:
-                for key in metrics.keys():
-                    metrics[key] = getattr(post, key, 0) or 0
+                # Get fresh counts after commit
+                fresh_counts = await self._get_interaction_counts(post_id)
 
-            # For saved posts, ensure the count matches reality
-            if interaction_type == "save":
-                # Count actual saved interactions
-                save_count = self.db.query(func.count(PostInteraction.interaction_id)).join(InteractionType).filter(
-                    PostInteraction.post_id == post_id,
-                    InteractionType.interaction_type_name == "save"
-                ).scalar() or 0
+                # Update cache with verified counts
+                await self.cache.set(
+                    cache_key,
+                    fresh_counts,
+                    expire=self.cache_expiry
+                )
 
-                # Update post save_count if it doesn't match
-                if metrics["save_count"] != save_count:
-                    logger.info(f"Correcting save_count from {metrics['save_count']} to {save_count}")
-                    post = self.db.query(Post).filter(Post.post_id == post_id).with_for_update().first()
-                    if post:
-                        post.save_count = save_count
-                        self.db.commit()
-                    metrics["save_count"] = save_count
+                # Record metric in background
+                background_tasks.add_task(
+                    self.metrics.record_interaction,
+                    post_id,
+                    user_id,
+                    interaction_type,
+                    action,
+                    metadata
+                )
 
-            # Update cache
-            cache_key = f"post:{post_id}:counts"
-            # Force cache deletion instead of just updating
-            await self.cache.delete(cache_key)
-            # Set new cache with updated metrics
-            await self.cache.set(cache_key, metrics, expire=self.cache_expiry)
-
-            # Record metric in background
-            background_tasks.add_task(
-                self.metrics.record_interaction,
-                post_id,
-                user_id,
-                interaction_type,
-                action,
-                metadata
-            )
-
-            result = {
-                "message": f"{interaction_type} {action} successfully",
-                f"{interaction_type}_count": metrics[f"{interaction_type}_count"],
-                interaction_type: is_active,
-                "metrics": metrics
-            }
-
-            return result
-
-        except SQLAlchemyError as e:
-            if self.db.in_transaction():
-                self.db.rollback()
-
-            logger.error(f"Database error in toggle_interaction: {str(e)}")
-
-            # Try to reconcile data if it's a save interaction
-            if "UniqueViolation" in str(e) and interaction_type == "save":
-                try:
-                    await self.reconcile_saved_post(post_id, user_id)
-                    logger.info(f"Attempted to reconcile saved_posts for post {post_id}, user {user_id}")
-
-                    # Return a fallback response
-                    return {
-                        "message": f"{interaction_type} state reconciled",
-                        interaction_type: True,  # Assume it's now saved
-                        "metrics": await self._get_interaction_counts(post_id)
+                result = {
+                    "message": f"{interaction_type} {action} successfully",
+                    f"{interaction_type}_count": new_count,
+                    interaction_type: is_active,  # Return boolean value for frontend
+                    "metrics": {  # Always include complete metrics
+                        "like_count": post.like_count,
+                        "dislike_count": post.dislike_count,
+                        "save_count": post.save_count,
+                        "share_count": post.share_count,
+                        "comment_count": post.comment_count,
+                        "report_count": post.report_count
                     }
-                except Exception as re:
-                    logger.error(f"Error during reconciliation: {str(re)}")
+                }
 
-            raise DatabaseError(f"Error processing interaction: {str(e)}")
+                return result
 
-        except Exception as e:
-            if self.db.in_transaction():
+            except SQLAlchemyError as e:
+                if self.db.in_transaction():
+                    self.db.rollback()
+                logger.error(f"Database error in toggle_interaction: {str(e)}")
+                raise DatabaseError("Error processing interaction")
+
+            except IntegrityError as e:
                 self.db.rollback()
+                logger.error(f"Integrity error in toggle_interaction: {str(e)}")
 
+                # Try to reconcile the saved_posts relationship
+                if interaction_type == "save":
+                    await self.reconcile_saved_post(post_id, user_id)
+
+                # Return a best-guess of the current state
+                is_active = True  # Assume it's active since there was an integrity error
+                return {
+                    "message": f"{interaction_type} request processed (recovered from duplicate)",
+                    f"{interaction_type}": is_active,
+                    f"{interaction_type}_count": current_count  # Use last known count
+                }
+            except Exception as e:
+                self.db.rollback()
+                logger.error(f"Error in transaction: {str(e)}")
+                raise e
+        except Exception as e:
             logger.error(f"❌ Error in toggle_interaction: {str(e)}")
-            raise DatabaseError(f"Error processing interaction: {str(e)}")
+            raise DatabaseError("Error processing interaction")
 
     # Specific interaction methods
     async def like_post(
@@ -719,102 +640,13 @@ class PostEngagementService:
             user_id: int,
             background_tasks: BackgroundTasks
     ) -> Dict[str, Any]:
-        """
-        Save or unsave a post - simplified version
-        """
-        try:
-            # Start a new transaction
-            if self.db.in_transaction():
-                self.db.rollback()
-
-            self.db.begin()
-
-            # Get the save interaction type
-            save_type = self.db.query(InteractionType).filter(
-                InteractionType.interaction_type_name == "save"
-            ).first()
-
-            if not save_type:
-                self.db.rollback()
-                return {"message": "Save type not found", "save": False, "save_count": 0}
-
-            # Check if post exists
-            post = self.db.query(Post).filter(Post.post_id == post_id).first()
-            if not post:
-                self.db.rollback()
-                return {"message": "Post not found", "save": False, "save_count": 0}
-
-            # Check if a save interaction exists
-            existing = self.db.query(PostInteraction).filter(
-                PostInteraction.post_id == post_id,
-                PostInteraction.user_id == user_id,
-                PostInteraction.interaction_type_id == save_type.interaction_type_id
-            ).first()
-
-            if existing:
-                # UNSAVE: Remove interaction
-                self.db.delete(existing)
-                if post.save_count > 0:
-                    post.save_count -= 1
-                new_state = False
-                message = "Post unsaved successfully"
-            else:
-                # SAVE: Add interaction
-                new_interaction = PostInteraction(
-                    post_id=post_id,
-                    user_id=user_id,
-                    interaction_type_id=save_type.interaction_type_id,
-                    target_type="POST"
-                )
-                self.db.add(new_interaction)
-                post.save_count += 1
-                new_state = True
-                message = "Post saved successfully"
-
-            # Get metrics
-            metrics = {
-                "like_count": post.like_count or 0,
-                "dislike_count": post.dislike_count or 0,
-                "save_count": post.save_count or 0,
-                "share_count": post.share_count or 0,
-                "comment_count": post.comment_count or 0,
-                "report_count": post.report_count or 0
-            }
-
-            # Commit the transaction
-            self.db.commit()
-
-            # Update cache
-            cache_key = f"post:{post_id}:counts"
-            await self.cache.delete(cache_key)
-            await self.cache.set(cache_key, metrics, expire=self.cache_expiry)
-
-            # Return the response
-            return {
-                "message": message,
-                "save": new_state,
-                "save_count": metrics["save_count"],
-                "metrics": metrics
-            }
-
-        except Exception as e:
-            if self.db.in_transaction():
-                self.db.rollback()
-            logger.error(f"Error in save_post: {str(e)}")
-
-            # Return a fallback response that still works with the frontend
-            return {
-                "message": f"Error processing save: {str(e)}",
-                "save": False,
-                "metrics": {
-                    "like_count": post.like_count if 'post' in locals() else 0,
-                    "dislike_count": post.dislike_count if 'post' in locals() else 0,
-                    "save_count": post.save_count if 'post' in locals() else 0,
-                    "share_count": post.share_count if 'post' in locals() else 0,
-                    "comment_count": post.comment_count if 'post' in locals() else 0,
-                    "report_count": post.report_count if 'post' in locals() else 0
-                }
-            }
+        """Handle post saves"""
+        return await self.toggle_interaction(
+            post_id,
+            user_id,
+            "save",
+            background_tasks
+        )
 
     async def share_post(
             self,
@@ -882,16 +714,7 @@ class PostEngagementService:
             }
 
         try:
-            # Initialize default state
-            interaction_state = {
-                "like": False,
-                "dislike": False,
-                "save": False,
-                "share": False,
-                "report": False
-            }
-
-            # Fetch interactions from PostInteraction table
+            # Fetch actual interaction records instead of just names
             interactions = (
                 self.db.query(PostInteraction)
                 .join(InteractionType)
@@ -903,44 +726,15 @@ class PostEngagementService:
             )
 
             # Create dictionary mapping interaction types to existence
-            for interaction in interactions:
-                interaction_type = interaction.interaction_type.interaction_type_name
-                if interaction_type in interaction_state:
-                    interaction_state[interaction_type] = True
+            interaction_types = [i.interaction_type.interaction_type_name for i in interactions]
 
-            # Special check for save interactions in saved_posts table
-            if not interaction_state["save"]:
-                # Directly check the saved_posts relationship table
-                user = self.db.query(User).filter(User.user_id == user_id).first()
-                if user:
-                    saved_post_ids = [post.post_id for post in user.saved_posts]
-                    if post_id in saved_post_ids:
-                        interaction_state["save"] = True
-                        # Since we found it in saved_posts but not in interactions,
-                        # we should add it to PostInteraction for consistency
-                        save_type = self.db.query(InteractionType).filter(
-                            InteractionType.interaction_type_name == "save"
-                        ).first()
-                        if save_type:
-                            # Check if interaction already exists before adding
-                            existing = self.db.query(PostInteraction).filter(
-                                PostInteraction.post_id == post_id,
-                                PostInteraction.user_id == user_id,
-                                PostInteraction.interaction_type_id == save_type.interaction_type_id
-                            ).first()
-                            if not existing:
-                                new_interaction = PostInteraction(
-                                    post_id=post_id,
-                                    user_id=user_id,
-                                    interaction_type_id=save_type.interaction_type_id,
-                                    target_type="POST"
-                                )
-                                self.db.add(new_interaction)
-                                self.db.commit()
-                                logger.info(f"Added missing save interaction for post {post_id}, user {user_id}")
-
-            return interaction_state
-
+            return {
+                "like": "like" in interaction_types,
+                "dislike": "dislike" in interaction_types,
+                "save": "save" in interaction_types,
+                "share": "share" in interaction_types,
+                "report": "report" in interaction_types
+            }
         except SQLAlchemyError as e:
             logger.error(f"Error getting interaction state: {str(e)}")
             raise DatabaseError("Error retrieving interaction state")
