@@ -499,38 +499,121 @@ export function usePostEngagement(post: PostWithEngagement) {
       return dislikeMutation.mutate({});
     }, [dislikeMutation]),
 
-    handleSave: useCallback(() => {
+    handleSave: useCallback(async () => {
       console.log('Save handler called');
-        if (isLoading.save) {
-          console.log('Save operation already in progress');
-          return;
-        }
-         setIsLoading(prev => ({ ...prev, save: true }));
-        return saveMutation.mutate({}, {
-          onSuccess: (data) => {
-            const isSaved = Boolean(data.save);
-            const saveCount = typeof data.save_count === 'number' ? data.save_count :
-                          (data.metrics?.save_count || 0);
-            console.log(`Save operation completed. Server state: isSaved=${isSaved}, count=${saveCount}`);
-            setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ['post', post.post_id] });
-              }, 250);
-            },
-          onError: (error) => {
-            console.error('Save operation failed:', error);
-            toast({
-              title: "Error",
-              description: error instanceof Error ? error.message : "Failed to save post",
-              variant: "destructive"
-            });
-            },
-          onSettled: () => {
-            setIsLoading(prev => ({ ...prev, save: false }));
-          }
-        });
-        }, [saveMutation, setIsLoading, post.post_id, queryClient]),
 
-    handleShare,
+      // Check if already saving
+      if (isLoading.save) {
+        console.log('Save already in progress, skipping');
+        return;
+      }
+
+      // Use a simple ID for the operation
+      const operationId = `save-${post.post_id}`;
+
+      // Check if this operation is already pending
+      if (pendingMutations.current.has(operationId)) {
+        console.log('Save operation already pending, skipping');
+        return;
+      }
+
+      try {
+        // Mark as loading
+        pendingMutations.current.add(operationId);
+        setIsLoading(prev => ({ ...prev, save: true }));
+
+        console.log(`Starting save operation for post ${post.post_id}`);
+
+        // Make the API call directly without retries - let the backend handle it
+        const response = await engagementService.save(post.post_id);
+
+        console.log('Save operation successful:', response);
+
+        // Get the actual values from the response
+        const isSaved = Boolean(response.save);
+        const saveCount = typeof response.save_count === 'number'
+          ? response.save_count
+          : (response.metrics?.save_count || 0);
+
+        // Create safe defaults for updating cache
+        const currentMetrics = post.metrics || {
+          like_count: 0,
+          dislike_count: 0,
+          save_count: 0,
+          share_count: 0,
+          comment_count: 0,
+          report_count: 0
+        };
+
+        const currentInteractionState = post.interaction_state || {
+          like: false,
+          dislike: false,
+          save: false,
+          share: false,
+          report: false
+        };
+
+        // Immediately update the local cache with server response
+        queryClient.setQueryData<PostWithEngagement | undefined>(
+          ['post', post.post_id],
+          oldData => {
+            if (!oldData) return oldData;
+
+            return {
+              ...oldData,
+              metrics: {
+                ...currentMetrics,
+                ...(response.metrics || {}),  // Use server metrics if available
+                save_count: saveCount  // Always use the explicit save count
+              },
+              interaction_state: {
+                ...currentInteractionState,
+                save: isSaved
+              }
+            };
+          }
+        );
+
+        // Invalidate queries to ensure consistency
+        window.setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: ['post', post.post_id],
+            refetchActive: true
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['user', 'savedPosts'],
+            refetchActive: true
+          });
+        }, 300);
+
+      } catch (error) {
+        console.error('Save operation failed:', error);
+
+        // Show error toast
+        toast({
+          title: "Error",
+          description: error instanceof Error
+            ? error.message
+            : "Failed to save post",
+          variant: "destructive"
+        });
+
+        // Force refresh to get current state
+        queryClient.invalidateQueries({
+          queryKey: ['post', post.post_id],
+          refetchActive: true
+        });
+
+      } finally {
+        // Clean up no matter what
+        pendingMutations.current.delete(operationId);
+        setIsLoading(prev => ({ ...prev, save: false }));
+        console.log('Save operation completed');
+      }
+    }, [post.post_id, post.metrics, post.interaction_state, isLoading.save, queryClient, toast, engagementService, pendingMutations, setIsLoading]),
+
+
+    handleShare, //TODO DID YOU ACCIDENTLY DELETE THIS?
     handleReport: useCallback((reason: string) => {
       console.log('Report handler called with reason:', reason);
       return reportMutation.mutate({ reason });

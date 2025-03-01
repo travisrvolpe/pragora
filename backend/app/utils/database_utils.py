@@ -362,6 +362,112 @@ async def periodic_sync_saved_posts():
         # Release the lock when done
         await cache.redis.delete(sync_task_running_key)
 
+
+async def repair_saved_posts_database(db: Session = None):
+    """One-time repair function to fix inconsistencies between saved_posts table and post_interactions"""
+    print("Starting comprehensive saved posts repair...")
+
+    close_db = False
+    if db is None:
+        db = SessionLocal()
+        close_db = True
+
+    try:
+        # Get the save interaction type
+        save_type = db.query(InteractionType).filter(
+            InteractionType.interaction_type_name == "save"
+        ).first()
+
+        if not save_type:
+            print("Save interaction type not found!")
+            return
+
+        print(f"Found save interaction type ID: {save_type.interaction_type_id}")
+
+        # 1. First, let's fix all posts with incorrect save_count
+        all_posts = db.query(Post).all()
+        count_updates = 0
+
+        for post in all_posts:
+            # Get actual count from post_interactions table
+            actual_count = db.query(PostInteraction).filter(
+                PostInteraction.post_id == post.post_id,
+                PostInteraction.interaction_type_id == save_type.interaction_type_id
+            ).count()
+
+            # Update if different
+            if post.save_count != actual_count:
+                print(f"Fixing post {post.post_id} save_count: {post.save_count} → {actual_count}")
+                post.save_count = actual_count
+                count_updates += 1
+
+        # Commit count updates
+        if count_updates > 0:
+            db.commit()
+            print(f"Updated save_count for {count_updates} posts")
+
+        # 2. Now let's reconcile saved_posts relationships
+        # Get all users
+        users = db.query(User).all()
+        relationship_updates = 0
+        interaction_updates = 0
+
+        for user in users:
+            # Get saved posts from the many-to-many relationship
+            saved_posts_from_relationship = set(post.post_id for post in user.saved_posts)
+
+            # Get saved posts from post_interactions
+            saved_interactions = db.query(PostInteraction).filter(
+                PostInteraction.user_id == user.user_id,
+                PostInteraction.interaction_type_id == save_type.interaction_type_id
+            ).all()
+            saved_posts_from_interactions = set(interaction.post_id for interaction in saved_interactions)
+
+            print(
+                f"User {user.user_id}: {len(saved_posts_from_relationship)} in relationship, {len(saved_posts_from_interactions)} in interactions")
+
+            # Find discrepancies
+            missing_from_relationship = saved_posts_from_interactions - saved_posts_from_relationship
+            missing_from_interactions = saved_posts_from_relationship - saved_posts_from_interactions
+
+            # Fix relationship issues
+            for post_id in missing_from_relationship:
+                post = db.query(Post).get(post_id)
+                if post:
+                    user.saved_posts.append(post)
+                    relationship_updates += 1
+                    print(f"Added post {post_id} to user {user.user_id}'s saved_posts relationship")
+
+            # Fix interaction issues
+            for post_id in missing_from_interactions:
+                post = db.query(Post).get(post_id)
+                if post:
+                    new_interaction = PostInteraction(
+                        user_id=user.user_id,
+                        post_id=post_id,
+                        interaction_type_id=save_type.interaction_type_id,
+                        target_type="POST"
+                    )
+                    db.add(new_interaction)
+                    interaction_updates += 1
+                    print(f"Added save interaction for user {user.user_id}, post {post_id}")
+
+            # Commit changes for this user
+            if missing_from_relationship or missing_from_interactions:
+                db.commit()
+
+        print(
+            f"✅ Repair completed: Fixed {count_updates} post counts, {relationship_updates} relationships, {interaction_updates} interactions")
+        return True
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error during repair: {str(e)}")
+        return False
+    finally:
+        if close_db:
+            db.close()
+
 # TODO modify your periodic sync task to be more resilient to application restarts.
 # Currently, if the application restarts, the task gets cancelled but might leave the database in an inconsistent state.
 # Consider adding checkpoints or transaction savepoints.

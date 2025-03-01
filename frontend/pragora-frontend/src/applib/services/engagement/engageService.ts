@@ -143,15 +143,43 @@ export const engagementService: EngagementService = {
         ...getAuthHeaders()
       };
 
-      const response = await fetch(`${apiUrl}/posts/engagement/${postId}/save`, {
-        method: 'POST',
-        headers
-      });
+      // Use a timeout to prevent infinite waiting
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
 
-      const data = await handleResponse<EngagementResponse>(response);
-      console.log(`Save API response for post ${postId}:`, data);
-      return data;
+      try {
+        // Make the API call with abort signal
+        const response = await fetch(`${apiUrl}/posts/engagement/${postId}/save`, {
+          method: 'POST',
+          headers,
+          signal: controller.signal
+        });
+
+        // Clear the timeout
+        clearTimeout(timeoutId);
+
+        // Handle response
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Save API error for post ${postId}:`, errorText);
+          throw new Error(`Request failed: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log(`Save API response for post ${postId}:`, data);
+        return data;
+      } catch (error: unknown) {
+        // Handle timeout or network errors
+        clearTimeout(timeoutId);
+
+        // Type guard for fetch errors
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Request timed out');
+        }
+        throw error;
+      }
     } catch (error) {
+      console.error(`Error saving post ${postId}:`, error);
       throw handleError('saving', postId, error);
     }
   },

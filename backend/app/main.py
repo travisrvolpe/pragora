@@ -15,7 +15,8 @@ from app.lib.graphql.schema.schema import Query, Mutation, Subscription
 from app.services.post_engagement_service import verify_all_post_counts
 from database.database import database, Base, engine, SessionLocal
 from app.utils.database_utils import (
-    init_categories, init_post_types, init_post_interaction_types, sync_saved_posts, periodic_sync_saved_posts
+    init_categories, init_post_types, init_post_interaction_types, sync_saved_posts, periodic_sync_saved_posts,
+    repair_saved_posts_database
 )
 from app.core.config import settings
 from app.core.cache import init_redis, close_redis
@@ -63,6 +64,9 @@ async def lifespan(app_instance: FastAPI):
         await init_categories()
         await init_post_types()
         await init_post_interaction_types(db)
+        print("Running saved posts database repair...")
+        await repair_saved_posts_database(db)
+        print("Saved posts repair complete")
         await sync_saved_posts(db)
 
         cache = get_cache()
