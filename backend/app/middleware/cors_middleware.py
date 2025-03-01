@@ -1,35 +1,25 @@
-# cors_middleware.py
-
+# app/middleware/cors_middleware.py
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.websockets import WebSocketDisconnect
+import logging
 
-def setup_cors_middleware(app):
+logger = logging.getLogger(__name__)
+
+
+def setup_cors_middleware(app: FastAPI):
+    """Set up CORS middleware - minimal version"""
+
+    # Add standard CORSMiddleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],  # Your frontend URL
+        allow_origins=["http://localhost:3000"],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=[
-            "Content-Type",
-            "Authorization",
-            "Accept",
-            "Origin",
-            "X-Requested-With",
-            "Access-Control-Allow-Origin",
-            "Access-Control-Allow-Methods",
-            "Access-Control-Allow-Headers",
-            "Access-Control-Allow-Credentials",
-            "Sec-WebSocket-Protocol",  # Required for WebSocket
-            "Sec-WebSocket-Key",       # Required for WebSocket
-            "Sec-WebSocket-Version",   # Required for WebSocket
-            "Upgrade",                 # Required for WebSocket
-            "Connection"               # Required for WebSocket
-        ],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["*", "Authorization", "Content-Type"],
         expose_headers=["Content-Type", "Content-Length"],
-        max_age=3600,  # Cache preflight requests for 10 minutes
+        max_age=3600
     )
 
-    @app.exception_handler(WebSocketDisconnect)
-    async def websocket_disconnect(request, exc):
-        print(f"WebSocket disconnected: {exc.code}")
-        return None
+    logger.info("CORS middleware configured")
+
+    return app

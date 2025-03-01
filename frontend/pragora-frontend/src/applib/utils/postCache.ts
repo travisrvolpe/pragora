@@ -52,32 +52,33 @@ export const updatePostCache = async ({
 
       const updateMetrics = (current: PostMetrics | undefined, updates?: Partial<PostMetrics>): PostMetrics => {
         // If current metrics are undefined, create a default object
-        if (!current) {
-          current = {
-            like_count: 0,
-            dislike_count: 0,
-            save_count: 0,
-            share_count: 0,
-            comment_count: 0,
-            report_count: 0
-          };
-        }
-
-        // If no updates, return current
-        if (!updates) return current;
-
-        const result = {
-          ...current,
-          like_count: safeNumber(updates.like_count, current.like_count),
-          dislike_count: safeNumber(updates.dislike_count, current.dislike_count),
-          save_count: safeNumber(updates.save_count, current.save_count),
-          share_count: safeNumber(updates.share_count, current.share_count),
-          report_count: safeNumber(updates.report_count, current.report_count),
-          comment_count: safeNumber(updates.comment_count, current.comment_count),
+        const defaultMetrics = {
+          like_count: 0,
+          dislike_count: 0,
+          save_count: 0,
+          share_count: 0,
+          comment_count: 0,
+          report_count: 0
         };
 
+        const safeCurrentMetrics = current || defaultMetrics;
+
+        // If no updates, return current
+        if (!updates) return safeCurrentMetrics;
+
+        // Create a copy to avoid mutating the original
+        const result = { ...safeCurrentMetrics };
+
+        // Update metrics with the new values only if they are defined
+        if (typeof updates.like_count === 'number') result.like_count = Math.max(0, updates.like_count);
+        if (typeof updates.dislike_count === 'number') result.dislike_count = Math.max(0, updates.dislike_count);
+        if (typeof updates.save_count === 'number') result.save_count = Math.max(0, updates.save_count);
+        if (typeof updates.share_count === 'number') result.share_count = Math.max(0, updates.share_count);
+        if (typeof updates.comment_count === 'number') result.comment_count = Math.max(0, updates.comment_count);
+        if (typeof updates.report_count === 'number') result.report_count = Math.max(0, updates.report_count);
+
         console.log('Updated metrics:', {
-          before: current,
+          before: safeCurrentMetrics,
           updates,
           after: result
         });
@@ -90,29 +91,31 @@ export const updatePostCache = async ({
         updates?: Partial<PostInteractionState>
       ): PostInteractionState => {
         // Default state if current is undefined
-        if (!current) {
-          current = {
-            like: false,
-            dislike: false,
-            save: false,
-            share: false,
-            report: false
-          };
-        }
-
-        if (!updates) return current;
-
-        const result = {
-          ...current,
-          like: updates.like !== undefined ? updates.like : current.like,
-          dislike: updates.dislike !== undefined ? updates.dislike : current.dislike,
-          save: updates.save !== undefined ? updates.save : current.save,
-          share: updates.share !== undefined ? updates.share : current.share,
-          report: updates.report !== undefined ? updates.report : current.report,
+        const defaultState = {
+          like: false,
+          dislike: false,
+          save: false,
+          share: false,
+          report: false
         };
 
+        const safeCurrentState = current || defaultState;
+
+        // If no updates, return current
+        if (!updates) return safeCurrentState;
+
+        // Create a copy to avoid mutating the original
+        const result = { ...safeCurrentState };
+
+        // Update state with the new values only if they are defined
+        if (typeof updates.like === 'boolean') result.like = updates.like;
+        if (typeof updates.dislike === 'boolean') result.dislike = updates.dislike;
+        if (typeof updates.save === 'boolean') result.save = updates.save;
+        if (typeof updates.share === 'boolean') result.share = updates.share;
+        if (typeof updates.report === 'boolean') result.report = updates.report;
+
         console.log('Updated interaction state:', {
-          before: current,
+          before: safeCurrentState,
           updates,
           after: result
         });
@@ -138,6 +141,8 @@ export const updatePostCache = async ({
 
           // Search for the post in each page
           for (const page of postData.pages) {
+            if (!page.data || !page.data.posts) continue;
+
             const matchingPost = page.data.posts.find(p => p.post_id === postId);
             if (matchingPost) {
               console.log(`Found post ${postId} in posts list cache`);
@@ -192,6 +197,7 @@ export const updatePostCache = async ({
         queryClient.setQueryData(['post', postId], foundPost);
       }
 
+      // Ensure the post has metrics and interaction_state properties
       if (!foundPost.metrics) {
         foundPost.metrics = {
           like_count: 0,
@@ -214,7 +220,7 @@ export const updatePostCache = async ({
       }
 
       // Now we have a post to update
-      let updatedPost: PostWithEngagement = {
+      const updatedPost: PostWithEngagement = {
         ...foundPost,
         metrics: updateMetrics(foundPost.metrics, updates.metrics),
         interaction_state: updateInteractionState(foundPost.interaction_state, updates.interaction_state)
@@ -227,6 +233,12 @@ export const updatePostCache = async ({
       } else if (updates.interaction_state?.dislike && updatedPost.interaction_state.like) {
         updatedPost.interaction_state.like = false;
         updatedPost.metrics.like_count = Math.max(0, updatedPost.metrics.like_count - 1);
+      }
+
+      // Special handling for save: ensure save_count is at least 1 if save is true
+      if (updates.interaction_state?.save === true && updatedPost.metrics.save_count === 0) {
+        updatedPost.metrics.save_count = 1;
+        console.log(`Setting save_count to 1 because save is active`);
       }
 
       // Update single post in cache
@@ -242,32 +254,48 @@ export const updatePostCache = async ({
 
             const newData = {
               ...oldData,
-              pages: oldData.pages.map((page) => ({
-                ...page,
-                data: {
-                  ...page.data,
-                  posts: page.data.posts.map((post) => {
-                    if (post.post_id === postId) {
-                      console.log(`Syncing post ${postId} data in lists`);
-                      return updatedPost;
-                    }
-                    return post;
-                  }),
-                },
-              })),
+              pages: oldData.pages.map((page) => {
+                if (!page.data || !page.data.posts) return page;
+
+                return {
+                  ...page,
+                  data: {
+                    ...page.data,
+                    posts: page.data.posts.map((post) => {
+                      if (post.post_id === postId) {
+                        console.log(`Syncing post ${postId} data in lists`);
+                        return {
+                          ...post,
+                          metrics: updatedPost.metrics,
+                          interaction_state: updatedPost.interaction_state
+                        };
+                      }
+                      return post;
+                    }),
+                  },
+                };
+              }),
             };
 
             return newData;
           }
         );
 
-        // Also force a refetch of the individual post
+        // Also invalidate queries to ensure fresh data on next fetch
         queryClient.invalidateQueries({
           queryKey: ['post', postId],
           exact: true,
-          refetchActive: true
+          refetchActive: false // Don't refetch immediately to avoid overwriting our update
         });
       }, 100);
+
+      // Force a refresh of lists after a longer delay
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['posts'],
+          refetchActive: true
+        });
+      }, 500);
 
       console.log(`Successfully updated cache for post ${postId}`, updatedPost);
 

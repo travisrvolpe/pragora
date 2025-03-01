@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PostWrapper } from './wrapper';
 import { PostCardFactory } from './PostCardFactory';
 import postService from '@/applib/services/post/postService';
+import { diagnoseSinglePostView } from '@/applib/services/post/postService';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { CommentThread } from '@/components/comments/CommentThread';
 import type { Post } from '@/types/posts/post-types';
@@ -121,26 +122,41 @@ export function SinglePostView({ postId }: SinglePostViewProps) {
     );
   }
 
-  if (isError || !post) {
-    return (
-      <div className="w-full max-w-2xl mx-auto px-4 mt-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center text-red-700">
-          <h3 className="font-bold mb-2">Error Loading Post</h3>
-          {error instanceof Error && (
-            <p className="text-sm mt-2">{error.message}</p>
-          )}
-          <div className="mt-4">
-            <button
-              onClick={() => refetch()}
-              className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-md"
-            >
-              Try Again
-            </button>
-          </div>
+if (isError || !post) {
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 mt-6">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center text-red-700">
+        <h3 className="font-bold mb-2">Error Loading Post</h3>
+        {error instanceof Error && (
+          <p className="text-sm mt-2">{error.message}</p>
+        )}
+        <div className="mt-4 space-x-2">
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-md"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const result = await diagnoseSinglePostView(postId);
+                console.log('Diagnostic result:', result);
+                alert('Check console for diagnostic results');
+              } catch (e) {
+                console.error('Diagnostic error:', e);
+                alert('Diagnostic error: ' + e);
+              }
+            }}
+            className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md"
+          >
+            Run Diagnostics
+          </button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // Render the single post with the same PostWrapper / PostCardFactory approach as the feed
   return (

@@ -1,13 +1,14 @@
 # app/auth/utils.py
 from typing import Optional
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException, status, Request, Header
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.utils.database_utils import get_db
 from app.datamodels.datamodels import User
 from app.core.config import settings
 from datetime import datetime, timedelta
+from app.schemas.schemas import UserResponse
 
 # Constants for JWT
 SECRET_KEY = settings.JWT_SECRET_KEY
@@ -85,3 +86,16 @@ def create_access_token(data: dict) -> str:
     token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     print(f"Created token: {token}")
     return token
+
+async def get_current_user_or_none(
+    authorization: Optional[str] = Header(None),
+    token: Optional[str] = None,
+    db: Session = Depends(get_db)
+) -> Optional[UserResponse]:
+    """Get current user if authenticated, or None if not"""
+    try:
+        return await get_current_user(authorization, token, db)
+    except HTTPException:
+        return None
+    except Exception:
+        return None
