@@ -1,0 +1,9 @@
+# .graphqlrc.yml
+schema: http://localhost:8000/graphql
+documents: "src/**/*.{ts,tsx,graphql,gql}"
+extensions:
+  endpoints:
+    default:
+      url: http://localhost:8000/graphql
+      headers:
+        Authorization: Bearer ${env:AUTH_TOKEN}

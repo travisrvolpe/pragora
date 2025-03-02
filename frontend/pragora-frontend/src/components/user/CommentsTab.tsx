@@ -1,21 +1,30 @@
+
+// TODO DELETE SEEMS TO WORK EDIT NOT WORKING
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, ThumbsUp, ThumbsDown, Calendar, Edit3, Trash } from 'lucide-react';
-import { commentService  } from '@/applib/services/comment/commentService';
+import { commentService } from '@/applib/services/comment/commentService';
 import { formatRelativeTime } from '@/applib/utils/date-utils';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import type { CommentWithEngagement } from '@/types/comments';
+import { useAuth } from '@/contexts/auth/AuthContext';
 
 const CommentsTab: React.FC = () => {
   const [comments, setComments] = useState<CommentWithEngagement[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth(); // Get the current user from auth context
 
   useEffect(() => {
     const fetchUserComments = async () => {
+      if (!user?.user_id) return; // Make sure we have a user ID
+
       setIsLoading(true);
       try {
-        // We'll need to implement this method in the commentService
-        const userComments = await commentService.getUserComments();
+        const userComments = await commentService.getUserComments(
+          user.user_id,
+          1, // page
+          20 // pageSize
+        );
         setComments(userComments);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch comments');
@@ -25,7 +34,20 @@ const CommentsTab: React.FC = () => {
     };
 
     fetchUserComments();
-  }, []);
+  }, [user]);
+
+  // Handler for deleting comments
+  const handleDelete = async (commentId: number) => {
+    try {
+      await commentService.deleteComment(commentId);
+      // Remove the deleted comment from the state
+      setComments(prevComments =>
+        prevComments.filter(comment => comment.comment_id !== commentId)
+      );
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -92,19 +114,19 @@ const CommentsTab: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center">
                 <ThumbsUp className={`w-4 h-4 mr-1 ${
-                  comment.interaction_state.like ? 'text-blue-500' : ''
+                  comment.interaction_state?.like ? 'text-blue-500' : ''
                 }`} />
-                <span>{comment.metrics.like_count}</span>
+                <span>{comment.metrics?.like_count || 0}</span>
               </div>
               <div className="flex items-center">
                 <ThumbsDown className={`w-4 h-4 mr-1 ${
-                  comment.interaction_state.dislike ? 'text-red-500' : ''
+                  comment.interaction_state?.dislike ? 'text-red-500' : ''
                 }`} />
-                <span>{comment.metrics.dislike_count}</span>
+                <span>{comment.metrics?.dislike_count || 0}</span>
               </div>
               <div className="flex items-center">
                 <MessageSquare className="w-4 h-4 mr-1" />
-                <span>{comment.metrics.reply_count}</span>
+                <span>{comment.metrics?.reply_count || 0}</span>
               </div>
             </div>
 
@@ -122,13 +144,15 @@ const CommentsTab: React.FC = () => {
                 <div className="flex space-x-2">
                   <button
                     className="p-1 hover:text-blue-600 transition-colors"
-                    onClick={() => {/* TODO: Add edit handler */}}
+                    onClick={() => { /* TODO: Add proper edit handler */ }}
+                    aria-label="Edit comment"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     className="p-1 hover:text-red-600 transition-colors"
-                    onClick={() => {/* TODO: Add delete handler */}}
+                    onClick={() => handleDelete(comment.comment_id)}
+                    aria-label="Delete comment"
                   >
                     <Trash className="w-4 h-4" />
                   </button>

@@ -1,0 +1,9 @@
+schema: src/applib/graphql/schema/schema.graphql
+include:
+  - src/**/*.graphql
+  - src/**/*.ts
+  - src/**/*.tsx
+extensions:
+  endpoints:
+    default:
+      url: http://localhost:8000/graphql

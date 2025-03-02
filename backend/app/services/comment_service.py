@@ -514,3 +514,46 @@ class CommentService:
             self.db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
 
+    async def get_user_comments(
+            self,
+            user_id: int,
+            page: int = 1,
+            page_size: int = 20,
+            viewer_id: Optional[int] = None
+    ) -> List[CommentResponse]:
+        """Get comments made by a specific user"""
+        try:
+            # Query comments by user_id
+            query = (
+                self.db.query(Comment)
+                .join(User)
+                .outerjoin(UserProfile)
+                .filter(Comment.user_id == user_id)
+                .options(
+                    joinedload(Comment.user).joinedload(User.profile),
+                    joinedload(Comment.replies).joinedload(Comment.user).joinedload(User.profile)
+                )
+                .order_by(Comment.created_at.desc())  # Most recent first
+            )
+
+            # Apply pagination
+            total = query.count()
+            comments = query.offset((page - 1) * page_size).limit(page_size).all()
+
+            # Process comments and ensure all nested data is loaded
+            responses = []
+            for comment in comments:
+                comment_response = await self.get_comment(
+                    comment.comment_id,
+                    user_id=viewer_id,
+                    include_replies=False  # Don't include full reply chains for performance
+                )
+                if comment_response:
+                    responses.append(comment_response)
+
+            return responses
+
+        except Exception as e:
+            print(f"Error in get_user_comments: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+

@@ -8,7 +8,7 @@ schema: "http://localhost:8000/graphql"
 documents: "./src/applib/graphql/operations/**/*.ts"
 generates:
   # The main TypeScript types from your queries:
-  src/lib/graphql/generated/types.ts:
+  src/applib/graphql/generated/types.ts:
     plugins:
       - "typescript"
       - "typescript-operations"

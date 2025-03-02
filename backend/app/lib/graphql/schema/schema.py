@@ -257,6 +257,37 @@ class Query:
         finally:
             db.close()
 
+    @strawberry.field
+    async def user_comments(
+            self,
+            info: Info,
+            user_id: int,
+            page: int = 1,
+            page_size: int = 20
+    ) -> List[Comment]:
+        """Fetch a list of comments for a specific user."""
+        db = SessionLocal()
+        try:
+            # Check for authentication
+            authenticated_user = await get_authenticated_context(info)
+
+            # Get user profile to check if the requested user_id matches the authenticated user
+            # or if the authenticated user has proper permissions to see other user's comments
+            comment_service = CommentService(db)
+
+            # Fetch the user's comments
+            comments = await comment_service.get_user_comments(
+                user_id=user_id,
+                page=page,
+                page_size=page_size,
+                viewer_id=authenticated_user.user_id if authenticated_user else None
+            )
+
+            # Convert to GraphQL type
+            return [_to_comment(comment) for comment in comments if comment is not None]
+        finally:
+            db.close()
+
 
 @strawberry.type
 class Mutation:

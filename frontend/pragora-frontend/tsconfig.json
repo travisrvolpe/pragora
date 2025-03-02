@@ -7,6 +7,7 @@
       "esnext"
     ],
     "allowJs": true,
+    "noImplicitAny": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -28,6 +29,10 @@
       "react",
       "react-dom"
     ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
     "incremental": true,
     "strictNullChecks": true,
     "plugins": [
@@ -41,7 +46,9 @@
     "src/**/*.tsx",
     "next-env.d.ts",
     "**/*.graphql",
-    ".next/types/**/*.ts"
+    "**/*.gql",
+    ".next/types/**/*.ts",
+    "src/types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
