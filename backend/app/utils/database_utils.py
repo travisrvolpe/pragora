@@ -4,7 +4,7 @@ import asyncio
 from sqlalchemy.orm import sessionmaker
 
 from app.RedisCache import get_cache
-from app.datamodels.datamodels import User
+from app.datamodels.user_datamodels import User
 from database.database import engine
 from app.datamodels.post_datamodels import Category, Subcategory, PostType, Post
 from sqlalchemy.orm import Session

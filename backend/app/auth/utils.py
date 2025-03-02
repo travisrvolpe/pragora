@@ -5,10 +5,10 @@ from fastapi import Depends, HTTPException, status, Request, Header
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.utils.database_utils import get_db
-from app.datamodels.datamodels import User
+from app.datamodels.user_datamodels import User
 from app.core.config import settings
 from datetime import datetime, timedelta
-from app.schemas.schemas import UserResponse
+from app.schemas.user_schemas import UserResponse
 
 # Constants for JWT
 SECRET_KEY = settings.JWT_SECRET_KEY

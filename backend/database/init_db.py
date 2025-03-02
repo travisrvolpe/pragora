@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 from database.database import Base, engine, SessionLocal
 from app.core.logger import logger
-from app.datamodels.datamodels import User, UserProfile, Session as UserSession
+from app.datamodels.user_datamodels import User, UserProfile, Session as UserSession
 from app.datamodels.post_datamodels import Post, Category, Subcategory, PostType
 from app.datamodels.comment_datamodels import Comment
 from app.datamodels.interaction_datamodels import (

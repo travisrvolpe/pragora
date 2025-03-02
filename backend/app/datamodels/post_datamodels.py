@@ -1,4 +1,5 @@
 # datamodels/post_datamodels.py
+import sqlalchemy
 from sqlalchemy import Table, Column, Integer, String, DateTime, ForeignKey, Text, JSON, Boolean, Float, Index
 from sqlalchemy import func
 from sqlalchemy.orm import relationship, backref, validates
@@ -84,6 +85,7 @@ class Post(Base):
     #                       cascade="all, delete-orphan")
     analysis = relationship("PostAnalysis", back_populates="post", uselist=False)
     engagement = relationship("PostEngagement", back_populates="post", uselist=False)
+    community_notes = relationship("CommunityNote", back_populates="post", cascade="all, delete-orphan")
     #if adding threaded posts parent_post_id = Column(Integer, ForeignKey("posts.post_id"), nullable=True)
     # subcategory = relationship("Subcategory", back_populates="posts") # Removed as it was causing issues in the previous version
 
@@ -138,75 +140,58 @@ class Subcategory(Base):
 
     category = relationship("Category", back_populates="subcategories")
 
-
-'''class PostInteraction(Base):
-    __tablename__ = "post_interactions"
-
-    interaction_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
-    post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"), nullable=False)
-    post_interaction_type_id = Column(Integer, ForeignKey("post_interaction_types.post_interaction_type_id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    # For performance, add indexes on commonly queried combinations
-    __table_args__ = (
-        Index('idx_post_user_type', post_id, user_id, post_interaction_type_id, unique=True),
-        Index('idx_post_type', post_id, post_interaction_type_id),
-    )
-
-    user = relationship("User", back_populates="post_interactions")
-    post = relationship("Post", back_populates="interactions")
-    interaction_type = relationship("PostInteractionType", back_populates="interactions")'''
-
-'''class PostInteractionType(Base):
-    __tablename__ = "post_interaction_types"
-
-    post_interaction_type_id = Column(Integer, primary_key=True)
-    post_interaction_type_name = Column(String(50), unique=True, nullable=False)
-    is_active = Column(Boolean, default=True)
-    display_order = Column(Integer)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    #interactions = relationship("PostInteraction", back_populates="interaction_type")'''
-
-
-'''class PostInteractionCounts(Base):
-    __tablename__ = "post_interaction_counts"
-
-    post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"), primary_key=True)
-    type_id = Column(Integer, ForeignKey("post_interaction_types.type_id"), primary_key=True)
-    count = Column(Integer, default=0)
-    last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-    __table_args__ = (
-        Index('idx_post_counts', post_id, type_id),
-    )'''
 class PostAnalysis(Base):
     __tablename__ = "post_analysis"
 
     analysis_id = Column(Integer, primary_key=True)
-    post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"))
+    post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"), unique=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"))
 
-    # Logical Analysis
-    fallacy_score = Column(Float)
-    fallacy_types = Column(JSON)  # List of detected fallacies
-    evidence_score = Column(Float)
-    evidence_types = Column(JSON)  # Types of evidence found
-    bias_score = Column(Float)
-    bias_types = Column(JSON)  # Detected biases
+    # Logical Fallacy Analysis
+    fallacy_score = Column(Float)  # Score based on fallacies detected
+    fallacy_types = Column(JSON)   # JSON array of detected fallacies with details
 
-    # Implementation Analysis
-    action_score = Column(Float)  # How actionable is the content
-    implementation_complexity = Column(Float)
-    resource_requirements = Column(JSON)
-    estimated_timeline = Column(JSON)
+    # Well Reasoned Analysis
+    soundness_score = Column(Float)  # Score based on soundness of arguments
+    soundness_types = Column(JSON)   # JSON array of sound reasoning detected
 
-    # AI Analysis Metadata
-    analysis_version = Column(String)
+    # Evidence Analysis
+    evidence_score = Column(Float)  # Score based on evidence quality
+    evidence_types = Column(JSON)    # JSON array of evidence types found
+    evidence_links = Column(JSON)    # Links to potential evidence
+
+    # Good Faith/Bad Faith Analysis
+    bad_faith_score = Column(Float)  # Score indicating bad faith participation
+    bad_faith_details = Column(JSON) # JSON array of detected bad faith behaviors
+    good_faith_score = Column(Float) # Score indicating good faith participation
+    good_faith_details = Column(JSON) # JSON array of detected good faith behaviors
+
+    # Community Feedback
+    community_score = Column(Float)         # Aggregated community rating
+    community_feedback = Column(JSON)       # Aggregated community responses
+    community_note_count = Column(Integer, default=0)  # Count of notes added
+
+    # Actionability Analysis
+    practical_utility_score = Column(Float)  # How actionable and implementable is the content
+    saved_to_plans_count = Column(Integer, default=0)  # Times content saved to plan
+    completed_plans_count = Column(Integer, default=0)  # Completion rate of plans
+    implementation_complexity = Column(Float)  # How complex is the implementation
+    resource_requirements = Column(JSON)  # Resources required for implementation
+    estimated_timeline = Column(JSON)  # Estimated timeline for implementation
+
+    # Summary Scores (for badge awarding)
+    merit_score = Column(Float, default=0.0)  # Overall merit score
+    demerit_score = Column(Float, default=0.0)  # Overall demerit score
+
+    # Analysis Metadata
+    analysis_version = Column(String)  # Version of analysis algorithm used
     analyzed_at = Column(DateTime, default=func.now())
-    confidence_score = Column(Float)
+    last_updated = Column(DateTime, default=func.now(), onupdate=func.now())
+    confidence_score = Column(Float)  # Confidence in the analysis results
 
+    # Relationships
     post = relationship("Post", back_populates="analysis")
-
+    user = relationship("User")
 
 class PostEngagement(Base):
     __tablename__ = "post_engagement"
@@ -226,13 +211,130 @@ class PostEngagement(Base):
     save_rate = Column(Float)
     share_rate = Column(Float)
 
-    # Quality Metrics
-    quality_score = Column(Float)
-    relevance_score = Column(Float)
-    credibility_score = Column(Float)
-
     # Engagement Score (calculated from above metrics)
     engagement_score = Column(Float)
     last_calculated = Column(DateTime, default=func.now())
 
     post = relationship("Post", back_populates="engagement")
+
+
+'''
+class AnalysisType(Base):
+    """
+    Defines types of analysis that can be performed (e.g., Logical Fallacies, Sound Reasoning, etc.)
+    Maps to badge types for consistency
+    """
+    __tablename__ = "analysis_types"
+
+    analysis_type_id = Column(Integer, primary_key=True)
+    type_name = Column(String, nullable=False, unique=True)
+    type_description = Column(Text)
+    is_merit = Column(Boolean, default=True)  # True for merits, False for demerits
+    badge_type_id = Column(Integer, ForeignKey("badge_types.badge_type_id"), nullable=True)
+
+    # Relationships
+    subtypes = relationship("AnalysisSubtype", back_populates="analysis_type", cascade="all, delete-orphan")
+    badge_type = relationship("BadgeType")
+
+
+class AnalysisSubtype(Base):
+    """
+    Defines subtypes of analysis (e.g., specific fallacies like Ad Hominem, Straw Man, etc.)
+    Maps to badge subtypes for consistency
+    """
+    __tablename__ = "analysis_subtypes"
+
+    analysis_subtype_id = Column(Integer, primary_key=True)
+    analysis_type_id = Column(Integer, ForeignKey("analysis_types.analysis_type_id"), nullable=False)
+    subtype_name = Column(String, nullable=False)
+    subtype_description = Column(Text)
+    is_merit = Column(Boolean, default=True)  # Should match parent type
+    badge_subtype_id = Column(Integer, ForeignKey("badge_subtypes.badge_subtype_id"), nullable=True)
+
+    # Relationships
+    analysis_type = relationship("AnalysisType", back_populates="subtypes")
+    badge_subtype = relationship("BadgeSubtype")
+
+    # Enforce unique constraint on type_id + subtype_name
+    __table_args__ = (
+        sqlalchemy.UniqueConstraint('analysis_type_id', 'subtype_name', name='uix_analysis_type_subtype'),
+    )
+
+
+class PostAnalysis(Base):
+    __tablename__ = "post_analysis"
+
+    analysis_id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"), unique=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"))
+
+    # Overall Scores
+    merit_score = Column(Float, default=0.0)  # Overall merit score
+    demerit_score = Column(Float, default=0.0)  # Overall demerit score
+
+    # Logical Analysis
+    logical_merit_score = Column(Float, default=0.0)  # Sound reasoning score
+    logical_demerit_score = Column(Float, default=0.0)  # Fallacy score
+
+    # Evidence Analysis
+    evidence_merit_score = Column(Float, default=0.0)  # Evidence quality score
+    evidence_demerit_score = Column(Float, default=0.0)  # Misinformation score
+
+    # Participation Analysis
+    participation_merit_score = Column(Float, default=0.0)  # Good faith score
+    participation_demerit_score = Column(Float, default=0.0)  # Bad faith score
+
+    # Utility Analysis
+    utility_merit_score = Column(Float, default=0.0)  # Practical utility score
+    utility_demerit_score = Column(Float, default=0.0)  # Impractical/unhelpful score
+
+    # Detailed Analysis Results
+    analysis_details = Column(JSON)  # Contains detailed breakdown of all detected types/subtypes
+
+    # Links to supporting evidence or counter-evidence
+    evidence_links = Column(JSON)
+
+    # Community Feedback
+    community_score = Column(Float, default=0.0)  # Community-provided score
+    community_feedback = Column(JSON)  # Structured community feedback
+    community_note_count = Column(Integer, default=0)  # Number of community notes
+
+    # Implementation metrics
+    saved_to_plans_count = Column(Integer, default=0)
+    completed_plans_count = Column(Integer, default=0)
+
+    # Analysis Metadata
+    analyzed_at = Column(DateTime, server_default=func.now())
+    last_updated = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    analysis_version = Column(String)
+    confidence_score = Column(Float, default=0.8)  # Confidence in analysis results
+
+    # Relationships
+    post = relationship("Post", back_populates="analysis")
+    user = relationship("User")
+    analysis_types = relationship("PostAnalysisType", back_populates="post_analysis", cascade="all, delete-orphan")
+
+
+class PostAnalysisType(Base):
+    """
+    Links posts to specific analysis types/subtypes that were detected
+    Allows for detailed tracking of what was found in each post
+    """
+    __tablename__ = "post_analysis_types"
+
+    id = Column(Integer, primary_key=True)
+    post_analysis_id = Column(Integer, ForeignKey("post_analysis.analysis_id", ondelete="CASCADE"), nullable=False)
+    analysis_type_id = Column(Integer, ForeignKey("analysis_types.analysis_type_id"), nullable=False)
+    analysis_subtype_id = Column(Integer, ForeignKey("analysis_subtypes.analysis_subtype_id"), nullable=False)
+
+    # Detection details
+    score = Column(Float, default=0.0)  # Quality or severity score
+    confidence = Column(Float, default=0.0)  # Confidence in this detection
+    evidence = Column(Text)  # Text excerpt that supports this detection
+    explanation = Column(Text)  # Explanation of why this type was detected
+
+    # Relationships
+    post_analysis = relationship("PostAnalysis", back_populates="analysis_types")
+    analysis_type = relationship("AnalysisType")
+    analysis_subtype = relationship("AnalysisSubtype")
+'''

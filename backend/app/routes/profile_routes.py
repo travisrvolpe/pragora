@@ -8,12 +8,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm.session import Session
 from app.utils.database_utils import get_db
 from app.auth.utils import get_current_user
-from app.datamodels.datamodels import UserProfile, User
-from app.schemas.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
+from app.datamodels.user_datamodels import UserProfile, User
+from app.schemas.user_schemas import ProfileCreate, ProfileUpdate, ProfileResponse
 from app.services.post_service import save_post, get_post, get_saved_posts
 from app.services.profile_service import update_avatar, update_profile
 from typing import List
-from app.schemas.schemas import ProfileResponse
+from app.schemas.user_schemas import ProfileResponse
 from app.services.profile_service import (
     get_profile_from_cache, set_profile_to_cache,
     get_or_create_profile, create_default_profile, profile_to_dict

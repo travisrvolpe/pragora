@@ -5,13 +5,13 @@ from sqlalchemy.orm import Session
 from typing import Optional
 #import logging
 from app.core.logger import get_logger
-from app.datamodels.datamodels import User
+from app.datamodels.user_datamodels import User
 from app.datamodels.interaction_datamodels import PostInteraction, InteractionType
 from app.datamodels.post_datamodels import Post
 from app.utils.database_utils import get_db
 from app.schemas.post_schemas import PostMetricsUpdate
 from app.auth.utils import get_current_user
-from app.schemas.schemas import UserResponse
+from app.schemas.user_schemas import UserResponse
 from app.services.post_engagement_service import PostEngagementService
 from app.RedisCache import get_cache
 from app.core.exceptions import (

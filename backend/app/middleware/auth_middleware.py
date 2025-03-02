@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from jose import JWTError, jwt
 from app.core.config import settings
 from app.auth.utils import get_current_user
-from app.datamodels.datamodels import User, Session as UserSession
+from app.datamodels.user_datamodels import User, Session as UserSession
 from database.database import SessionLocal
 import logging
 import json

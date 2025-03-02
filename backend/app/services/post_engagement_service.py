@@ -21,7 +21,7 @@ from app.datamodels.post_datamodels import Post
 from app.datamodels.interaction_datamodels import PostInteraction, InteractionType
 from app.schemas.post_schemas import PostMetricsUpdate
 from database.database import SessionLocal
-from app.datamodels.datamodels import User
+from app.datamodels.user_datamodels import User
 
 #logger = logging.getLogger(__name__)
 

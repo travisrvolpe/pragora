@@ -4,7 +4,7 @@ from typing import Optional, Any, Dict
 from sqlalchemy.orm import Session
 from strawberry.fastapi import BaseContext
 from database.database import SessionLocal
-from app.datamodels.datamodels import User
+from app.datamodels.user_datamodels import User
 from app.auth.utils import get_current_user
 from app.utils.token_debug import verify_and_debug_token
 from fastapi import Request

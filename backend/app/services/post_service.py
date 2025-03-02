@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import desc, func
-from app.datamodels.datamodels import User
+from app.datamodels.user_datamodels import User
 from app.datamodels.post_datamodels import Post, PostType, PostAnalysis, PostEngagement
 from app.schemas.post_schemas import PostCreate, PostInteractionCreate
 from app.datamodels.interaction_datamodels import PostInteraction, InteractionType

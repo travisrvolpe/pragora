@@ -13,7 +13,7 @@ from app.datamodels.post_datamodels import Post
 from app.datamodels.interaction_datamodels import PostInteraction
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from app.datamodels.datamodels import User
+from app.datamodels.user_datamodels import User
 from pydantic import BaseModel, ValidationError
 from app.middleware.profile_middleware import validate_user_profile
 from datetime import datetime

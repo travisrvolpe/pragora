@@ -12,7 +12,7 @@ from app.schemas.comment_schemas import (
     CommentInteractionState
 )
 from app.datamodels.interaction_datamodels import CommentInteraction, InteractionType
-from app.datamodels.datamodels import User, UserProfile
+from app.datamodels.user_datamodels import User, UserProfile
 from app.datamodels.post_datamodels import Post
 from app.core.exceptions import DatabaseError
 from datetime import datetime

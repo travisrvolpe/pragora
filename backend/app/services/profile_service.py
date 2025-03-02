@@ -6,8 +6,8 @@ from PIL import Image
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 #from app.services.file_service import save_avatar_image
-from app.datamodels.datamodels import UserProfile, User
-from app.schemas.schemas import ProfileUpdate
+from app.datamodels.user_datamodels import UserProfile, User
+from app.schemas.user_schemas import ProfileUpdate
 from app.core.cache import get_redis
 import json
 from typing import Optional, Dict, Any

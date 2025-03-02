@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, HTTPException, Depends, Request
 
 from app.core.cache import get_redis
-from app.datamodels.datamodels import User, Session as UserSession
+from app.datamodels.user_datamodels import User, Session as UserSession
 from app.utils.database_utils import get_db
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.auth_service import register_user, login_user
 from app.auth.utils import get_current_user
-from app.schemas.schemas import UserCreate, UserLogin, UserResponse
+from app.schemas.user_schemas import UserCreate, UserLogin, UserResponse
 from typing import Any
 from app.core.logger import get_logger
 from database.database import SessionLocal

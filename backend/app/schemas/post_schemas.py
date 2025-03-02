@@ -1,6 +1,6 @@
 # schemas/post_schemas.py
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 # Post schemas
@@ -220,14 +220,66 @@ class PostEngagementUpdate(BaseModel):
     bounce: bool
     interaction_type: Optional[str]
 
-class PostAnalysisResult(BaseModel):
-    fallacy_score: float
-    fallacy_types: List[str]
-    evidence_score: float
-    evidence_types: List[str]
-    bias_score: float
-    bias_types: List[str]
-    action_score: float
-    implementation_complexity: float
-    resource_requirements: Dict
-    estimated_timeline: Dict
+# Post Analysis Schemas
+class PostAnalysisCreate(BaseModel):
+    fallacy_score: Optional[float] = None
+    fallacy_types: Optional[Dict] = None
+    soundness_score: Optional[float] = None
+    soundness_types: Optional[Dict] = None
+    evidence_score: Optional[float] = None
+    evidence_types: Optional[Dict] = None
+    evidence_links: Optional[Dict] = None
+    bad_faith_score: Optional[float] = None
+    bad_faith_details: Optional[Dict] = None
+    good_faith_score: Optional[float] = None
+    good_faith_details: Optional[Dict] = None
+    practical_utility_score: Optional[float] = None
+    implementation_complexity: Optional[float] = None
+    resource_requirements: Optional[Dict] = None
+    estimated_timeline: Optional[Dict] = None
+    analysis_version: Optional[str] = "1.0"
+    confidence_score: Optional[float] = None
+
+
+class PostAnalysisUpdate(PostAnalysisCreate):
+    # This can be the same as the create schema since all fields are optional
+    community_score: Optional[float] = None
+    community_feedback: Optional[Dict] = None
+    community_note_count: Optional[int] = None
+    saved_to_plans_count: Optional[int] = None
+    completed_plans_count: Optional[int] = None
+
+
+class PostAnalysisResponse(BaseModel):
+    analysis_id: int
+    post_id: int
+    user_id: int
+    fallacy_score: Optional[float] = None
+    fallacy_types: Optional[Dict] = None
+    soundness_score: Optional[float] = None
+    soundness_types: Optional[Dict] = None
+    evidence_score: Optional[float] = None
+    evidence_types: Optional[Dict] = None
+    evidence_links: Optional[Dict] = None
+    bad_faith_score: Optional[float] = None
+    bad_faith_details: Optional[Dict] = None
+    good_faith_score: Optional[float] = None
+    good_faith_details: Optional[Dict] = None
+    community_score: Optional[float] = None
+    community_feedback: Optional[Dict] = None
+    community_note_count: Optional[int] = None
+    practical_utility_score: Optional[float] = None
+    saved_to_plans_count: Optional[int] = None
+    completed_plans_count: Optional[int] = None
+    implementation_complexity: Optional[float] = None
+    resource_requirements: Optional[Dict] = None
+    estimated_timeline: Optional[Dict] = None
+    merit_score: Optional[float] = None
+    demerit_score: Optional[float] = None
+    analysis_version: str
+    analyzed_at: datetime
+    last_updated: datetime
+    confidence_score: Optional[float] = None
+
+    class Config:
+        from_attributes = True

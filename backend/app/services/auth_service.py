@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 
 from app.auth.auth import hash_password, verify_password
 from app.auth.utils import create_access_token
-from app.schemas.schemas import UserCreate, UserLogin, UserResponse, TokenResponse
-from app.datamodels.datamodels import User, UserProfile, Session as UserSession
+from app.schemas.user_schemas import UserCreate, UserLogin, UserResponse, TokenResponse
+from app.datamodels.user_datamodels import User, UserProfile, Session as UserSession
 from database.database import database
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException, status

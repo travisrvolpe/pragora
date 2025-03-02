@@ -12,7 +12,7 @@ sys.path.append(os.getcwd())
 from database.database import Base, DATABASE_URL
 
 # Import all models that need to be included in migrations
-from app.datamodels.datamodels import User, UserProfile, Session
+from app.datamodels.user_datamodels import User, UserProfile, Session
 from app.datamodels.post_datamodels import Post, Category, Subcategory, PostType
 from app.datamodels.comment_datamodels import Comment  # Add this
 from app.datamodels.interaction_datamodels import (    # Add these
