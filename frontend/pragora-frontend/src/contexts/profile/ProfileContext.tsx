@@ -11,7 +11,7 @@ interface ProfileContextType {
   error: string | null;
   fetchProfile: () => Promise<void>;
   updateProfileData: (updatedProfile: ProfileUpdateDto) => Promise<void>;
-  updateAvatar: (file: File) => Promise<{ avatar_url: string }>;  // Updated return type to match service
+  updateAvatar: (file: File) => Promise<{ avatar_img: string }>;  // Updated return type to match service
 }
 
 const ProfileContext = createContext<ProfileContextType>({
@@ -20,7 +20,7 @@ const ProfileContext = createContext<ProfileContextType>({
   error: null,
   fetchProfile: async () => {},
   updateProfileData: async () => {},
-  updateAvatar: async () => ({ avatar_url: '' }), // Updated default value
+  updateAvatar: async () => ({ avatar_img: '' }), // Updated default value
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
@@ -64,11 +64,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const response = await profileService.updateAvatar(file);
       console.log("Avatar update response:", response);
 
-      if (response.avatar_url) {
+      if (response.avatar_img) {
         // Update profile immediately with new avatar URL
         setProfile(prevProfile => prevProfile ? {
           ...prevProfile,
-          avatar_img: response.avatar_url
+          avatar_img: response.avatar_img
         } : null);
       }
       return response;

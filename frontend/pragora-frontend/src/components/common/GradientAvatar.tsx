@@ -11,7 +11,7 @@ const POST_TYPE_GRADIENTS: Record<PostTypeId, string> = {
 
 interface GradientAvatarProps {
   username: string;
-  avatarUrl?: string;
+  avatarImg?: string;
   postType: PostTypeId;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
@@ -19,7 +19,7 @@ interface GradientAvatarProps {
 
 export const GradientAvatar: React.FC<GradientAvatarProps> = ({
   username,
-  avatarUrl,
+  avatarImg,
   postType,
   size = 'md',
   className
@@ -35,7 +35,7 @@ export const GradientAvatar: React.FC<GradientAvatarProps> = ({
       <div className="bg-white p-0.5 rounded-full">
         <UserAvatar
           username={username}
-          avatarUrl={avatarUrl}
+          avatarImg={avatarImg}
           size={size}
         />
       </div>

@@ -8,7 +8,7 @@ import { DEFAULT_AVATAR_URL } from '@/applib/constants/constants';
 
 interface UserAvatarProps {
   username: string;
-  avatarUrl?: string | null;
+  avatarImg?: string | null;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -21,7 +21,7 @@ const sizeMap = {
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({
   username,
-  avatarUrl,
+  avatarImg,
   size = 'md',
   className,
 }) => {
@@ -62,7 +62,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       )}
     >
       <Image
-        src={getImageSource(avatarUrl)}
+        src={getImageSource(avatarImg)}
         alt={`${username}'s avatar`}
         width={imageSize}
         height={imageSize}

@@ -25,7 +25,7 @@ export const PostHeader: FC<PostComponentProps & {
 }> = ({ post, onReport, isReportLoading }) => {
   const displayUsername = post.username || post.user?.username || 'Anonymous';
   const gradientClass = POST_TYPE_GRADIENTS[post.post_type_id] || POST_TYPE_GRADIENTS[1];
-  const avatarUrl = post.user?.avatar_url;
+  const avatarImg = post.user?.avatar_img;
 
   return (
     <div className="flex items-center justify-between p-4">
@@ -34,7 +34,7 @@ export const PostHeader: FC<PostComponentProps & {
           <div className="bg-white p-0.5 rounded-full">
             <UserAvatar
               username={displayUsername}
-              avatarUrl={avatarUrl}
+              avatarImg={post.avatar_img || post.user?.avatar_img}
               size="md"
             />
           </div>

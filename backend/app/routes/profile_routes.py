@@ -35,6 +35,9 @@ async def get_static_file(path: str):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)
 
+@router.options("/me")
+async def options_profile_me():
+    return {}
 #@router.get("/me")
 @router.get("/me")
 async def get_my_profile(
@@ -236,11 +239,6 @@ def get_user_avatar(user_id: int, db: Session = Depends(get_db)):
         print(f"Error retrieving avatar: {str(e)}")
         return FileResponse(os.path.join(settings.STATIC_ROOT, "default_avatar.png"),
                             media_type="image/png")
-    # If you store images on disk, do something like:
-    # return FileResponse(f"uploads/avatars/{user_profile.avatar_url}", media_type="image/png")
-
-    # Or if you have an S3 URL, redirect to that URL:
-    # return RedirectResponse(user_profile.avatar_url)
 
 
 @router.post("/me/avatar")
@@ -251,11 +249,11 @@ async def update_profile_avatar(
 ):
     """Update the current user's avatar"""
     try:
-        avatar_url = await update_avatar(db, current_user.user_id, file)
+        avatar_img = await update_avatar(db, current_user.user_id, file)
         return {
             "status": "success",
             "data": {
-                "avatar_url": avatar_url
+                "avatar_img": avatar_img
             }
         }
     except ValueError as e:

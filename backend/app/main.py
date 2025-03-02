@@ -64,9 +64,9 @@ async def lifespan(app_instance: FastAPI):
         await init_categories()
         await init_post_types()
         await init_post_interaction_types(db)
-        print("Running saved posts database repair...")
-        await repair_saved_posts_database(db)
-        print("Saved posts repair complete")
+        #print("Running saved posts database repair...")
+        #await repair_saved_posts_database(db)
+        #print("Saved posts repair complete")
         await sync_saved_posts(db)
 
         cache = get_cache()
@@ -113,9 +113,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],  # Your frontend URL
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Be explicit about OPTIONS
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],  # Be explicit about OPTIONS
     allow_headers=["*"],  # Keep this broad for now for debugging
-    expose_headers=["Content-Type", "Content-Length"],
+    expose_headers=["Content-Type", "Content-Length", "Authorization"],
     max_age=3600
 )
 app.middleware("http")(auth_middleware)

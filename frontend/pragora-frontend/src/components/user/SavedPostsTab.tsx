@@ -119,7 +119,7 @@ const SavedPostsTab: React.FC = () => {
           <div className="flex items-center space-x-3 mb-4">
             <UserAvatar
               username={post.author.username}
-              avatarUrl={post.author.avatar_img}
+              avatarImg={post.author.avatar_img}
               size="sm"
             />
             <span className="text-sm font-medium text-gray-700">

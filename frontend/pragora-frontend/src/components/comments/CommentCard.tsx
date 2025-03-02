@@ -154,7 +154,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({ comment, depth = 0 }) 
           <div className="flex-shrink-0">
             <UserAvatar
               username={comment.user?.username || comment.username || 'Anonymous'}
-              avatarUrl={comment.avatarImg || comment.user?.avatarImg}
+              avatarImg={comment.avatarImg || comment.user?.avatarImg}
               size="sm"
               className="ring-2 ring-white shadow-sm"
             />

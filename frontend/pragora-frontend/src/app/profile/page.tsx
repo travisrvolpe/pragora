@@ -149,7 +149,7 @@ export default function ProfilePage() {
               <div className="relative">
                   <UserAvatar
                       username={profile?.username || ''}
-                      avatarUrl={profile?.avatar_img}
+                      avatarImg={profile?.avatar_img}
                       size="lg"
                       className="w-32 h-32 border-4 border-white shadow-lg"
                   />

@@ -15,7 +15,7 @@ export interface PostAuthor {
 export interface PostUser {
   user_id: number;
   username?: string;
-  avatar_url?: string;
+  avatar_img?: string;
   reputation_score?: number;
 }
 

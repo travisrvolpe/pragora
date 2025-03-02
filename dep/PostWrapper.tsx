@@ -30,7 +30,7 @@ interface PostAnalysis {
 
 interface PostUser {
   username?: string;
-  avatar_url?: string;
+  avatar_img?: string;
   reputation_score?: number;
 }
 
@@ -295,9 +295,9 @@ const PostWrapper: React.FC<PostWrapperProps> = ({
           {/* Avatar with post-type based gradient ring */}
           <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${POST_TYPE_GRADIENTS[post.post_type_id]} p-0.5`}>
             <div className="w-full h-full rounded-full bg-white p-0.5">
-              {post.user?.avatar_url ? (
+              {post.user?.avatar_img ? (
                 <img
-                  src={post.user.avatar_url}
+                  src={post.user.avatar_img}
                   alt={displayUsername}
                   className="w-full h-full rounded-full object-cover"
                   onError={(e: React.SyntheticEvent<HTMLImageElement>) => {

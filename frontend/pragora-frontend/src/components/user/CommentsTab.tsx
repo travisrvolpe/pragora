@@ -85,7 +85,7 @@ const CommentsTab: React.FC = () => {
           <div className="flex items-center space-x-3 mb-4">
             <UserAvatar
               username={comment.username || ''}
-              avatarUrl={comment.avatar_img}
+              avatarImg={comment.avatar_img}
               size="sm"
             />
             <span className="text-sm font-medium text-gray-700">

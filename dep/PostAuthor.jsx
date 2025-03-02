@@ -21,9 +21,9 @@ const PostAuthor = ({ post }) => {
       <div className="flex items-center space-x-3">
         {/* Avatar */}
         <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-          {post.user?.avatar_url ? (
+          {post.user?.avatar_img ? (
             <img
-              src={post.user.avatar_url}
+              src={post.user.avatar_img}
               alt={post.user?.name || 'User avatar'}
               className="w-full h-full object-cover"
             />
